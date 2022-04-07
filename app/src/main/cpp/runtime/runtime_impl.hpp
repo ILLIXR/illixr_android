@@ -7,12 +7,14 @@
 #include "common/dynamic_lib.hpp"
 #include "common/plugin.hpp"
 #include "common/switchboard.hpp"
-#include "stdout_record_logger.hpp"
+//#include "stdout_record_logger.hpp"
 #include "noop_record_logger.hpp"
 //#include "sqlite_record_logger.hpp"
 #include "common/global_module_defs.hpp"
 #include "common/error_util.hpp"
 #include "common/stoplight.hpp"
+#include <EGL/egl.h>
+
 
 using namespace ILLIXR;
 
@@ -20,14 +22,17 @@ class runtime_impl : public runtime {
 public:
 	runtime_impl(
 #ifndef ILLIXR_MONADO_MAINLINE
-        GLXContext appGLCtx
+        EGLContext appGLCtx
 #endif /// ILLIXR_MONADO_MAINLINE
 	) {
+		//FIXIT
 		//pb.register_impl<record_logger>(std::make_shared<sqlite_record_logger>());
 		pb.register_impl<gen_guid>(std::make_shared<gen_guid>());
 		pb.register_impl<switchboard>(std::make_shared<switchboard>(&pb));
 #ifndef ILLIXR_MONADO_MAINLINE
-        pb.register_impl<xlib_gl_extended_window>(std::make_shared<xlib_gl_extended_window>(ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT, appGLCtx));
+		//Need to pass actual window
+		ANativeWindow *window;
+        pb.register_impl<xlib_gl_extended_window>(std::make_shared<xlib_gl_extended_window>(ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT, appGLCtx, window));
 #endif /// ILLIXR_MONADO_MAINLINE
 		pb.register_impl<Stoplight>(std::make_shared<Stoplight>());
 	}
@@ -130,7 +135,7 @@ extern "C" runtime* runtime_factory() {
 	return new runtime_impl{};
 }
 #else
-extern "C" runtime* runtime_factory(GLXContext appGLCtx) {
+extern "C" runtime* runtime_factory(EGLContext appGLCtx) {
     RAC_ERRNO_MSG("runtime_impl before creating the runtime");
 	return new runtime_impl{appGLCtx};
 }

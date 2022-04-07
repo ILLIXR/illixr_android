@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <memory>
-#include <GL/glx.h>
 #include "extended_window.hpp"
 
 namespace ILLIXR {
@@ -34,7 +33,7 @@ namespace ILLIXR {
 #ifdef ILLIXR_MONADO_MAINLINE
 	extern "C" runtime* runtime_factory();
 #else
-	extern "C" runtime* runtime_factory(GLXContext appGLCtx);
+	extern "C" runtime* runtime_factory(EGLContext appGLCtx);
 #endif /// ILLIXR_MONADO_MAINLINE
 
 }

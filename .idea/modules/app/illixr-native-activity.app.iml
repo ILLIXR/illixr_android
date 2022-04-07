@@ -46,9 +46,6 @@
       <excludeFolder url="file://$MODULE_DIR$/../../../app/.cxx" />
       <excludeFolder url="file://$MODULE_DIR$/../../../app/.externalNativeBuild" />
     </content>
-    <content url="file://$MODULE_DIR$/../../../../native-activity/app/src/main/cpp">
-      <sourceFolder url="file://$MODULE_DIR$/../../../../native-activity/app/src/main/cpp" type="native-Source-root" />
-    </content>
     <content url="file://$USER_HOME$/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni/include">
       <sourceFolder url="file://$USER_HOME$/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni/include" type="native-header-root" />
     </content>

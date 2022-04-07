@@ -95,14 +95,14 @@ namespace ILLIXR {
 		 */
 		template <typename specific_service>
 		void register_impl(std::shared_ptr<specific_service> impl) {
-			const std::unique_lock<std::timed_mutex> lock{_m_mutex};
+			const std::unique_lock<std::shared_mutex> lock{_m_mutex};
 
 			const std::type_index type_index = std::type_index(typeid(specific_service));
 #ifndef NDEBUG
 			std::cerr << "Register " << type_index.name() << std::endl;
 #endif
 			assert(_m_registry.count(type_index) == 0);
-			//_m_registry.try_emplace(type_index, impl);
+			_m_registry.try_emplace(type_index, impl);
 		}
 
 		/**
@@ -116,7 +116,7 @@ namespace ILLIXR {
 		 */
 		template <typename specific_service>
 		std::shared_ptr<specific_service> lookup_impl() const {
-			//const std::shared_lock<std::timed_mutex> lock{_m_mutex};
+			const std::shared_lock<std::shared_mutex> lock{_m_mutex};
 
 			const std::type_index type_index = std::type_index(typeid(specific_service));
 
@@ -138,7 +138,7 @@ namespace ILLIXR {
 
 	private:
 		std::unordered_map<std::type_index, const std::shared_ptr<service>> _m_registry;
-		mutable std::timed_mutex _m_mutex;
+		mutable std::shared_mutex _m_mutex;
 	};
 }
 

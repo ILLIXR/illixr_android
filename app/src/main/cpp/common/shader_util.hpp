@@ -22,7 +22,7 @@ static void GLAPIENTRY
 					[[maybe_unused]] const void* userParam )
 {
 #ifndef NDEBUG
-    /*if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
         /// Don't show message if severity level is notification. Non-fatal.
         return;
     }
@@ -36,7 +36,6 @@ static void GLAPIENTRY
         /// Fatal error if severity level is high.
         ILLIXR::abort();
     } /// else => severity level low and medium are non-fatal.
-     */
 #endif
 }
 

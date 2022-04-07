@@ -4,11 +4,12 @@
 #include <chrono>
 #include <memory>
 #include <boost/optional.hpp>
+
 #include <opencv2/core/mat.hpp>
 #undef Success // For 'Success' conflict
-#include "../Eigen/Dense"
+#include <eigen3/Eigen/Dense>
 #include <GL/gl.h>
-#include "../GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 //#undef Complex // For 'Complex' conflict
 #include "phonebook.hpp" 
 #include "switchboard.hpp"
@@ -73,6 +74,26 @@ namespace ILLIXR {
 		double imu_integration_sigma;
 		double nominal_rate;
 	} imu_params;
+
+	//Eye tracking data structure
+	
+
+    struct eye_segmentation : public switchboard::event {
+
+        cv::Mat* img0;
+
+        cv::Mat* img1;
+
+        eye_segmentation(cv::Mat* img0_, cv::Mat* img1_)
+
+            : img0{img0_}
+
+            , img1{img1_}
+
+        { }
+
+    };
+
 
 	// IMU biases, initialization params, and slow pose needed by the IMU integrator
 	struct imu_integrator_input : public switchboard::event {

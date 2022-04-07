@@ -5,7 +5,7 @@
 #include <android/log.h>
 #include <thread>
 #include <vector>
-//#include "runtime_impl.hpp"
+#include "runtime_impl.hpp"
 
 using namespace ILLIXR;
 

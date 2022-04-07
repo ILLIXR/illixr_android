@@ -192,10 +192,10 @@ public:
 		: name{name_}
 		, serial_no{should_profile() ? gen_serial_no() : std::size_t{0}}
 		, wall_time_start{should_profile()
-			? (unsigned)std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()
+			? (std::size_t) std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()
 			: std::size_t{0}
 		}
-		, cpu_time_start{should_profile() ? (unsigned)thread_cpu_time().count() : std::size_t{0}}
+		, cpu_time_start{should_profile() ? (std::size_t)thread_cpu_time().count() : std::size_t{0}}
 	{ }
 	~print_timer2() {
 		if (should_profile()) {
