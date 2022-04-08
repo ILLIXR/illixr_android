@@ -41,7 +41,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_SHARED_LINKER_FLAGS
     "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate")
 
-add_library(native-activity SHARED main.cpp )
+add_library(native-activity SHARED main.cpp runtime/main.cpp)
 
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}

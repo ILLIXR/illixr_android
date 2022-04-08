@@ -2,7 +2,7 @@
 #include <unistd.h> /// Not portable
 #include "runtime_impl.hpp"
 #include "common/global_module_defs.hpp"
-
+#include "main.h"
 
 constexpr std::chrono::seconds ILLIXR_RUN_DURATION_DEFAULT {60};
 [[maybe_unused]] constexpr unsigned int ILLIXR_PRE_SLEEP_DURATION {10};
@@ -65,7 +65,10 @@ private:
 };
 
 
-int main(int argc, char* const* argv) {
+
+int runtime_main(int argc, char* const* argv) {
+	LOGI	("Started runtimeeeee");
+	return 0;
 #ifdef ILLIXR_MONADO_MAINLINE
 	r = ILLIXR::runtime_factory();
 #else

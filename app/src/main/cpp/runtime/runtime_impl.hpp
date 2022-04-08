@@ -18,9 +18,9 @@
 
 using namespace ILLIXR;
 
-class runtime_impl : public runtime {
+class main : public runtime {
 public:
-	runtime_impl(
+	main(
 #ifndef ILLIXR_MONADO_MAINLINE
         EGLContext appGLCtx
 #endif /// ILLIXR_MONADO_MAINLINE
@@ -38,24 +38,24 @@ public:
 	}
 
 	virtual void load_so(const std::vector<std::string>& so_paths) override {
-        RAC_ERRNO_MSG("runtime_impl before creating any dynamic library");
+        RAC_ERRNO_MSG("main before creating any dynamic library");
 
 		std::transform(so_paths.cbegin(), so_paths.cend(), std::back_inserter(libs), [](const auto& so_path) {
-		    RAC_ERRNO_MSG("runtime_impl before creating the dynamic library");
+		    RAC_ERRNO_MSG("main before creating the dynamic library");
 			return dynamic_lib::create(so_path);
 		});
 
-        RAC_ERRNO_MSG("runtime_impl after creating the dynamic libraries");
+        RAC_ERRNO_MSG("main after creating the dynamic libraries");
 
 		std::vector<plugin_factory> plugin_factories;
 		std::transform(libs.cbegin(), libs.cend(), std::back_inserter(plugin_factories), [](const auto& lib) {
 			return lib.template get<plugin* (*) (phonebook*)>("this_plugin_factory");
 		});
 
-        RAC_ERRNO_MSG("runtime_impl after generating plugin factories");
+        RAC_ERRNO_MSG("main after generating plugin factories");
 
 		std::transform(plugin_factories.cbegin(), plugin_factories.cend(), std::back_inserter(plugins), [this](const auto& plugin_factory) {
-		    RAC_ERRNO_MSG("runtime_impl before building the plugin");
+		    RAC_ERRNO_MSG("main before building the plugin");
 			return std::unique_ptr<plugin>{plugin_factory(&pb)};
 		});
 
@@ -67,6 +67,7 @@ public:
 		// This actually kicks off the plugins
 		pb.lookup_impl<Stoplight>()->signal_ready();
 	}
+
 
 	virtual void load_so(const std::string_view so) override {
 		auto lib = dynamic_lib::create(so);
@@ -103,7 +104,7 @@ public:
 		pb.lookup_impl<Stoplight>()->signal_shutdown_complete();
 	}
 
-	virtual ~runtime_impl() override {
+	virtual ~main() override {
 		if (!pb.lookup_impl<Stoplight>()->check_shutdown_complete()) {
 			stop();
 		}
@@ -136,7 +137,7 @@ extern "C" runtime* runtime_factory() {
 }
 #else
 extern "C" runtime* runtime_factory(EGLContext appGLCtx) {
-    RAC_ERRNO_MSG("runtime_impl before creating the runtime");
-	return new runtime_impl{appGLCtx};
+    RAC_ERRNO_MSG("main before creating the runtime");
+	return new main{appGLCtx};
 }
 #endif /// ILLIXR_MONADO_MAINLINE

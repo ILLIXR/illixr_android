@@ -5,7 +5,7 @@
 #include <android/log.h>
 #include <thread>
 #include <vector>
-#include "runtime_impl.hpp"
+#include "runtime/main.h"
 
 using namespace ILLIXR;
 
@@ -45,6 +45,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
     }
 }
 
+
 void  android_main(struct android_app* state) {
 
     state->onAppCmd = handle_cmd;
@@ -66,8 +67,10 @@ void  android_main(struct android_app* state) {
     //char *arg = "mm";
     //char *argv[1] = {arg};
     //const int argc = 1;
-    //std::thread runtime_thread (runtime_main(argv.size() - 1, argv.data()));
+    //runtime_main(argv.size() - 1, argv.data());
+    //std::thread runtime_thread(runtime_main, argv.size() - 1, argv.data());
     LOGI("Not null");
+    /*
     while(true) {
         int ident;
         int events;
@@ -85,6 +88,7 @@ void  android_main(struct android_app* state) {
             }
         }
     }
+     */
     //xlib_gl_extended_window* xwin = new xlib_gl_extended_window{1, 1, context, state->window};
     //eglSwapInterval(xwin->display, 1);
    /*
