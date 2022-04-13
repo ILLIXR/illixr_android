@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <cassert>
 #include <EGL/egl.h>
+#include <GLES3/gl3.h>
 #include "phonebook.hpp"
 #include "global_module_defs.hpp"
 //#include "error_util.hpp"

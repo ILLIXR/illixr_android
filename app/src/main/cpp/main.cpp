@@ -68,7 +68,8 @@ void  android_main(struct android_app* state) {
     //char *argv[1] = {arg};
     //const int argc = 1;
     //runtime_main(argv.size() - 1, argv.data());
-    //std::thread runtime_thread(runtime_main, argv.size() - 1, argv.data());
+    std::thread runtime_thread(runtime_main, argv.size() - 1, argv.data());
+    runtime_thread.join();
     LOGI("Not null");
     /*
     while(true) {

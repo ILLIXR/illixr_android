@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.18.0)
 
 # build native_app_glue as a static lib
 set(OpenCV_STATIC ON)
@@ -25,8 +25,13 @@ set(OpenCV_DIR $ENV{OPENCV_ANDROID}/sdk/native/jni)
 include_directories(~/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni/include)
 include_directories(GLFW)
 include_directories(Eigen)
+include_directories(boost)
 include_directories(common)
 include_directories(runtime)
+include_directories(timewarp_gl)
+include_directories(timewarp_gl/utils)
+include_directories(gldemo)
+
 set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
 add_library(native_app_glue STATIC
     ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
@@ -41,7 +46,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_SHARED_LINKER_FLAGS
     "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate")
 
-add_library(native-activity SHARED main.cpp runtime/main.cpp)
+add_library(native-activity
+            SHARED
+            main.cpp
+            #runtime/main.cpp
+            timewarp_gl/utils/hmd.cpp
+            #timewarp_gl/plugin.cpp
+            runtime/plugin.cpp
+            gldemo/plugin.cpp
+        )
 
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
@@ -53,5 +66,5 @@ target_link_libraries(native-activity
     android
     native_app_glue
     EGL
-    GLESv1_CM
+    GLESv3
     log)

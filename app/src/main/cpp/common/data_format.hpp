@@ -4,13 +4,15 @@
 #include <chrono>
 #include <memory>
 #include <boost/optional.hpp>
-
 #include <opencv2/core/mat.hpp>
 #undef Success // For 'Success' conflict
-#include <eigen3/Eigen/Dense>
-#include <GL/gl.h>
-#include <GLFW/glfw3.h>
+#include <Eigen/Dense>
 //#undef Complex // For 'Complex' conflict
+#include <EGL/egl.h>
+#include <GLES3/gl32.h>
+#include <GLES3/gl3ext.h>
+#include <GLES3/gl3platform.h>
+
 #include "phonebook.hpp" 
 #include "switchboard.hpp"
 

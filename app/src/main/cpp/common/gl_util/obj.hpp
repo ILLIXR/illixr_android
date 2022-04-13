@@ -1,6 +1,9 @@
 #pragma once
 
 #include "../error_util.hpp"
+#include <EGL/egl.h>
+#include <GLES3/gl3.h>
+
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "lib/tiny_obj_loader.h"

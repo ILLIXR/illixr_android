@@ -1,12 +1,12 @@
 #pragma once
 
-namespace ILLIXR {
-	namespace math_util {
+namespace math_util {
+	//namespace math_util {
 
 		// Calculates a projection matrix with given properties. Implementation
 		// borrowed from J.M.P. Van Waveren's ksAlgebra library, as found in
 		// https://github.com/KhronosGroup/Vulkan-Samples-Deprecated/blob/master/samples/apps/atw/atw_opengl.c
-		void projection_fov(Eigen::Matrix4f* result,
+		void inline projection_fov(Eigen::Matrix4f* result,
 								   const float fovLeft, const float fovRight,
 								   const float fovUp, const float fovDown,
 								   const float nearZ, const float farZ);
@@ -14,7 +14,7 @@ namespace ILLIXR {
 		// Calculates a projection matrix with given properties. Implementation
 		// borrowed from J.M.P. Van Waveren's ksAlgebra library, as found in
 		// https://github.com/KhronosGroup/Vulkan-Samples-Deprecated/blob/master/samples/apps/atw/atw_opengl.c
-		void projection( Eigen::Matrix4f* result,
+		void inline projection( Eigen::Matrix4f* result,
 								const float tanAngleLeft, const float tanAngleRight,
                                 const float tanAngleUp, float const tanAngleDown,
 								const float nearZ, const float farZ );
@@ -90,5 +90,5 @@ namespace ILLIXR {
 				(*result)(3,3) = 0;
 			}
 		}
-	};
+	//};
 }
