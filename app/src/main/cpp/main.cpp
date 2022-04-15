@@ -10,6 +10,7 @@
 using namespace ILLIXR;
 
 int x = 0;
+/*
 static void engine_draw_frame(xlib_gl_extended_window* xwin) {
     if (xwin->display == nullptr) {
         // No display
@@ -25,6 +26,7 @@ static void engine_draw_frame(xlib_gl_extended_window* xwin) {
     eglSwapBuffers(xwin->display, xwin->surface);
     LOGI("DONE DRAWING FRAME");
 }
+
 static void handle_cmd(struct android_app* app, int32_t cmd) {
     LOGI("Got command %d", cmd);
     switch(cmd) {
@@ -38,6 +40,28 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
                 engine_draw_frame(xwin);
                 i--;
             }
+            break;
+        }
+        default:
+            LOGI("Some other command");
+    }
+}
+*/
+
+
+static void handle_cmd(struct android_app* app, int32_t cmd) {
+    LOGI("Got command %d", cmd);
+    switch(cmd) {
+        case APP_CMD_INIT_WINDOW:
+        {
+            //std::vector<std::string> arguments = { "gldemo/plugin.opt.so", "debugview/plugin.opt.so", "offload_data/plugin.opt.so", "timewarp_gl/plugin.opt.so", "offline_imu_cam/plugin.opt.so", "gtsam_integrator/plugin.opt.so", "pose_prediction/plugin.opt.so", "ground_truth_slam/plugin.opt.so"};
+            std::vector<std::string> arguments = { "something", "gldemo/plugin.opt.so" };
+            std::vector<char*> argv;
+            for (const auto& arg : arguments)
+                argv.push_back((char*)arg.data());
+            std::thread runtime_thread(runtime_main, argv.size() - 1, argv.data(), app->window);
+            runtime_thread.join();
+            LOGI("Out of main");
             break;
         }
         default:
@@ -58,20 +82,15 @@ void  android_main(struct android_app* state) {
         ;
     }*/
 
-    std::vector<std::string> arguments = {"offline_imu_cam/plugin.opt.so", "gtsam_integrator/plugin.opt.so", "pose_prediction/plugin.opt.so", "ground_truth_slam/plugin.opt.so", "gldemo/plugin.opt.so", "debugview/plugin.opt.so", "offload_data/plugin.opt.so", "timewarp_gl/plugin.opt.so"};
-    std::vector<char*> argv;
-    for (const auto& arg : arguments)
-        argv.push_back((char*)arg.data());
-    argv.push_back(nullptr);
+
+    //argv.push_back(nullptr);
 
     //char *arg = "mm";
     //char *argv[1] = {arg};
     //const int argc = 1;
     //runtime_main(argv.size() - 1, argv.data());
-    std::thread runtime_thread(runtime_main, argv.size() - 1, argv.data());
-    runtime_thread.join();
-    LOGI("Not null");
-    /*
+
+
     while(true) {
         int ident;
         int events;
@@ -89,7 +108,7 @@ void  android_main(struct android_app* state) {
             }
         }
     }
-     */
+
     //xlib_gl_extended_window* xwin = new xlib_gl_extended_window{1, 1, context, state->window};
     //eglSwapInterval(xwin->display, 1);
    /*

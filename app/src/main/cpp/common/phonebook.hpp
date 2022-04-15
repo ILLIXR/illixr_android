@@ -7,6 +7,10 @@
 #include <shared_mutex>
 #include <memory>
 #include <unordered_map>
+#include <android/log.h>
+
+
+#define LOGIT(...) ((void)__android_log_print(ANDROID_LOG_INFO, "phonebook", __VA_ARGS__))
 
 namespace ILLIXR {
 
@@ -95,9 +99,11 @@ namespace ILLIXR {
 		 */
 		template <typename specific_service>
 		void register_impl(std::shared_ptr<specific_service> impl) {
+			LOGIT (" In reg impl");
 			const std::unique_lock<std::shared_mutex> lock{_m_mutex};
 
 			const std::type_index type_index = std::type_index(typeid(specific_service));
+			LOGIT (" Register %s", type_index.name());
 #ifndef NDEBUG
 			std::cerr << "Register " << type_index.name() << std::endl;
 #endif

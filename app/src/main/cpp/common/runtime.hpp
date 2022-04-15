@@ -33,7 +33,7 @@ namespace ILLIXR {
 #ifdef ILLIXR_MONADO_MAINLINE
 	extern "C" runtime* runtime_factory();
 #else
-	extern "C" runtime* runtime_factory(EGLContext appGLCtx);
+	extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window);
 #endif /// ILLIXR_MONADO_MAINLINE
 
 }

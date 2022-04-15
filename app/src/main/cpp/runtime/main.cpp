@@ -66,14 +66,17 @@ private:
 
 
 
-int runtime_main(int argc, char* const* argv) {
+int runtime_main(int argc, char* const* argv, ANativeWindow *window) {
 	LOGI	("Started runtimeeeee");
-	return 0;
+
 #ifdef ILLIXR_MONADO_MAINLINE
 	r = ILLIXR::runtime_factory();
 #else
-	r = ILLIXR::runtime_factory(nullptr);
+	LOGI ("NO MONADO");
+	EGLContext context = EGL_NO_CONTEXT;
+	r = ILLIXR::runtime_factory(context, window);
 #endif /// ILLIXR_MONADO_MAINLINE
+
 
 #ifndef NDEBUG
     /// When debugging, register the SIGILL and SIGABRT handlers for capturing more info
@@ -105,26 +108,34 @@ int runtime_main(int argc, char* const* argv) {
 		: ILLIXR_RUN_DURATION_DEFAULT;
 
 	RAC_ERRNO_MSG("main after creating runtime");
+    LOGI("main after creating runtime");
 
 	std::vector<std::string> lib_paths;
 	std::transform(argv + 1, argv + argc, std::back_inserter(lib_paths), [](const char* arg) {
 		return std::string{arg};
 	});
+
 	RAC_ERRNO_MSG("main before loading dynamic libraries");
+    LOGI("main before loading dynamic libraries");
 	r->load_so(lib_paths);
+	//LOGI(lib_paths[0]);
 
 	cancellable_sleep cs;
 	std::thread th{[&]{
 		cs.sleep(run_duration);
 		r->stop();
 	}};
+	LOGI("here not blocking");
 
 	r->wait(); // blocks until shutdown is r->stop()
 
-	// cancel our sleep, so we can join the other thread
+    LOGI("here out of wait");
+
+    // cancel our sleep, so we can join the other thread
 	cs.cancel();
 	th.join();
 
 	delete r;
+    LOGI	("here done!!");
 	return 0;
 }

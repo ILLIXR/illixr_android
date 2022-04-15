@@ -22,16 +22,20 @@ class main : public runtime {
 public:
 	main(
 #ifndef ILLIXR_MONADO_MAINLINE
-        EGLContext appGLCtx
+        EGLContext appGLCtx,
 #endif /// ILLIXR_MONADO_MAINLINE
+	    ANativeWindow *window
 	) {
 		//FIXIT
-		//pb.register_impl<record_logger>(std::make_shared<sqlite_record_logger>());
+		pb.register_impl<record_logger>(std::make_shared<noop_record_logger>());
+		LOGI("main constructor ");
 		pb.register_impl<gen_guid>(std::make_shared<gen_guid>());
+		LOGI("main constructor 55");
 		pb.register_impl<switchboard>(std::make_shared<switchboard>(&pb));
+		LOGI("main constructor 77");
 #ifndef ILLIXR_MONADO_MAINLINE
 		//Need to pass actual window
-		ANativeWindow *window;
+
         pb.register_impl<xlib_gl_extended_window>(std::make_shared<xlib_gl_extended_window>(ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT, appGLCtx, window));
 #endif /// ILLIXR_MONADO_MAINLINE
 		pb.register_impl<Stoplight>(std::make_shared<Stoplight>());
@@ -136,8 +140,9 @@ extern "C" runtime* runtime_factory() {
 	return new runtime_impl{};
 }
 #else
-extern "C" runtime* runtime_factory(EGLContext appGLCtx) {
+extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window) {
     RAC_ERRNO_MSG("main before creating the runtime");
-	return new main{appGLCtx};
+    LOGI ("main before creating the runtime");
+	return new main{appGLCtx, window};
 }
 #endif /// ILLIXR_MONADO_MAINLINE
