@@ -108,17 +108,27 @@ int runtime_main(int argc, char* const* argv, ANativeWindow *window) {
 		: ILLIXR_RUN_DURATION_DEFAULT;
 
 	RAC_ERRNO_MSG("main after creating runtime");
-    LOGI("main after creating runtime");
 
 	std::vector<std::string> lib_paths;
-	std::transform(argv + 1, argv + argc, std::back_inserter(lib_paths), [](const char* arg) {
+	//argv = argv+1
+	LOGI("%s",argv[0]);
+	std::transform(argv, argv + argc, std::back_inserter(lib_paths), [](const char* arg) {
 		return std::string{arg};
 	});
 
 	RAC_ERRNO_MSG("main before loading dynamic libraries");
+	//LOGW("%u", lib_paths.size());
     LOGI("main before loading dynamic libraries");
 	r->load_so(lib_paths);
-	//LOGI(lib_paths[0]);
+    //int n = lib_paths[0].length();
+
+    // declaring character array
+    //char char_array[n + 1];
+
+    // copying the contents of the
+    // string to char array
+    //strcpy(char_array, lib_paths[0].c_str());
+	//LOGI(" printing %s ", char_array);
 
 	cancellable_sleep cs;
 	std::thread th{[&]{

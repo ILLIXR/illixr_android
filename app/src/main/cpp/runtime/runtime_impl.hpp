@@ -43,15 +43,18 @@ public:
 
 	virtual void load_so(const std::vector<std::string>& so_paths) override {
         RAC_ERRNO_MSG("main before creating any dynamic library");
-
+        LOGI("runtime impl load so");
 		std::transform(so_paths.cbegin(), so_paths.cend(), std::back_inserter(libs), [](const auto& so_path) {
 		    RAC_ERRNO_MSG("main before creating the dynamic library");
-			return dynamic_lib::create(so_path);
-		});
+            LOGI("runtime impl load so vrtbr failed");
 
+            return dynamic_lib::create(so_path);
+		});
+        LOGI("runtime impl load so vrtbr");
         RAC_ERRNO_MSG("main after creating the dynamic libraries");
 
 		std::vector<plugin_factory> plugin_factories;
+
 		std::transform(libs.cbegin(), libs.cend(), std::back_inserter(plugin_factories), [](const auto& lib) {
 			return lib.template get<plugin* (*) (phonebook*)>("this_plugin_factory");
 		});
@@ -74,6 +77,7 @@ public:
 
 
 	virtual void load_so(const std::string_view so) override {
+		LOGI("TRYING TO LOAD *********");
 		auto lib = dynamic_lib::create(so);
 		plugin_factory this_plugin_factory = lib.get<plugin* (*) (phonebook*)>("this_plugin_factory");
 		load_plugin_factory(this_plugin_factory);

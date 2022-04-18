@@ -5,7 +5,10 @@
 #include <cerrno>
 #include <cassert>
 #include <EGL/egl.h>
-#include <GLES3/gl3.h>
+#include <EGL/eglext.h>
+#include <GLES3/gl32.h>
+#include <GLES3/gl3ext.h>
+#include <GLES3/gl3platform.h>
 #include "phonebook.hpp"
 #include "global_module_defs.hpp"
 //#include "error_util.hpp"
@@ -22,7 +25,7 @@
 //typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "extended-window", __VA_ARGS__))
-#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "extended-wondow", __VA_ARGS__))
+#define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "extended-window", __VA_ARGS__))
 
 namespace ILLIXR {
     class xlib_gl_extended_window : public phonebook::service {

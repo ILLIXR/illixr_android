@@ -36,7 +36,6 @@ set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
 add_library(native_app_glue STATIC
     ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
 
-
 # now build app's shared lib
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -Werror")
 set(CMAKE_CXX_STANDARD 17)
@@ -49,17 +48,36 @@ set(CMAKE_SHARED_LINKER_FLAGS
 add_library(native-activity
             SHARED
             main.cpp
-            #runtime/main.cpp
-            timewarp_gl/utils/hmd.cpp
+            #timewarp_gl/utils/hmd.cpp
             #timewarp_gl/plugin.cpp
             runtime/plugin.cpp
-            gldemo/plugin.cpp
+        )
+
+add_library(gldemo
+        SHARED
+        gldemo/plugin.cpp
+        )
+
+add_library(timewarp_gl
+        SHARED
+        timewarp_gl/plugin.cpp
+        timewarp_gl/utils/hmd.cpp
         )
 
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
-    ${ANDROID_NDK}/sources/android/native_app_glue)
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(gldemo PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(timewarp_gl PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
 
 # add lib dependencies
 target_link_libraries(native-activity
@@ -68,3 +86,14 @@ target_link_libraries(native-activity
     EGL
     GLESv3
     log)
+
+target_link_libraries(gldemo
+    EGL
+    GLESv3
+    log
+    )
+target_link_libraries(timewarp_gl
+    EGL
+    GLESv3
+    log
+    )

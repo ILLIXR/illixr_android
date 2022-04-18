@@ -23,7 +23,6 @@
 
 using namespace ILLIXR;
 
-
 static constexpr int   EYE_TEXTURE_WIDTH   = ILLIXR::FB_WIDTH;
 static constexpr int   EYE_TEXTURE_HEIGHT  = ILLIXR::FB_HEIGHT;
 
@@ -359,6 +358,7 @@ public:
 	// Dummy "application" overrides _p_start to control its own lifecycle/scheduling.
 	virtual void start() override {
 		RAC_ERRNO_MSG("gldemo at start of gldemo start function");
+		LOGI("START OF GLDEMO");
 
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result_0 && "glXMakeCurrent should not fail");
@@ -411,6 +411,7 @@ public:
 
 		char* obj_dir = std::getenv("ILLIXR_DEMO_DATA");
 		if (obj_dir == nullptr) {
+			LOGI("Demo data not found");
             ILLIXR::abort("Please define ILLIXR_DEMO_DATA.");
 		}
 		demoscene = ObjScene(std::string(obj_dir), "scene.obj");

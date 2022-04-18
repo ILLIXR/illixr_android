@@ -63,6 +63,7 @@ public:
 
         // dlopen man page says that it can set errno sp
         RAC_ERRNO_MSG("dynamic_lib before dlopen");
+        LOGI("dlopen failed");
         void* handle = dlopen(path.data(), RTLD_LAZY | RTLD_LOCAL);
         RAC_ERRNO_MSG("dynamic_lib after dlopen");
 
