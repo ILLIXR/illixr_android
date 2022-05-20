@@ -77,6 +77,11 @@ namespace ILLIXR {
 
 	public:
 
+
+        phonebook() {
+            LOGIT("Constructpor calleled *******");
+        }
+
 		/**
 		 * @brief A 'service' that can be registered in the phonebook.
 		 * 
@@ -109,6 +114,11 @@ namespace ILLIXR {
 #endif
 			assert(_m_registry.count(type_index) == 0);
 			_m_registry.try_emplace(type_index, impl);
+			//LOGIT(" Registry count  %u  %s", _m_registry.count(type_index), type_index.name());
+            std::unordered_map<std::type_index, const std::shared_ptr<service>>::iterator it;
+            for (it = _m_registry.begin(); it != _m_registry.end() ; ++it) {
+                LOGIT("IN LOOP %s", it->first.name());
+            }
 		}
 
 		/**
@@ -120,15 +130,35 @@ namespace ILLIXR {
 		 *
 		 * @throws if an implementation is not already registered.
 		 */
+		 
 		template <typename specific_service>
 		std::shared_ptr<specific_service> lookup_impl() const {
-			const std::shared_lock<std::shared_mutex> lock{_m_mutex};
+            const std::shared_lock<std::shared_mutex> lock{_m_mutex};
+			const std::type_index type_index = std::type_index(typeid(specific_service));//m_registry.begin()->first;
 
-			const std::type_index type_index = std::type_index(typeid(specific_service));
+			LOGIT("IN LOOP %s %s", _m_registry.begin()->first.name(), std::type_index(typeid(specific_service)).name());
+			//LOGIT("IN LOOP jj %s %ul", std::next(_m_registry.begin())->first.name() , _m_registry.count(_m_registry.begin()->first));
+			//LOGIT("IN LOOP second %s", std::next(std::next(_m_registry.begin()))->first.name());
+
+			LOGIT("IN LOOP size %d",(int) _m_registry.size());
+
+			/*
+			std::unordered_map<std::type_index, const std::shared_ptr<service>>::iterator it;
+			for (it = _m_registry.begin(); it != _m_registry.end() ; ++it) {
+				LOGIT("IN LOOP %s", it->first.name());
+			}
+			*/
+
+
+    		//LOGIT("IN LOOP  kk%s", std::next(std::next(_m_registry.begin()))->first.name());
+			//LOGIT("IN LOOP ll%s", std::next(std::next(std::next(_m_registry.begin())))->first.name());
+			//LOGIT("IN LOOP  mm%s", std::next(std::next(std::next(std::next(_m_registry.begin()))))->first.name());
 
 #ifndef NDEBUG
+
 			// if this assert fails, and there are no duplicate base classes, ensure the hash_code's are unique.
 			if (_m_registry.count(type_index) != 1) {
+				//LOGIT(" registry count while failing %ul  ", _m_registry.count(type_index));
 				throw std::runtime_error{"Attempted to lookup an unregistered implementation " + std::string{type_index.name()}};
 			}
 #endif

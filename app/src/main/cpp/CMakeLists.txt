@@ -20,7 +20,7 @@ cmake_minimum_required(VERSION 3.18.0)
 set(OpenCV_STATIC ON)
 set(OpenCV_DIR $ENV{OPENCV_ANDROID}/sdk/native/jni)
 #find_package(OpenCV REQUIRED)
-
+#set(CMAKE_BUILD_TYPE "Release")
 # Declares and names the project.
 include_directories(~/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni/include)
 include_directories(GLFW)
@@ -31,6 +31,10 @@ include_directories(runtime)
 include_directories(timewarp_gl)
 include_directories(timewarp_gl/utils)
 include_directories(gldemo)
+include_directories(pose_lookup)
+include_directories(ILLIXR_DATA)
+
+set(CMAKE_C_COMPILER "clang-10")
 
 set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
 add_library(native_app_glue STATIC
@@ -64,6 +68,16 @@ add_library(timewarp_gl
         timewarp_gl/utils/hmd.cpp
         )
 
+add_library(pose_lookup
+        SHARED
+        pose_lookup/plugin.cpp
+        )
+
+add_library(sample
+        SHARED
+        sample/sample.cpp
+        )
+
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
@@ -75,6 +89,17 @@ target_include_directories(gldemo PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(timewarp_gl PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(pose_lookup PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+
+target_include_directories(sample PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
@@ -92,8 +117,21 @@ target_link_libraries(gldemo
     GLESv3
     log
     )
+
 target_link_libraries(timewarp_gl
     EGL
     GLESv3
     log
     )
+
+target_link_libraries(pose_lookup
+    EGL
+    GLESv3
+    log
+    )
+
+target_link_libraries(sample
+        EGL
+        GLESv3
+        log
+        )

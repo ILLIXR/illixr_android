@@ -46,11 +46,8 @@ public:
         LOGI("runtime impl load so");
 		std::transform(so_paths.cbegin(), so_paths.cend(), std::back_inserter(libs), [](const auto& so_path) {
 		    RAC_ERRNO_MSG("main before creating the dynamic library");
-            LOGI("runtime impl load so vrtbr failed");
-
             return dynamic_lib::create(so_path);
 		});
-        LOGI("runtime impl load so vrtbr");
         RAC_ERRNO_MSG("main after creating the dynamic libraries");
 
 		std::vector<plugin_factory> plugin_factories;
@@ -59,15 +56,15 @@ public:
 			return lib.template get<plugin* (*) (phonebook*)>("this_plugin_factory");
 		});
 
-        RAC_ERRNO_MSG("main after generating plugin factories");
-
+        LOGI("main after generating plugin factories");
 		std::transform(plugin_factories.cbegin(), plugin_factories.cend(), std::back_inserter(plugins), [this](const auto& plugin_factory) {
-		    RAC_ERRNO_MSG("main before building the plugin");
+		    LOGI("main before building the plugin");
 			return std::unique_ptr<plugin>{plugin_factory(&pb)};
 		});
 
 		std::for_each(plugins.cbegin(), plugins.cend(), [](const auto& plugin) {
 			// Well-behaved plugins (any derived from threadloop) start there threads here, and then wait on the Stoplight.
+			LOGI("Starting plugin ");
 			plugin->start();
 		});
 

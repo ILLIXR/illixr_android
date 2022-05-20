@@ -54,11 +54,18 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
     switch(cmd) {
         case APP_CMD_INIT_WINDOW:
         {
-            //std::vector<std::string> arguments = { "gldemo/plugin.opt.so", "debugview/plugin.opt.so", "offload_data/plugin.opt.so", "timewarp_gl/plugin.opt.so", "offline_imu_cam/plugin.opt.so", "gtsam_integrator/plugin.opt.so", "pose_prediction/plugin.opt.so", "ground_truth_slam/plugin.opt.so"};
-            std::vector<std::string> arguments = { "/home/madhuparna/AndroidStudioProjects/illixr-native-activity/app/src/main/cpp/gldemo/plugin.opt.so" };
+            std::vector<std::string> arguments = { "libpose_lookup.so", "libtimewarp_gl.so", "libgldemo.so" };
             std::vector<char*> argv;
             for (const auto& arg : arguments)
                 argv.push_back((char*)arg.data());
+            setenv("ILLIXR_DATA", "ILLIXR_DATA/mav0", true);
+            setenv("ILLIXR_DEMO_DATA", "demo_data", true);
+            setenv("ILLIXR_OFFLOAD_ENABLE", "False", true);
+            setenv("ILLIXR_ALIGNMENT_ENABLE", "False", true);
+            setenv("ILLIXR_ENABLE_VERBOSE_ERRORS", "False", true);
+            setenv("ILLIXR_RUN_DURATION", "60", true);
+            setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
+            setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
             std::thread runtime_thread(runtime_main, argv.size(), argv.data(), app->window);
             runtime_thread.join();
             LOGI("Out of main");
