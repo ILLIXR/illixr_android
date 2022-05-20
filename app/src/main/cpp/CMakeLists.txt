@@ -34,7 +34,7 @@ include_directories(gldemo)
 include_directories(pose_lookup)
 include_directories(ILLIXR_DATA)
 
-set(CMAKE_C_COMPILER "clang-10")
+set(CMAKE_C_COMPILER "clang-11")
 
 set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
 add_library(native_app_glue STATIC
@@ -52,8 +52,6 @@ set(CMAKE_SHARED_LINKER_FLAGS
 add_library(native-activity
             SHARED
             main.cpp
-            #timewarp_gl/utils/hmd.cpp
-            #timewarp_gl/plugin.cpp
             runtime/plugin.cpp
         )
 
