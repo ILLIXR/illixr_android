@@ -112,12 +112,13 @@ namespace ILLIXR {
 #ifndef NDEBUG
 			std::cerr << "Register " << type_index.name() << std::endl;
 #endif
-			assert(_m_registry.count(type_index) == 0);
-			_m_registry.try_emplace(type_index, impl);
+			assert(_m_registry.count(type_index.name()) == 0);
+			_m_registry.try_emplace(type_index.name(), impl);
 			//LOGIT(" Registry count  %u  %s", _m_registry.count(type_index), type_index.name());
-            std::unordered_map<std::type_index, const std::shared_ptr<service>>::iterator it;
+            std::unordered_map<std::string, const std::shared_ptr<service>>::iterator it;
             for (it = _m_registry.begin(); it != _m_registry.end() ; ++it) {
-                LOGIT("IN LOOP %s", it->first.name());
+              //  LOGIT("IN LOOP %s", it->first);
+              ;
             }
 		}
 
@@ -136,18 +137,18 @@ namespace ILLIXR {
             const std::shared_lock<std::shared_mutex> lock{_m_mutex};
 			const std::type_index type_index = std::type_index(typeid(specific_service));//m_registry.begin()->first;
 
-			LOGIT("IN LOOP %s %s", _m_registry.begin()->first.name(), std::type_index(typeid(specific_service)).name());
+			//LOGIT("IN LOOP %s", _m_registry.begin()->first);
 			//LOGIT("IN LOOP jj %s %ul", std::next(_m_registry.begin())->first.name() , _m_registry.count(_m_registry.begin()->first));
 			//LOGIT("IN LOOP second %s", std::next(std::next(_m_registry.begin()))->first.name());
 
 			LOGIT("IN LOOP size %d",(int) _m_registry.size());
 
-			/*
-			std::unordered_map<std::type_index, const std::shared_ptr<service>>::iterator it;
-			for (it = _m_registry.begin(); it != _m_registry.end() ; ++it) {
-				LOGIT("IN LOOP %s", it->first.name());
-			}
-			*/
+
+            std::unordered_map<std::string, const std::shared_ptr<service>>::iterator it;
+            /*for (it = _m_registry.begin(); it != _m_registry.end() ; ++it) {
+                LOGIT("IN LOOP %s", it->first);
+            }*/
+
 
 
     		//LOGIT("IN LOOP  kk%s", std::next(std::next(_m_registry.begin()))->first.name());
@@ -157,23 +158,25 @@ namespace ILLIXR {
 #ifndef NDEBUG
 
 			// if this assert fails, and there are no duplicate base classes, ensure the hash_code's are unique.
-			if (_m_registry.count(type_index) != 1) {
+			if (_m_registry.count(type_index.name()) != 1) {
 				//LOGIT(" registry count while failing %ul  ", _m_registry.count(type_index));
 				throw std::runtime_error{"Attempted to lookup an unregistered implementation " + std::string{type_index.name()}};
 			}
 #endif
 
-			std::shared_ptr<service> this_service = _m_registry.at(type_index);
+			std::shared_ptr<service> this_service = _m_registry.at(type_index.name());
 			assert(this_service);
 
 			std::shared_ptr<specific_service> this_specific_service = std::dynamic_pointer_cast<specific_service>(this_service);
+            if (this_specific_service == NULL)
+                LOGIT("this_specific_service is NULL");
 			assert(this_specific_service);
 
 			return this_specific_service;
 		}
 
 	private:
-		std::unordered_map<std::type_index, const std::shared_ptr<service>> _m_registry;
+		std::unordered_map<std::string, const std::shared_ptr<service>> _m_registry;
 		mutable std::shared_mutex _m_mutex;
 	};
 }
