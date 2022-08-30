@@ -133,7 +133,7 @@ namespace ILLIXR {
 		 */
 		 
 		template <typename specific_service>
-		std::shared_ptr<specific_service> lookup_impl() const {
+		    std::shared_ptr<specific_service> lookup_impl() const {
             const std::shared_lock<std::shared_mutex> lock{_m_mutex};
 			const std::type_index type_index = std::type_index(typeid(specific_service));//m_registry.begin()->first;
 
@@ -142,15 +142,10 @@ namespace ILLIXR {
 			//LOGIT("IN LOOP second %s", std::next(std::next(_m_registry.begin()))->first.name());
 
 			LOGIT("IN LOOP size %d",(int) _m_registry.size());
-
-
             std::unordered_map<std::string, const std::shared_ptr<service>>::iterator it;
             /*for (it = _m_registry.begin(); it != _m_registry.end() ; ++it) {
                 LOGIT("IN LOOP %s", it->first);
             }*/
-
-
-
     		//LOGIT("IN LOOP  kk%s", std::next(std::next(_m_registry.begin()))->first.name());
 			//LOGIT("IN LOOP ll%s", std::next(std::next(std::next(_m_registry.begin())))->first.name());
 			//LOGIT("IN LOOP  mm%s", std::next(std::next(std::next(std::next(_m_registry.begin()))))->first.name());
@@ -160,6 +155,7 @@ namespace ILLIXR {
 			// if this assert fails, and there are no duplicate base classes, ensure the hash_code's are unique.
 			if (_m_registry.count(type_index.name()) != 1) {
 				//LOGIT(" registry count while failing %ul  ", _m_registry.count(type_index));
+				LOGIT("Something");
 				throw std::runtime_error{"Attempted to lookup an unregistered implementation " + std::string{type_index.name()}};
 			}
 #endif
@@ -167,10 +163,14 @@ namespace ILLIXR {
 			std::shared_ptr<service> this_service = _m_registry.at(type_index.name());
 			assert(this_service);
 
-			std::shared_ptr<specific_service> this_specific_service = std::dynamic_pointer_cast<specific_service>(this_service);
-            if (this_specific_service == NULL)
+			//std::shared_ptr<specific_service> this_specific_service = ( reinterpret_cast<std::shared_ptr<specific_service>*>(this_service.get()));
+			auto this_specific_service_auto = (reinterpret_cast<typename std::shared_ptr<specific_service>::element_type*>(this_service.get()));
+			std::shared_ptr<specific_service> this_specific_service = std::shared_ptr<specific_service>{this_service, this_specific_service_auto};
+
+			if (this_specific_service == NULL)
                 LOGIT("this_specific_service is NULL");
 			assert(this_specific_service);
+			LOGIT("Assertion passed");
 
 			return this_specific_service;
 		}

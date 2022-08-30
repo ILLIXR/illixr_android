@@ -56,12 +56,12 @@ public:
 			return lib.template get<plugin* (*) (phonebook*)>("this_plugin_factory");
 		});
 
-        LOGI("main after generating plugin factories");
+        //LOGI("main after generating plugin factories %d", plugin_factories.size());
 		std::transform(plugin_factories.cbegin(), plugin_factories.cend(), std::back_inserter(plugins), [this](const auto& plugin_factory) {
 		    LOGI("main before building the plugin");
 			return std::unique_ptr<plugin>{plugin_factory(&pb)};
 		});
-
+        LOGI("before Starting plugin ");
 		std::for_each(plugins.cbegin(), plugins.cend(), [](const auto& plugin) {
 			// Well-behaved plugins (any derived from threadloop) start there threads here, and then wait on the Stoplight.
 			LOGI("Starting plugin ");

@@ -129,7 +129,7 @@ target_link_libraries(pose_lookup
     )
 
 target_link_libraries(sample
-        EGL
-        GLESv3
-        log
-        )
+    EGL
+    GLESv3
+    log
+    )
