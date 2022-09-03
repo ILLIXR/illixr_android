@@ -31,7 +31,7 @@ include_directories(runtime)
 include_directories(timewarp_gl)
 include_directories(timewarp_gl/utils)
 include_directories(gldemo)
-include_directories(pose_lookup)
+#include_directories(pose_lookup)
 include_directories(ILLIXR_DATA)
 
 set(CMAKE_C_COMPILER "clang-10")
@@ -66,9 +66,14 @@ add_library(timewarp_gl
         timewarp_gl/utils/hmd.cpp
         )
 
-add_library(pose_lookup
+#add_library(pose_lookup
+#        SHARED
+#        pose_lookup/plugin.cpp
+#        )
+
+add_library(faux_pose
         SHARED
-        pose_lookup/plugin.cpp
+        faux_pose/plugin.cpp
         )
 
 add_library(sample
@@ -91,11 +96,15 @@ target_include_directories(timewarp_gl PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_include_directories(pose_lookup PRIVATE
+#target_include_directories(pose_lookup PRIVATE
+#        ${OpenCV_LIBS}
+#        ${jnigraphics-lib}
+#        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(faux_pose PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
-
 
 target_include_directories(sample PRIVATE
         ${OpenCV_LIBS}
@@ -122,7 +131,13 @@ target_link_libraries(timewarp_gl
     log
     )
 
-target_link_libraries(pose_lookup
+#target_link_libraries(pose_lookup
+#    EGL
+#    GLESv3
+#    log
+#    )
+
+target_link_libraries(faux_pose
     EGL
     GLESv3
     log

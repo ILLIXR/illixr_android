@@ -14,6 +14,7 @@
 
 #include "csv_iterator.hpp"
 #include "common/error_util.hpp"
+#include "common/file_helper.h"
 
 #define LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "data-loading", __VA_ARGS__))
 
@@ -47,7 +48,7 @@ load_data() {
     gt_file.open(filename);
 
 	//AAssetManager* mgr = AAsetManager_fromJava(env, assetManager);
-	AAssetManager *aAssetManager = AndroidHelper::getAssetManager();
+	//AAssetManager *aAssetManager = AndroidHelper::getAssetManager();
 	int n = filename.size();
     char ch_file[n+1];
     strcpy(ch_file, filename.c_str());

@@ -20,6 +20,9 @@
 #include <GLES3/gl3ext.h>
 #include <GLES3/gl3platform.h>
 #include <math_util.hpp>
+#include <android/log.h>
+
+//#define LOGIG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "gldemo", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -44,13 +47,14 @@ public:
 	ANativeWindow* window = nullptr;
 	gldemo(std::string name_, phonebook* pb_)
 		: threadloop{name_, pb_}
-		, xwin{new xlib_gl_extended_window{1, 1, pb->lookup_impl<xlib_gl_extended_window>()->context, window}}
+		, xwin{new xlib_gl_extended_window{1, 1, pb->lookup_impl<xlib_gl_extended_window>()->context, pb->lookup_impl<xlib_gl_extended_window>()->my_window}}
 		, sb{pb->lookup_impl<switchboard>()}
 		//, xwin{pb->lookup_impl<xlib_gl_extended_window>()}
 		, pp{pb->lookup_impl<pose_prediction>()}
 		, _m_vsync{sb->get_reader<switchboard::event_wrapper<time_type>>("vsync_estimate")}
 		, _m_eyebuffer{sb->get_writer<rendered_frame>("eyebuffer")}
-	{ }
+	{
+	}
 
 	// Essentially, a crude equivalent of XRWaitFrame.
 	void wait_vsync()

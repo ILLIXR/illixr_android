@@ -68,7 +68,8 @@ private:
 
 int runtime_main(int argc, char* const* argv, ANativeWindow *window) {
 	LOGI	("Started runtimeeeee");
-
+if(window == nullptr)
+	LOGI("Window is already null!!");
 #ifdef ILLIXR_MONADO_MAINLINE
 	r = ILLIXR::runtime_factory();
 #else

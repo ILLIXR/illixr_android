@@ -35,10 +35,11 @@ namespace ILLIXR {
         EGLDisplay display;
         EGLSurface surface;
         EGLContext context;
+        ANativeWindow *my_window;
 
         xlib_gl_extended_window(int _width, int _height, EGLContext egl_context, ANativeWindow *window) {
             LOGI("constructor started");
-
+            my_window = window;
             width = _width;
             height = _height;
 
