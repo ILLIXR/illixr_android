@@ -22,7 +22,7 @@
 #include <math_util.hpp>
 #include <android/log.h>
 
-//#define LOGIG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "gldemo", __VA_ARGS__))
+#define LOGIG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "gldemo", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -44,12 +44,12 @@ public:
 	// to this constructor. In turn, the constructor fills in the private
 	// references to the switchboard plugs, so the component can read the
 	// data whenever it needs to.
+
 	ANativeWindow* window = nullptr;
 	gldemo(std::string name_, phonebook* pb_)
 		: threadloop{name_, pb_}
-		, xwin{new xlib_gl_extended_window{1, 1, pb->lookup_impl<xlib_gl_extended_window>()->context, pb->lookup_impl<xlib_gl_extended_window>()->my_window}}
+		, xwin{new xlib_gl_extended_window{ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT, pb->lookup_impl<xlib_gl_extended_window>()->context, pb->lookup_impl<xlib_gl_extended_window>()->my_window}}
 		, sb{pb->lookup_impl<switchboard>()}
-		//, xwin{pb->lookup_impl<xlib_gl_extended_window>()}
 		, pp{pb->lookup_impl<pose_prediction>()}
 		, _m_vsync{sb->get_reader<switchboard::event_wrapper<time_type>>("vsync_estimate")}
 		, _m_eyebuffer{sb->get_writer<rendered_frame>("eyebuffer")}
@@ -116,7 +116,7 @@ public:
 
 	void _p_thread_setup() override {
 		RAC_ERRNO_MSG("gldemo at start of _p_thread_setup");
-
+		LOGIG("%d %d", ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT);
 		// Note: glXMakeContextCurrent must be called from the thread which will be using it.
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 
@@ -149,7 +149,8 @@ public:
 
 			// We'll calculate this model view matrix
 			// using fresh pose data, if we have any.
-			Eigen::Matrix4f modelViewMatrix;
+			//
+			// Eigen::Matrix4f modelViewMatrix;
 
 			Eigen::Matrix4f modelMatrix = Eigen::Matrix4f::Identity();
 
@@ -362,8 +363,14 @@ public:
 	// Dummy "application" overrides _p_start to control its own lifecycle/scheduling.
 	virtual void start() override {
 		RAC_ERRNO_MSG("gldemo at start of gldemo start function");
-		LOGI("START OF GLDEMO");
+		LOGIG("START OF GLDEMO");
+		EGLContext ct = xwin->context;
+		LOGIG("%d %d", ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT);
 
+		if(ct == NULL)
+			LOGIG("XWIN CONTEXT IS NULL");
+		else
+			LOGIG("XWIN CONTEXT IS NOT NULL");
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result_0 && "glXMakeCurrent should not fail");
 		RAC_ERRNO_MSG("gldemo after glXMakeCurrent");

@@ -7,6 +7,8 @@
 #include <vector>
 #include "error_util.hpp"
 
+#define LOGS(...) ((void)__android_log_print(ANDROID_LOG_INFO, "shader", __VA_ARGS__))
+
 using namespace ILLIXR;
 
 static constexpr std::size_t GL_MAX_LOG_LENGTH = 4096U;
@@ -43,9 +45,17 @@ ILLIXR::abort();
 static GLuint init_and_link (const char* vertex_shader, const char* fragment_shader){
 
     // GL handles for intermediary objects.
-    GLint result, vertex_shader_handle, fragment_shader_handle, shader_program;
+    GLint result, fragment_shader_handle, shader_program;
+    GLuint vertex_shader_handle;
+    EGLContext context = eglGetCurrentContext();
+    if(context == nullptr)
+        LOGS("CONTEXT IS NULL PTR");
+    else
+        LOGS("CONTEXT IS NOT NULL");
+
 
     vertex_shader_handle = glCreateShader(GL_VERTEX_SHADER);
+
     GLint vshader_len = strlen(vertex_shader);
     glShaderSource(vertex_shader_handle, 1, &vertex_shader, &vshader_len);
     glCompileShader(vertex_shader_handle);
@@ -57,6 +67,7 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
 
         glGetShaderInfoLog(vertex_shader_handle, GL_MAX_LOG_LENGTH*sizeof(GLchar), &length, gl_buf_log.data());
         const std::string msg{gl_buf_log.begin(), gl_buf_log.end()};
+        LOGS("Length %d msg size %d", length, static_cast<GLsizei>(msg.size()));
         assert(length == static_cast<GLsizei>(msg.size()) && "Length of log should match GLchar vector contents");
         ILLIXR::abort("[shader_util] Failed to get vertex_shader_handle: " + msg);
     }
@@ -77,7 +88,7 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
         assert(length == static_cast<GLsizei>(msg.size()) && "Length of log should match GLchar vector contents");
         ILLIXR::abort("[shader_util] Failed to get fragment_shader_handle: " + msg);
     }
-
+        LOGS("FRAGMENT SHADER COMPILED");
     // Create program and link shaders
     shader_program = glCreateProgram();
     glAttachShader(shader_program, vertex_shader_handle);
@@ -86,6 +97,7 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
     if (gl_err_attach != GL_NO_ERROR) {
         ILLIXR::abort("[shader_util] AttachShader or createProgram failed");
     }
+    LOGS("ATTACH SHADER DONE");
 
     ///////////////////
     // Link and verify
@@ -96,6 +108,7 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
     if (gl_err_link != GL_NO_ERROR) {
         ILLIXR::abort("[shader_util] Linking failed");
     }
+    LOGS("LINK SHADER PROGRAM DONE");
 
     glGetProgramiv(shader_program, GL_LINK_STATUS, &result);
     if (result == GL_FALSE) {
@@ -108,6 +121,9 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
         assert(length == static_cast<GLsizei>(msg.size()) && "Length of log should match GLchar vector contents");
         ILLIXR::abort("[shader_util] Failed to get shader program: " + msg);
     }
+
+    LOGS("GL PROGRAM IV DONE");
+
 
     // After successful link, detach shaders from shader program
     glDetachShader(shader_program, vertex_shader_handle);

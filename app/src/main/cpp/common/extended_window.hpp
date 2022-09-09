@@ -52,8 +52,9 @@ namespace ILLIXR {
             //dpy = XOpenDisplay(nullptr);
             display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
             LOGI("Display obtained");
-            eglInitialize(display, nullptr, nullptr);
-            LOGI("EGL Initialized");
+            EGLint major_version, minor_version;
+            eglInitialize(display, &major_version, &minor_version);
+            LOGI("EGL Initialized with major version : %d minor version: %d", major_version, minor_version);
             /* if (display == nullptr) {
                  ILLIXR::abort("Cannot connect");
              } else {
@@ -84,11 +85,13 @@ namespace ILLIXR {
                     };
             */
             const EGLint attribs[] = {
-                    EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+                    //EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+                    EGL_RENDERABLE_TYPE,EGL_OPENGL_ES2_BIT,
                     EGL_BLUE_SIZE, 8,
                     EGL_GREEN_SIZE, 8,
                     EGL_RED_SIZE, 8,
-                    EGL_DEPTH_SIZE, 24,
+                    EGL_ALPHA_SIZE, 0,
+                    // EGL_DEPTH_SIZE, 24,
                     EGL_NONE
             };
 
@@ -129,8 +132,10 @@ namespace ILLIXR {
             assert(0 <= best_fbc && best_fbc < fbcount);
             GLXFBConfig bestFbc = fbc[best_fbc];
             */
-            eglChooseConfig(display, attribs, nullptr, 0, &numConfigs);
+            eglChooseConfig(display, attribs, &config, 1, &numConfigs);
             LOGI("config chosen");
+            LOGI("Num configs %d", numConfigs);
+
             std::unique_ptr < EGLConfig[] > supportedConfigs(new EGLConfig[numConfigs]);
             assert(supportedConfigs);
             eglChooseConfig(display, attribs, supportedConfigs.get(), numConfigs, &numConfigs);
@@ -169,23 +174,37 @@ namespace ILLIXR {
             else{
                 LOGI("window is nullptr");
             }
+            // eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             try {
-                surface = eglCreateWindowSurface(display, config, window, nullptr);
+                surface = eglCreateWindowSurface(display, config, my_window, nullptr);
             }
             catch (const std::exception& e) {
                 LOGI("Eroorreewfrefe");
                 return;
             }
-            LOGI("EGL create window surface wprked");
-            context = eglCreateContext(display, config, nullptr, nullptr);
+
+            if(surface == EGL_NO_SURFACE)
+                LOGI("NO SURFACE FOUND");
+            else
+                LOGI("EGL create window surface wprked");
 
 
-            if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
-                LOGW("Unable to eglMakeCurrent");
-                return;
-                //return -1;
-            }
-            LOGI("EGL Make current worked");
+//            if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
+//                LOGW("Unable to eglMakeCurrent");
+//                return;
+//                //return -1;
+//            }
+//            LOGI("EGL Make current worked");
+            EGLint ctxattrb[] = {
+                    EGL_CONTEXT_CLIENT_VERSION, 2,
+                    EGL_NONE
+            };
+            context = eglCreateContext(display, config, egl_context, ctxattrb);
+
+            if(context == EGL_NO_CONTEXT)
+                LOGI("NO CONTEXT CREATED %d", eglGetError());
+            else
+                LOGI("EGL CONTEXT CREATED");
 
             eglQuerySurface(display, surface, EGL_WIDTH, &w);
             eglQuerySurface(display, surface, EGL_HEIGHT, &h);

@@ -20,6 +20,7 @@
 #include <GLES3/gl3platform.h>
 #include <math_util.hpp>
 #include "hmd.hpp"
+#define LOGT(...) ((void)__android_log_print(ANDROID_LOG_INFO, "timewarp", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -121,7 +122,7 @@ private:
 	GLuint tw_eye_index_unif;
 
 	// VAOs
-	GLuint tw_vao;
+	//GLuint tw_vao;
 
 	// Position and UV attribute locations
 	GLuint distortion_pos_attr;
@@ -394,6 +395,12 @@ public:
     	// Construct timewarp meshes and other data
     	BuildTimewarp(&hmd_info);
 
+        EGLContext context = xwin->context;
+        if(context == NULL)
+            LOGS("CONTEXT IS NULL PTR");
+        else
+            LOGS("CONTEXT IS NOT NULL");
+
 		// includes setting swap interval
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result_0 && "glXMakeCurrent should not fail");
@@ -425,8 +432,8 @@ public:
 		// TODO: X window v-synch
 
 		// Create and bind global VAO object
-		glGenVertexArrays(1, &tw_vao);
-    	glBindVertexArray(tw_vao);
+		//glGenVertexArrays(1, &tw_vao);
+    	//glBindVertexArray(tw_vao);
 
     	#ifdef USE_ALT_EYE_FORMAT
     	timewarpShaderProgram = init_and_link(timeWarpChromaticVertexProgramGLSL, timeWarpChromaticFragmentProgramGLSL_Alternative);
@@ -434,7 +441,7 @@ public:
 		timewarpShaderProgram = init_and_link(timeWarpChromaticVertexProgramGLSL, timeWarpChromaticFragmentProgramGLSL);
 		#endif
 		// Acquire attribute and uniform locations from the compiled and linked shader program
-
+		LOGT("INIT AND LINK DONE");
     	distortion_pos_attr = glGetAttribLocation(timewarpShaderProgram, "vertexPosition");
     	distortion_uv0_attr = glGetAttribLocation(timewarpShaderProgram, "vertexUv0");
     	distortion_uv1_attr = glGetAttribLocation(timewarpShaderProgram, "vertexUv1");
@@ -463,7 +470,7 @@ public:
 		// Config distortion uv0 vbo
 		glGenBuffers(1, &distortion_uv0_vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, distortion_uv0_vbo);
-
+		LOGT("GL BIND BUFFER DONE");
         HMD::uv_coord_t* const distortion_uv0_data = distortion_uv0.data();
         assert(distortion_uv0_data != nullptr && "Timewarp allocation should not fail");
 		glBufferData(GL_ARRAY_BUFFER, num_elems_pos_uv * sizeof(HMD::uv_coord_t), distortion_uv0_data, GL_STATIC_DRAW);
@@ -512,6 +519,7 @@ public:
 
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 		assert(gl_result_1 && "glXMakeCurrent should not fail");
+		LOGT("EGL MAKE CURRENT IN TIMEWARP");
 	}
 
 	virtual void warp([[maybe_unused]] time_type time) {
@@ -582,7 +590,7 @@ public:
 		glBindTexture(GL_TEXTURE_2D_ARRAY, most_recent_frame->texture_handle);
 		#endif
 
-		glBindVertexArray(tw_vao);
+		//glBindVertexArray(tw_vao);
 
 		auto gpu_start_wall_time = std::chrono::system_clock::now();
 

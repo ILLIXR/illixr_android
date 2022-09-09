@@ -117,7 +117,7 @@ namespace ILLIXR {
 			//LOGIT(" Registry count  %u  %s", _m_registry.count(type_index), type_index.name());
             std::unordered_map<std::string, const std::shared_ptr<service>>::iterator it;
             for (it = _m_registry.begin(); it != _m_registry.end() ; ++it) {
-              //  LOGIT("IN LOOP %s", it->first);
+                LOGIT("IN LOOP %s", it->first.c_str());
               ;
             }
 		}

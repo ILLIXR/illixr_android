@@ -502,7 +502,9 @@ private:
             if (found != _m_registry.end()) {
                 topic& topic_ = found->second;
 #ifndef NDEBUG
-                if (typeid(specific_event) != topic_.ty()) {
+                if (typeid(specific_event).name() != topic_.ty().name()) {
+                    LOGIT("Specific event %s", typeid(specific_event).name());
+                    LOGIT("TOPIC TY %s", topic_.ty().name());
                     std::cerr << "topic '" << topic_name << "' holds type " << topic_.ty().name()
                               << ", but caller used type" << typeid(specific_event).name()
                               << std::endl;
