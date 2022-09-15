@@ -401,6 +401,8 @@ public:
         else
             LOGS("CONTEXT IS NOT NULL");
 
+		bool wait_result = eglWaitGL();
+		LOGI("EGL WAIT %d", wait_result);
 		// includes setting swap interval
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result_0 && "glXMakeCurrent should not fail");

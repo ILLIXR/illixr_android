@@ -391,7 +391,7 @@ public:
             : _m_topic{topic_}
         {
 #ifndef NDEBUG
-            if (typeid(specific_event) != _m_topic.ty()) {
+            if (std::string(typeid(specific_event).name()) != std::string(_m_topic.ty().name())) {
                 std::cerr << "topic '" << _m_topic.name() << "' holds type " << _m_topic.ty().name()
                           << ", but caller used type" << typeid(specific_event).name() << std::endl;
                 abort();
@@ -480,7 +480,7 @@ public:
          * @brief Publish @p ev to this topic.
          */
 		void put(ptr<specific_event>&& this_specific_event) {
-			assert(typeid(specific_event) == _m_topic.ty());
+			assert(std::string(typeid(specific_event).name()) == std::string(_m_topic.ty().name()));
 			assert(this_specific_event != nullptr);
 			assert(this_specific_event.unique());
 			ptr<const event> this_event = std::const_pointer_cast<const event>(std::static_pointer_cast<event>(std::move(this_specific_event)));
@@ -502,7 +502,10 @@ private:
             if (found != _m_registry.end()) {
                 topic& topic_ = found->second;
 #ifndef NDEBUG
-                if (typeid(specific_event).name() != topic_.ty().name()) {
+                //TODO
+                std::string name1 = typeid(specific_event).name();
+                std::string name2 = (topic_.ty().name());
+                if (name1 != name2) {
                     LOGIT("Specific event %s", typeid(specific_event).name());
                     LOGIT("TOPIC TY %s", topic_.ty().name());
                     std::cerr << "topic '" << topic_name << "' holds type " << topic_.ty().name()

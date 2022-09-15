@@ -44,11 +44,12 @@ public:
 	// to this constructor. In turn, the constructor fills in the private
 	// references to the switchboard plugs, so the component can read the
 	// data whenever it needs to.
+	//, xwin{new xlib_gl_extended_window{ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT, pb->lookup_impl<xlib_gl_extended_window>()->context, pb->lookup_impl<xlib_gl_extended_window>()->my_window}}
 
 	ANativeWindow* window = nullptr;
 	gldemo(std::string name_, phonebook* pb_)
 		: threadloop{name_, pb_}
-		, xwin{new xlib_gl_extended_window{ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT, pb->lookup_impl<xlib_gl_extended_window>()->context, pb->lookup_impl<xlib_gl_extended_window>()->my_window}}
+		, xwin{pb->lookup_impl<xlib_gl_extended_window>()}
 		, sb{pb->lookup_impl<switchboard>()}
 		, pp{pb->lookup_impl<pose_prediction>()}
 		, _m_vsync{sb->get_reader<switchboard::event_wrapper<time_type>>("vsync_estimate")}
@@ -203,7 +204,7 @@ public:
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 RAC_ERRNO_MSG("gldemo after glClear");
 				
-				demoscene.Draw();
+				//demoscene.Draw();
 			}
 
 #ifndef NDEBUG
@@ -256,7 +257,7 @@ public:
 #endif
 
 private:
-	const std::unique_ptr<const xlib_gl_extended_window> xwin;
+	const std::shared_ptr<const xlib_gl_extended_window> xwin; //Us shared pointer instead of unique
 	const std::shared_ptr<switchboard> sb;
 	const std::shared_ptr<pose_prediction> pp;
 	const switchboard::reader<switchboard::event_wrapper<time_type>> _m_vsync;
@@ -382,6 +383,7 @@ public:
             std::cerr << "[gldemo] GLEW Error: " << glewGetErrorString(glew_err) << std::endl;
             ILLIXR::abort("[gldemo] Failed to initialize GLEW");
 		}
+
 		RAC_ERRNO_MSG("gldemo after glewInit");
 
 		glEnable(GL_DEBUG_OUTPUT);
@@ -425,7 +427,7 @@ public:
 			LOGI("Demo data not found");
             ILLIXR::abort("Please define ILLIXR_DEMO_DATA.");
 		}
-		demoscene = ObjScene(std::string(obj_dir), "scene.obj");
+		//demoscene = ObjScene(std::string(obj_dir), "scene.obj");
 
 		// Construct a basic perspective projection
 		math_util::projection_fov( &basicProjection, 40.0f, 40.0f, 40.0f, 40.0f, 0.03f, 20.0f );

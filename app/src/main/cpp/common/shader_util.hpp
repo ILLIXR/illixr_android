@@ -45,8 +45,8 @@ ILLIXR::abort();
 static GLuint init_and_link (const char* vertex_shader, const char* fragment_shader){
 
     // GL handles for intermediary objects.
-    GLint result, fragment_shader_handle, shader_program;
-    GLuint vertex_shader_handle;
+    GLint result, shader_program;
+    GLuint vertex_shader_handle, fragment_shader_handle;
     EGLContext context = eglGetCurrentContext();
     if(context == nullptr)
         LOGS("CONTEXT IS NULL PTR");
