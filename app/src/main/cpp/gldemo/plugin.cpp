@@ -124,6 +124,8 @@ public:
 		assert(gl_result && "glXMakeCurrent should not fail");
 
 		RAC_ERRNO_MSG("gldemo at end of _p_thread_setup");
+		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
+
 	}
 
 	void _p_one_iteration() override {
@@ -205,6 +207,7 @@ public:
                 RAC_ERRNO_MSG("gldemo after glClear");
 				
 				//demoscene.Draw();
+				[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 			}
 
 #ifndef NDEBUG
@@ -407,7 +410,7 @@ public:
 		// Create and bind global VAO object
 		glGenVertexArrays(1, &demo_vao);
     	glBindVertexArray(demo_vao);
-
+        LOGIG("OpenGL ... gldemo before shader");
 		demoShaderProgram = init_and_link(demo_vertex_shader, demo_fragment_shader);
 #ifndef NDEBUG
 		std::cout << "Demo app shader program is program " << demoShaderProgram << std::endl;

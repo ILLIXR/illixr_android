@@ -407,8 +407,10 @@ public:
        ptr<const specific_event> get_ro_nullable() const noexcept {
            ptr<const event> this_event = _m_topic.get();
            ptr<const specific_event> this_specific_event = std::dynamic_pointer_cast<const specific_event>(this_event);
+          //  auto this_specific_event_auto = (reinterpret_cast<ptr<const specific_event>>(_m_topic.get()));
+          //  ptr<const specific_event> this_specific_event = this_specific_event_auto;
 
-           if (this_event != nullptr) {
+           if (this_specific_event != nullptr) {
 			   assert(this_specific_event /* Otherwise, dynamic cast failed; dynamic type information could be wrong*/);
                return this_specific_event;
            } else {
@@ -485,8 +487,7 @@ public:
 			assert(this_specific_event.unique());
 			ptr<const event> this_event = std::const_pointer_cast<const event>(std::static_pointer_cast<event>(std::move(this_specific_event)));
 			assert(this_event.unique() || this_event.use_count() <= 2); /// TODO: Revisit for solution that guarantees uniqueness
-			_m_topic.put(std::move(this_event));
-        }
+			_m_topic.put(std::move(this_event));        }
     };
 
 private:

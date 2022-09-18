@@ -363,6 +363,7 @@ public:
 	    RAC_ERRNO_MSG("timewarp_gl at start of iteration");
 	    const time_type time_now = std::chrono::system_clock::now();
 		warp(time_now);
+		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 	}
 
     virtual skip_option _p_should_skip() override {
