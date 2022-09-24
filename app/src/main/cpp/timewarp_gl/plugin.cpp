@@ -363,7 +363,6 @@ public:
 	    RAC_ERRNO_MSG("timewarp_gl at start of iteration");
 	    const time_type time_now = std::chrono::system_clock::now();
 		warp(time_now);
-		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 	}
 
     virtual skip_option _p_should_skip() override {
@@ -445,9 +444,15 @@ public:
 		#endif
 		// Acquire attribute and uniform locations from the compiled and linked shader program
 		LOGT("INIT AND LINK DONE");
+
     	distortion_pos_attr = glGetAttribLocation(timewarpShaderProgram, "vertexPosition");
     	distortion_uv0_attr = glGetAttribLocation(timewarpShaderProgram, "vertexUv0");
-    	distortion_uv1_attr = glGetAttribLocation(timewarpShaderProgram, "vertexUv1");
+		LOGT("Distortion_uv0_attr %d", distortion_uv0_attr);
+		err = eglGetError();
+		if (err){
+			LOGT("IglGetAttribLocation %d", err);
+		}
+		distortion_uv1_attr = glGetAttribLocation(timewarpShaderProgram, "vertexUv1");
     	distortion_uv2_attr = glGetAttribLocation(timewarpShaderProgram, "vertexUv2");
 
     	tw_start_transform_unif = glGetUniformLocation(timewarpShaderProgram, "TimeWarpStartTransform");
@@ -477,7 +482,7 @@ public:
         HMD::uv_coord_t* const distortion_uv0_data = distortion_uv0.data();
         assert(distortion_uv0_data != nullptr && "Timewarp allocation should not fail");
 		glBufferData(GL_ARRAY_BUFFER, num_elems_pos_uv * sizeof(HMD::uv_coord_t), distortion_uv0_data, GL_STATIC_DRAW);
-
+		LOGT("Distortion_uv0_attr %d", distortion_uv0_attr);
 		glVertexAttribPointer(distortion_uv0_attr, 2, GL_FLOAT, GL_FALSE, 0, 0);
 		//glEnableVertexAttribArray(distortion_uv0_attr);
 
@@ -782,6 +787,8 @@ public:
 			{std::chrono::high_resolution_clock::now()},
 			{std::chrono::nanoseconds(elapsed_time)},
 		}});
+
+        [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 
 #ifndef NDEBUG
 		if (log_count > LOG_PERIOD) {

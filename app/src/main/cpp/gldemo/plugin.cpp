@@ -135,6 +135,9 @@ public:
 			// Essentially, XRWaitFrame.
 			wait_vsync();
 
+			[[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
+			assert(gl_result && "glXMakeCurrent should not fail");
+
 			glUseProgram(demoShaderProgram);
 			glBindFramebuffer(GL_FRAMEBUFFER, eyeTextureFBO);
 
@@ -206,8 +209,8 @@ public:
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 RAC_ERRNO_MSG("gldemo after glClear");
 				
-				//demoscene.Draw();
-				[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
+				demoscene.Draw();
+                LOGIG("DEMOSCENE DRAWN !!!!!!!");
 			}
 
 #ifndef NDEBUG
@@ -242,6 +245,7 @@ public:
 
 			lastFrameTime = std::chrono::system_clock::now();
 		}
+		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 
 #ifndef NDEBUG
 		if (log_count > LOG_PERIOD) {
@@ -336,7 +340,12 @@ private:
     	glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
 		glGenRenderbuffers(1, depth_target);
     	glBindRenderbuffer(GL_RENDERBUFFER, *depth_target);
-    	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, EYE_TEXTURE_WIDTH, EYE_TEXTURE_HEIGHT);
+		LOGIT("eYE TECTURE %d %d %d", EYE_TEXTURE_HEIGHT, EYE_TEXTURE_WIDTH, GL_MAX_RENDERBUFFER_SIZE);
+    	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, EYE_TEXTURE_WIDTH, EYE_TEXTURE_HEIGHT);
+		GLuint err = eglGetError();
+		if (err){
+			LOGIT("glRenderBuffer %d", err);
+		}
     	//glRenderbufferStorageMultisample(GL_RENDERBUFFER, fboSampleCount, GL_DEPTH_COMPONENT, EYE_TEXTURE_WIDTH, EYE_TEXTURE_HEIGHT);
 
     	glBindRenderbuffer(GL_RENDERBUFFER, 0);
@@ -430,7 +439,7 @@ public:
 			LOGI("Demo data not found");
             ILLIXR::abort("Please define ILLIXR_DEMO_DATA.");
 		}
-		//demoscene = ObjScene(std::string(obj_dir), "scene.obj");
+		demoscene = ObjScene(std::string(obj_dir), "scene.obj");
 
 		// Construct a basic perspective projection
 		math_util::projection_fov( &basicProjection, 40.0f, 40.0f, 40.0f, 40.0f, 0.03f, 20.0f );

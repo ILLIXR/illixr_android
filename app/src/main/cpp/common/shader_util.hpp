@@ -77,7 +77,12 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
     GLint fshader_len = strlen(fragment_shader);
     glShaderSource(fragment_shader_handle, 1, &fragment_shader, &fshader_len);
     glCompileShader(fragment_shader_handle);
+    GLuint err = eglGetError();
+    if (err){
+        LOGS("fragment shader compilw %d", err);
+    }
     glGetShaderiv(fragment_shader_handle, GL_COMPILE_STATUS, &fragResult);
+
     if (fragResult == GL_FALSE) {
         GLsizei length = 0;
         std::vector<GLchar> gl_buf_log;

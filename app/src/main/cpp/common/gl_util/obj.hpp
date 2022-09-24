@@ -4,6 +4,7 @@
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
 
+#include "lib/tiny_obj_loader.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "lib/tiny_obj_loader.h"
