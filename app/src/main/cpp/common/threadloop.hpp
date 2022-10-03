@@ -8,6 +8,9 @@
 #include "cpu_timer.hpp"
 #include "stoplight.hpp"
 #include "error_util.hpp"
+#include <android/log.h>
+
+#define LOGTH(...) ((void)__android_log_print(ANDROID_LOG_INFO, "threadloop", __VA_ARGS__))
 
 namespace ILLIXR {
 
@@ -80,7 +83,7 @@ private:
 	void thread_main() {
 		record_coalescer it_log {record_logger_};
 		std::cout << "thread," << std::this_thread::get_id() << ",threadloop," << name << std::endl;
-
+		LOGTH("Threadloop thread %s", name.c_str());
 		_p_thread_setup();
 
 		_m_stoplight->wait_for_ready();
@@ -89,16 +92,19 @@ private:
 
 			switch (s) {
 			case skip_option::skip_and_yield:
+				//LOGTH("Threadloop option yield %s", name.c_str());
 				std::this_thread::yield();
 				++skip_no;
 				break;
 			case skip_option::skip_and_spin:
+				LOGTH("Threadloop option spin %s", name.c_str());
 				++skip_no;
 				break;
 			case skip_option::run: {
 				auto iteration_start_cpu_time  = thread_cpu_time();
 				auto iteration_start_wall_time = std::chrono::high_resolution_clock::now();
-				
+				LOGTH("Threadloop option run %s", name.c_str());
+
 				RAC_ERRNO();
 				_p_one_iteration();
 				RAC_ERRNO();
@@ -119,6 +125,7 @@ private:
 			case skip_option::stop:
 				// Break out of the switch AND the loop
 				// See https://stackoverflow.com/questions/27788326/breaking-out-of-nested-loop-c
+				LOGTH("Threadloop option stop %s", name.c_str());
 				goto break_loop;
 			}
 		}

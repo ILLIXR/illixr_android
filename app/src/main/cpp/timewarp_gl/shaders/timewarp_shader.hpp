@@ -99,7 +99,7 @@ const char* const timeWarpChromaticFragmentProgramGLSL =
 	"}\n";
 
 const char* const timeWarpChromaticFragmentProgramGLSL_Alternative =
-        "precision mediump float;"
+        "precision mediump float;\n"
 		"uniform  sampler2D Texture;\n"
 		"varying vec2 fragmentUv0;\n"
 		"varying vec2 fragmentUv1;\n"
@@ -109,7 +109,7 @@ const char* const timeWarpChromaticFragmentProgramGLSL_Alternative =
         "\n varying vec3 color;"
         "\n "
         "\n void main() {"
-		"\n	  vec4 res_r = texture2D(Texture, fragmentUv0);\n"
+		"\n	  vec4 res_r = texture2D( Texture, fragmentUv0);\n"
 		"\n   vec4 res_g = texture2D( Texture, fragmentUv1 );\n"
 		"\n	  vec4 res_b = texture2D( Texture, fragmentUv2 );\n"
 		"\n   gl_FragColor = vec4(res_r.r, res_g.g, res_b.b, 1.0);"

@@ -29,6 +29,7 @@ namespace ILLIXR {
 	// If there is only IMU data for a certain timestamp, img0 and img1 will be null
 	// time is the current UNIX time where dataset_time is the time read from the csv
 	struct imu_cam_type : public switchboard::event {
+		//void init() override {};
 		time_type time;
 		Eigen::Vector3f angular_v;
 		Eigen::Vector3f linear_a;
@@ -51,6 +52,7 @@ namespace ILLIXR {
 	};
 
     class rgb_depth_type : public switchboard::event {
+		//void init() override {};
         std::optional<cv::Mat> rgb;
         std::optional<cv::Mat> depth;
         [[maybe_unused]] ullong timestamp;
@@ -81,7 +83,7 @@ namespace ILLIXR {
 	
 
     struct eye_segmentation : public switchboard::event {
-
+		//void init() override {};
         cv::Mat* img0;
 
         cv::Mat* img1;
@@ -99,6 +101,7 @@ namespace ILLIXR {
 
 	// IMU biases, initialization params, and slow pose needed by the IMU integrator
 	struct imu_integrator_input : public switchboard::event {
+		//void init() override {};
 		double last_cam_integration_time;
 		double t_offset;
 		imu_params params;
@@ -131,6 +134,7 @@ namespace ILLIXR {
 
 	// Output of the IMU integrator to be used by pose prediction
 	struct imu_raw_type : public switchboard::event {
+		//void init() override {};
 		// Biases from the last two IMU integration iterations used by RK4 for pose predict
 		Eigen::Matrix<double,3,1> w_hat;
 		Eigen::Matrix<double,3,1> a_hat;
@@ -162,6 +166,7 @@ namespace ILLIXR {
 	};
 
 	struct pose_type : public switchboard::event {
+		//void init() override {};
 		time_type sensor_time; // Recorded time of sensor data ingestion
 		Eigen::Vector3f position;
 		Eigen::Quaternionf orientation;
@@ -184,7 +189,10 @@ namespace ILLIXR {
 	// Using arrays as a swapchain
 	// Array of left eyes, array of right eyes
 	// This more closely matches the format used by Monado
-	struct rendered_frame : public switchboard::event {
+	class rendered_frame : public switchboard::event {
+	public:
+		virtual ~rendered_frame() {};
+		//void init() override {};
 		GLuint texture_handles[2]; // Does not change between swaps in swapchain
 		GLuint swap_indices[2]; // Which element of the swapchain
 		fast_pose_type render_pose; // The pose used when rendering this frame.
@@ -208,6 +216,7 @@ namespace ILLIXR {
 	};
 
 	struct hologram_input : public switchboard::event {
+		//void init() override {};
 		int seq;
 		hologram_input() { }
 		hologram_input(int seq_) : seq{seq_} { }
@@ -239,6 +248,7 @@ namespace ILLIXR {
 	};
 
     struct texture_pose : public switchboard::event {
+		//void init() override {};
         int seq; /// TODO: Should texture_pose.seq be a long long
         int offload_time;
         unsigned char *image;

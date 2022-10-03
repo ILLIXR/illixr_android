@@ -13,6 +13,7 @@
 #include "common/global_module_defs.hpp"
 #include "common/error_util.hpp"
 #include "common/stoplight.hpp"
+#include "data_format.hpp"
 #include <EGL/egl.h>
 
 

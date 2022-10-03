@@ -20,6 +20,7 @@
 #include "record_logger.hpp"
 #include "managed_thread.hpp"
 #include "concurrentqueue/blockingconcurrentqueue.hpp"
+#include "cast.hpp"
 
 namespace ILLIXR {
 
@@ -115,7 +116,9 @@ public:
      */
     class event {
     public:
-        virtual ~event() = default;
+        virtual ~event() {};
+      // virtual void init() {};
+       // virtual ~event() = default;
     };
 
     /**
@@ -133,6 +136,7 @@ public:
     private:
         underlying_type underlying_data;
     public:
+        //void init() override {};
         event_wrapper() { }
 
         event_wrapper(underlying_type underlying_data_)
@@ -387,6 +391,7 @@ public:
         topic& _m_topic;
 
     public:
+
         reader(topic& topic_)
             : _m_topic{topic_}
         {
@@ -404,16 +409,21 @@ public:
         *
         * This will return null if no event is on the topic yet.
         */
-       ptr<const specific_event> get_ro_nullable() const noexcept {
+      // ptr<const specific_event> get_ro_nullable() const noexcept
+        //template <typename specific_event>
+        ptr<const specific_event> get_ro_nullable() const noexcept {
            ptr<const event> this_event = _m_topic.get();
-           ptr<const specific_event> this_specific_event = std::dynamic_pointer_cast<const specific_event>(this_event);
-          //  auto this_specific_event_auto = (reinterpret_cast<ptr<const specific_event>>(_m_topic.get()));
-          //  ptr<const specific_event> this_specific_event = this_specific_event_auto;
+           //auto this_specific_event_auto = std::dynamic_pointer_cast<const specific_event>(this_event);
+           auto this_specific_event_auto = (reinterpret_cast<typename std::shared_ptr<const specific_event>::element_type*>(this_event.get()));
+           //ptr<const specific_event> this_specific_event = this_specific_event_auto;
+           ptr<const specific_event> this_specific_event = std::shared_ptr<const specific_event>{this_event, this_specific_event_auto};
 
-           if (this_specific_event != nullptr) {
+          if (this_specific_event != nullptr) {
 			   assert(this_specific_event /* Otherwise, dynamic cast failed; dynamic type information could be wrong*/);
                return this_specific_event;
            } else {
+               //LOGIT("NULL..");
+               //abort();
                return ptr<const specific_event>{nullptr};
            }
        }
@@ -458,6 +468,7 @@ public:
         topic& _m_topic;
 
     public:
+
         writer(topic& topic_)
             : _m_topic{topic_}
         { }
@@ -495,17 +506,27 @@ private:
     std::shared_mutex _m_registry_lock;
     std::shared_ptr<record_logger> _m_record_logger;
 
+
     template <typename specific_event>
     topic& try_register_topic(const std::string& topic_name) {
         {
+            LOGIT("tryregister TYPE OF .. %s", typeid(specific_event).name());
+
             const std::shared_lock lock{_m_registry_lock};
+
             auto found = _m_registry.find(topic_name);
             if (found != _m_registry.end()) {
+
                 topic& topic_ = found->second;
 #ifndef NDEBUG
                 //TODO
                 std::string name1 = typeid(specific_event).name();
                 std::string name2 = (topic_.ty().name());
+                LOGIT("actual name %s", topic_name.c_str());
+                LOGIT("Specific event %s", typeid(specific_event).name());
+                LOGIT("TOPIC TY %s", topic_.ty().name());
+                if(topic_.ty() != typeid(specific_event))
+                    LOGIT("Issue with typeid inside ......");
                 if (name1 != name2) {
                     LOGIT("Specific event %s", typeid(specific_event).name());
                     LOGIT("TOPIC TY %s", topic_.ty().name());
@@ -524,8 +545,12 @@ private:
 #endif
         // Topic not found. Need to create it here.
         const std::unique_lock lock{_m_registry_lock};
-        return _m_registry.try_emplace(topic_name, topic_name, typeid(specific_event), _m_record_logger).first->second;
-
+        topic& tp =  _m_registry.try_emplace(topic_name, topic_name, typeid(specific_event), _m_record_logger).first->second;
+        if(tp.ty() != typeid(specific_event))
+            LOGIT("Issue with typeid ......");
+        LOGIT("first tine %s", tp.ty().name());
+        LOGIT("Specific event %s", typeid(specific_event).name());
+        return tp;
     }
 
 public:

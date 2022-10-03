@@ -116,6 +116,10 @@ namespace ILLIXR {
 			}
 			for (std::size_t column = 0; column < values.size(); ++column) {
 				if (values[column].type() != rh->get().get_column_type(column)) {
+					LOGIT("type of column %s", rh->get().get_name().c_str());
+					LOGIT("caller passed %s", values[column].type().name());
+					LOGIT("record header for specifics %s", rh->get().get_column_type(column).name());
+
 					std::cerr << "Caller got wrong type for column " << column << " of " << rh->get().get_name() << ". "
 							  << "Caller passed: " << values[column].type().name() << "; "
 							  << "recod_header for specifies: " << rh->get().get_column_type(column).name() << ". "

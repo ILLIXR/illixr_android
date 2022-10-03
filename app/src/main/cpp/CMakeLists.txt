@@ -29,7 +29,7 @@ include_directories(boost)
 include_directories(common)
 include_directories(runtime)
 include_directories(timewarp_gl)
-include_directories(timewarp_gl/utils)
+include_directories(GLFW/utils)
 include_directories(gldemo)
 #include_directories(pose_lookup)
 include_directories(ILLIXR_DATA)
@@ -41,29 +41,37 @@ add_library(native_app_glue STATIC
     ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
 
 # now build app's shared lib
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -Werror -v")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Export ANativeActivity_onCreate(),
 # Refer to: https://github.com/android-ndk/ndk/issues/381.
 set(CMAKE_SHARED_LINKER_FLAGS
-    "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate")
+    "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate -v -fvisibility=hidden")
+
+#Compile data_format
+add_executable(data_format2  runtime/data_format.cpp)
+set_property(TARGET data_format2 PROPERTY ENABLE_EXPORTS 1)
+
 
 add_library(native-activity
             SHARED
             main.cpp
             runtime/plugin.cpp
+            runtime/data_format.cpp
         )
 
 add_library(gldemo
         SHARED
         gldemo/plugin.cpp
+        runtime/data_format.cpp
         )
 
 add_library(timewarp_gl
         SHARED
         timewarp_gl/plugin.cpp
-        timewarp_gl/utils/hmd.cpp
+        GLFW/utils/hmd.cpp
+        runtime/data_format.cpp
         )
 
 #add_library(pose_lookup
@@ -74,12 +82,13 @@ add_library(timewarp_gl
 add_library(faux_pose
         SHARED
         faux_pose/plugin.cpp
+        runtime/data_format.cpp
         )
 
-add_library(sample
-        SHARED
-        sample/sample.cpp
-        )
+#add_library(sample
+#        SHARED
+#        sample/sample.cpp
+#        )
 
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
@@ -106,29 +115,30 @@ target_include_directories(faux_pose PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_include_directories(sample PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
 # add lib dependencies
+
+
 target_link_libraries(native-activity
     android
     native_app_glue
     EGL
     GLESv3
-    log)
+    log
+    data_format2
+    )
 
 target_link_libraries(gldemo
     EGL
     GLESv3
     log
+    data_format2
     )
 
 target_link_libraries(timewarp_gl
     EGL
     GLESv3
     log
+    data_format2
     )
 
 #target_link_libraries(pose_lookup
@@ -138,12 +148,6 @@ target_link_libraries(timewarp_gl
 #    )
 
 target_link_libraries(faux_pose
-    EGL
-    GLESv3
-    log
-    )
-
-target_link_libraries(sample
     EGL
     GLESv3
     log

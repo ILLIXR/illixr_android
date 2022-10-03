@@ -55,7 +55,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
         case APP_CMD_INIT_WINDOW:
         {
             //std::vector<std::string> arguments = { "libpose_lookup.so", "libtimewarp_gl.so", "libgldemo.so" };
-            std::vector<std::string> arguments = {"libfaux_pose.so" , "libgldemo.so", "libtimewarp_gl.so"};
+            std::vector<std::string> arguments = {"libfaux_pose.so" , "libgldemo.so",  "libtimewarp_gl.so", };
 
             std::vector<char*> argv;
             for (const auto& arg : arguments)
@@ -65,7 +65,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
             setenv("ILLIXR_OFFLOAD_ENABLE", "False", true);
             setenv("ILLIXR_ALIGNMENT_ENABLE", "False", true);
             setenv("ILLIXR_ENABLE_VERBOSE_ERRORS", "False", true);
-            setenv("ILLIXR_RUN_DURATION", "60", true);
+            setenv("ILLIXR_RUN_DURATION", "180", true);
             setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
             setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
             std::thread runtime_thread(runtime_main, argv.size(), argv.data(), app->window);

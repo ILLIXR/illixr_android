@@ -53,7 +53,7 @@ public:
 		, sb{pb->lookup_impl<switchboard>()}
 		, pp{pb->lookup_impl<pose_prediction>()}
 		, _m_vsync{sb->get_reader<switchboard::event_wrapper<time_type>>("vsync_estimate")}
-		, _m_eyebuffer{sb->get_writer<rendered_frame>("eyebuffer")}
+		, _m_eyebuffer{sb->get_writer<ILLIXR::rendered_frame>("eyebuffer")}
 	{
 	}
 
@@ -119,12 +119,12 @@ public:
 		RAC_ERRNO_MSG("gldemo at start of _p_thread_setup");
 		LOGIG("%d %d", ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT);
 		// Note: glXMakeContextCurrent must be called from the thread which will be using it.
-        [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
-
-		assert(gl_result && "glXMakeCurrent should not fail");
-
-		RAC_ERRNO_MSG("gldemo at end of _p_thread_setup");
-		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
+//        [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
+//		LOGIG("CONTEXT CURRENT");
+//		assert(gl_result && "glXMakeCurrent should not fail");
+//
+//		RAC_ERRNO_MSG("gldemo at end of _p_thread_setup");
+//		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 
 	}
 
@@ -137,6 +137,7 @@ public:
 
 			[[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 			assert(gl_result && "glXMakeCurrent should not fail");
+			LOGIG("CONTEXT CURRENT");
 
 			glUseProgram(demoShaderProgram);
 			glBindFramebuffer(GL_FRAMEBUFFER, eyeTextureFBO);
@@ -224,7 +225,9 @@ public:
                           << ", frametime: " << time_since_last_d
                           << ", FPS: " << fps
                           << std::endl;
-			}
+                LOGIG("LOG_COUNT > log_period");
+
+            }
 #endif
             time_last = std::chrono::system_clock::now();
 
@@ -246,6 +249,7 @@ public:
 			lastFrameTime = std::chrono::system_clock::now();
 		}
 		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
+		LOGIG("CONTEXT Released");
 
 #ifndef NDEBUG
 		if (log_count > LOG_PERIOD) {
@@ -255,7 +259,7 @@ public:
 		}
 #endif
 
-        RAC_ERRNO_MSG("gldemo at end of _p_one_iteration");
+        LOGIG("gldemo at end of _p_one_iteration");
 	}
 
 #ifndef NDEBUG
@@ -452,7 +456,7 @@ public:
         time_last = std::chrono::system_clock::now();
 		threadloop::start();
 
-		RAC_ERRNO_MSG("gldemo at end of start()");
+		LOGIG("gldemo at end of start()");
 	}
 };
 

@@ -19,7 +19,7 @@
 #include <GLES3/gl3ext.h>
 #include <GLES3/gl3platform.h>
 #include <math_util.hpp>
-#include "hmd.hpp"
+#include "utils/hmd.hpp"
 #define LOGT(...) ((void)__android_log_print(ANDROID_LOG_INFO, "timewarp", __VA_ARGS__))
 
 using namespace ILLIXR;
@@ -35,7 +35,8 @@ const record_header timewarp_gpu_record {"timewarp_gpu", {
 
 const record_header mtp_record {"mtp_record", {
 	{"iteration_no", typeid(std::size_t)},
-	{"vsync", typeid(std::chrono::high_resolution_clock::time_point)},
+	//{"vsync", typeid(std::chrono::high_resolution_clock::time_point)},
+    {"vsync", typeid(std::chrono::system_clock::time_point)},
 	{"imu_to_display", typeid(std::chrono::nanoseconds)},
 	{"predict_to_display", typeid(std::chrono::nanoseconds)},
 	{"render_to_display", typeid(std::chrono::nanoseconds)},
@@ -55,7 +56,7 @@ public:
 		, sb{pb->lookup_impl<switchboard>()}
 		, pp{pb->lookup_impl<pose_prediction>()}
 		, xwin{pb->lookup_impl<xlib_gl_extended_window>()}
-		, _m_eyebuffer{sb->get_reader<rendered_frame>("eyebuffer")}
+		, _m_eyebuffer{sb->get_reader<ILLIXR::rendered_frame>("eyebuffer")}
 		, _m_hologram{sb->get_writer<hologram_input>("hologram_in")}
 		, _m_vsync_estimate{sb->get_writer<switchboard::event_wrapper<time_type>>("vsync_estimate")}
 		, _m_offload_data{sb->get_writer<texture_pose>("texture_pose")}
@@ -237,7 +238,7 @@ private:
 	}
 
 	void BuildTimewarp(HMD::hmd_info_t* hmdInfo) {
-
+		LOGT("Begib abUILTIMEARP");
 		// Calculate the number of vertices+indices in the distortion mesh.
 		num_distortion_vertices = ( hmdInfo->eyeTilesHigh + 1 ) * ( hmdInfo->eyeTilesWide + 1 );
 		num_distortion_indices = hmdInfo->eyeTilesHigh * hmdInfo->eyeTilesWide * 6;
@@ -360,7 +361,7 @@ private:
 public:
 
 	virtual void _p_one_iteration() override {
-	    RAC_ERRNO_MSG("timewarp_gl at start of iteration");
+	    LOGT("timewarp_gl at start of iteration");
 	    const time_type time_now = std::chrono::system_clock::now();
 		warp(time_now);
 	}
@@ -374,9 +375,12 @@ public:
 
 		// TODO: poll GLX window events
 		std::this_thread::sleep_for(std::chrono::duration<double>(EstimateTimeToSleep(DELAY_FRACTION)));
+		//LOGT("eye buffer ro_nullable checking .. ");
 		if (_m_eyebuffer.get_ro_nullable() != nullptr) {
+			LOGT("eye buffer ro_nullable not null ");
 			return skip_option::run;
 		} else {
+			//LOGT("eye buffer ro_nullable is null ");
 			// Null means system is nothing has been pushed yet
 			// because not all components are initialized yet
 			return skip_option::skip_and_yield;
@@ -384,7 +388,7 @@ public:
 	}
 
 	virtual void _p_thread_setup() override {
-        RAC_ERRNO_MSG("timewarp_gl at start of _p_thread_setup");
+        LOGT("timewarp_gl at start of _p_thread_setup");
 
 		time_last_swap = std::chrono::system_clock::now();
 
@@ -448,10 +452,6 @@ public:
     	distortion_pos_attr = glGetAttribLocation(timewarpShaderProgram, "vertexPosition");
     	distortion_uv0_attr = glGetAttribLocation(timewarpShaderProgram, "vertexUv0");
 		LOGT("Distortion_uv0_attr %d", distortion_uv0_attr);
-		err = eglGetError();
-		if (err){
-			LOGT("IglGetAttribLocation %d", err);
-		}
 		distortion_uv1_attr = glGetAttribLocation(timewarpShaderProgram, "vertexUv1");
     	distortion_uv2_attr = glGetAttribLocation(timewarpShaderProgram, "vertexUv2");
 
@@ -531,14 +531,20 @@ public:
 	}
 
 	virtual void warp([[maybe_unused]] time_type time) {
-		RAC_ERRNO_MSG("timewarp_gl at start of warp");
+		LOGT("timewarp_gl at start of warp");
 
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result && "glXMakeCurrent should not fail");
 
+		GLint dims[4] = {0};
+		glGetIntegerv(GL_VIEWPORT, dims);
+		GLint fbWidth = dims[2];
+		GLint fbHeight = dims[3];
+
 		glBindFramebuffer(GL_FRAMEBUFFER,0);
-		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-		glClearColor(0, 0, 0, 0);
+		glViewport(100, 100, fbWidth, fbHeight);
+		//glClearColor(0, 0, 0, 0);
+		glClearColor(0, 0, 1, 0);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         RAC_ERRNO_MSG("timewarp_gl after glClear");
@@ -600,14 +606,15 @@ public:
 
 		//glBindVertexArray(tw_vao);
 
-		auto gpu_start_wall_time = std::chrono::system_clock::now();
+//		auto gpu_start_wall_time = std::chrono::system_clock::now();
 
 		//Query result Removed FIXIT
-		GLuint query;
-		GLuint elapsed_time = 0;
-
-		glGenQueries(1, &query);
-		//glBeginQuery(GL_TIME_ELAPSED, query);
+//		GLuint query;
+//		GLuint elapsed_time = 0;
+//
+//		glGenQueries(1, &query);
+//		glBeginQuery(GL_TIME_ELAPSED, query);
+		LOGT("num eyes %d", HMD::NUM_EYES);
 
 		// Loop over each eye.
 		for (int eye = 0; eye < HMD::NUM_EYES; eye++ ){
@@ -679,6 +686,7 @@ public:
 			// reused for both eyes. Therefore glDrawElements can be immediately called,
 			// with the UV and position buffers correctly offset.
 			glDrawElements(GL_TRIANGLES, num_distortion_indices, GL_UNSIGNED_INT, (void*)0);
+            LOGT("nUM distortion indices %d", num_distortion_indices);
 		}
 
 		//glEndQuery(GL_TIME_ELAPSED);
@@ -699,9 +707,7 @@ public:
 		}
 #endif
 		// Call Hologram
-		_m_hologram.put(_m_hologram.allocate<hologram_input>(
-            ++_hologram_seq
-        ));
+		_m_hologram.put(_m_hologram.allocate<hologram_input>(++_hologram_seq));
 
 		// Call swap buffers; when vsync is enabled, this will return to the CPU thread once
 		//     the buffers have been successfully swapped.
@@ -770,26 +776,26 @@ public:
 
 		// retrieving the recorded elapsed time
 		// wait until the query result is available
-		GLuint done = 0;
-		glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &done);
+//		GLuint done = 0;
+//		glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &done);
+//
+//		while (!done) {
+//			std::this_thread::yield();
+//			glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &done);
+//		}
+//
+//		// get the query result
+//		glGetQueryObjectuiv(query, GL_QUERY_RESULT, &elapsed_time);
 
-		while (!done) {
-			std::this_thread::yield();
-			glGetQueryObjectuiv(query, GL_QUERY_RESULT_AVAILABLE, &done);
-		}
-
-		// get the query result
-		glGetQueryObjectuiv(query, GL_QUERY_RESULT, &elapsed_time);
-
-		timewarp_gpu_logger.log(record{timewarp_gpu_record, {
-			{iteration_no},
-			{static_cast<std::chrono::system_clock::time_point>(gpu_start_wall_time)},
-			{std::chrono::high_resolution_clock::now()},
-			{std::chrono::nanoseconds(elapsed_time)},
-		}});
+//		timewarp_gpu_logger.log(record{timewarp_gpu_record, {
+//			{iteration_no},
+//			{static_cast<std::chrono::system_clock::time_point>(gpu_start_wall_time)},
+//			{std::chrono::high_resolution_clock::now()},
+//			{std::chrono::nanoseconds(elapsed_time)},
+//		}});
 
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
-
+		LOGT("Executes upto here ..");
 #ifndef NDEBUG
 		if (log_count > LOG_PERIOD) {
 			log_count = 0;

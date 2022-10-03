@@ -3,11 +3,13 @@
 #include "runtime_impl.hpp"
 #include "common/global_module_defs.hpp"
 #include "main.h"
+#include "common/data_format.hpp"
 
 constexpr std::chrono::seconds ILLIXR_RUN_DURATION_DEFAULT {60};
 [[maybe_unused]] constexpr unsigned int ILLIXR_PRE_SLEEP_DURATION {10};
 
 ILLIXR::runtime* r;
+
 
 
 #ifndef NDEBUG
@@ -66,8 +68,10 @@ private:
 
 
 
+
 int runtime_main(int argc, char* const* argv, ANativeWindow *window) {
 	LOGI	("Started runtimeeeee");
+
 if(window == nullptr)
 	LOGI("Window is already null!!");
 #ifdef ILLIXR_MONADO_MAINLINE
