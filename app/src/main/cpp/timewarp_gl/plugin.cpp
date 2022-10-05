@@ -123,7 +123,7 @@ private:
 	GLuint tw_eye_index_unif;
 
 	// VAOs
-	//GLuint tw_vao;
+	GLuint tw_vao;
 
 	// Position and UV attribute locations
 	GLuint distortion_pos_attr;
@@ -167,7 +167,7 @@ private:
 	// PBO buffer for reading texture image
 	GLuint PBO_buffer;
 
-    	// Time of reading and transferring texture image
+	// Time of reading and transferring texture image
 	int offload_time;
 
 	// Error code of OpenGL calls
@@ -175,6 +175,7 @@ private:
 	// The flag is reset to GL_NO_ERROR after a glGetError call
 	GLenum err;
 
+	// Only needed for offloading
 	GLubyte* readTextureImage(){
 
 		GLubyte* pixels = new GLubyte[SCREEN_WIDTH * SCREEN_HEIGHT * 3];
@@ -186,18 +187,19 @@ private:
 		glBindBuffer(GL_PIXEL_PACK_BUFFER, PBO_buffer);
 		err = eglGetError();
 		if (err){
-			std::cerr << "Timewarp: glBindBuffer to PBO_buffer failed" << std::endl;
+            LOGT("Timewarp: glBindBuffer to PBO_buffer failed");
+			//std::cerr << "Timewarp: glBindBuffer to PBO_buffer failed" << std::endl;
 		}
 
 		// Read texture image to PBO buffer
 		//FIXIT DOUBT
-		/*
-		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)0);
-		err = eglGetError();
-		if (err){
-			std::cerr << "Timewarp: glGetTexImage failed" << std::endl;
-		}
-		*/
+
+//		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)0);
+//		err = eglGetError();
+//		if (err){
+//			std::cerr << "Timewarp: glGetTexImage failed" << std::endl;
+//		}
+
 
 		// Transfer texture image from GPU to Pinned Memory(CPU)
 		//FIXIT
@@ -238,7 +240,7 @@ private:
 	}
 
 	void BuildTimewarp(HMD::hmd_info_t* hmdInfo) {
-		LOGT("Begib abUILTIMEARP");
+		LOGT("Begin BusindTimewarp");
 		// Calculate the number of vertices+indices in the distortion mesh.
 		num_distortion_vertices = ( hmdInfo->eyeTilesHigh + 1 ) * ( hmdInfo->eyeTilesWide + 1 );
 		num_distortion_indices = hmdInfo->eyeTilesHigh * hmdInfo->eyeTilesWide * 6;
@@ -315,7 +317,7 @@ private:
 		// Construct a basic perspective projection
 		math_util::projection( &basicProjection, 40.0f, 40.0f, 40.0f, 40.0f, 0.1f, 0.0f );
 
-		RAC_ERRNO_MSG("timewarp_gl at bottom of build timewarp");
+		LOGT("timewarp_gl at bottom of build timewarp");
 	}
 
 	/* Calculate timewarm transform from projection matrix, view matrix, etc */
@@ -361,7 +363,7 @@ private:
 public:
 
 	virtual void _p_one_iteration() override {
-	    LOGT("timewarp_gl at start of iteration");
+	    LOGT("timewarp_gl at start of _p_one_iteration");
 	    const time_type time_now = std::chrono::system_clock::now();
 		warp(time_now);
 	}
@@ -434,12 +436,12 @@ public:
 
 		glDebugMessageCallback(MessageCallback, 0);
 		 */
-
+		//glEnable(GL_DEBUG_OUTPUT);
 		// TODO: X window v-synch
 
 		// Create and bind global VAO object
-		//glGenVertexArrays(1, &tw_vao);
-    	//glBindVertexArray(tw_vao);
+		glGenVertexArrays(1, &tw_vao);
+    	glBindVertexArray(tw_vao);
 
     	#ifdef USE_ALT_EYE_FORMAT
     	timewarpShaderProgram = init_and_link(timeWarpChromaticVertexProgramGLSL, timeWarpChromaticFragmentProgramGLSL_Alternative);
@@ -515,7 +517,7 @@ public:
         GLuint* const distortion_indices_data = distortion_indices.data();
 		assert(distortion_indices_data != nullptr && "Timewarp allocation should not fail");
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_distortion_indices * sizeof(GLuint), distortion_indices_data, GL_STATIC_DRAW);
-
+		//ILLIXR::abort();
 		if (enable_offload) {
             // Config PBO for texture image collection
             glGenBuffers(1, &PBO_buffer);
@@ -530,31 +532,140 @@ public:
 		LOGT("EGL MAKE CURRENT IN TIMEWARP");
 	}
 
+	GLuint LoadShader(GLenum type, const char *shaderSrc) {
+
+		GLuint shader;
+		GLint compiled;
+		// Create the shader object
+		shader = glCreateShader(type);
+
+		if(shader == 0)
+			return 0;
+		// Load the shader source
+		glShaderSource(shader, 1, &shaderSrc, NULL);
+		glCompileShader(shader);
+		// Check the compile status
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+		if(!compiled)
+		{
+			GLint infoLen = 0;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
+			if(infoLen > 1)
+			{
+				LOGT("COMPILE ERROR");
+			}
+			glDeleteShader(shader);
+			return 0;
+		}
+
+		return shader;
+	}
+
+	int drawTriangle(EGLDisplay eglDisplay, EGLSurface eglSurface) {
+		const char *vShaderStr =
+				"attribute vec4 vPosition;   \n"
+				"void main()                 \n"
+                "{                           \n"
+                "   gl_Position = vPosition; \n"
+                "}                           \n";
+
+        const char *fShaderStr =
+                "precision mediump float;                   \n"
+                "void main()                                \n"
+                "{                                          \n"
+                "  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); \n"
+                "}                                          \n";
+
+        GLuint vertexShader;
+        GLuint fragmentShader;
+        GLuint programObject;
+        GLint linked;
+
+        vertexShader = LoadShader(GL_VERTEX_SHADER, vShaderStr);
+        fragmentShader = LoadShader(GL_FRAGMENT_SHADER, fShaderStr);
+
+		programObject = glCreateProgram();
+		if(programObject == 0)
+			return 0;
+
+		glAttachShader(programObject, vertexShader);
+		glAttachShader(programObject, fragmentShader);
+
+		glBindAttribLocation(programObject, 0, "vPosition");
+		glLinkProgram(programObject);
+		glGetProgramiv(programObject, GL_LINK_STATUS, &linked);
+		if(!linked)    {
+			GLint infoLen = 0;
+			glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, &infoLen);
+			if(infoLen > 1)      {
+				//char* infoLog = malloc(sizeof(char) * infoLen);
+				//glGetProgramInfoLog(programObject, infoLen, NULL, infoLog);
+				//esLogMessage("Error linking program:\n%s\n", infoLog);
+				//free(infoLog);
+				LOGT("ERROR WITH LINKING");
+			}
+			glDeleteProgram(programObject);
+			return -1;
+		}
+		glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+
+		GLfloat vVertices[] = {0.0f,  0.5f, 0.0f,                           -0.5f, -0.5f, 0.0f,                          0.5f, -0.5f,  0.0f};
+		GLint dims[4] = {0};
+		glGetIntegerv(GL_VIEWPORT, dims);
+		GLint fbWidth = dims[2];
+		GLint fbHeight = dims[3];
+		glViewport(0, 0, fbWidth, fbHeight);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glUseProgram(programObject);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+		glEnableVertexAttribArray(0);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		eglSwapBuffers(eglDisplay, eglSurface);
+		return 5;
+	}
+
 	virtual void warp([[maybe_unused]] time_type time) {
 		LOGT("timewarp_gl at start of warp");
 
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result && "glXMakeCurrent should not fail");
-
+//		int rettype = drawTriangle(xwin->display, xwin->surface);
+//		LOGT("RETTYPR %d", rettype);
+//		return;
 		GLint dims[4] = {0};
 		glGetIntegerv(GL_VIEWPORT, dims);
 		GLint fbWidth = dims[2];
 		GLint fbHeight = dims[3];
-
+		LOGT("DIMS %d %d %d %d", dims[0], dims[1], dims[2], dims[3]);
 		glBindFramebuffer(GL_FRAMEBUFFER,0);
-		glViewport(100, 100, fbWidth, fbHeight);
+		glViewport(0, 0, fbWidth, fbHeight);
 		//glClearColor(0, 0, 0, 0);
-		glClearColor(0, 0, 1, 0);
+		glClearColor(0.4, 0.6, 1, 0);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         RAC_ERRNO_MSG("timewarp_gl after glClear");
 
 		glDepthFunc(GL_LEQUAL);
+		err = eglGetError();
+		if (err){
+			LOGT("Timewarp: depthfunc to PBO_buffer failed %d", err);
+		}
 
         switchboard::ptr<const rendered_frame> most_recent_frame = _m_eyebuffer.get_ro();
 
 		// Use the timewarp program
 		glUseProgram(timewarpShaderProgram);
+		err = glGetError();
+
+		if (err){
+			LOGT("Timewarp: USE PROG to PBO_buffer failed %d", err);
+		}
+
+//		GLfloat vVertices[] = {0.0f,  100.00f, 0.0f,-0.5f, -0.5f, 25.00f,0.5f, -0.5f,  0.0f};
+//		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+//		glEnableVertexAttribArray(0);
+//		glDrawArrays(GL_TRIANGLES, 0, 3);
+//
 
 		// Generate "starting" view matrix, from the pose
 		// sampled at the time of rendering the frame.
@@ -593,19 +704,32 @@ public:
 		CalculateTimeWarpTransform(timeWarpEndTransform4x4, basicProjection, viewMatrix, viewMatrixEnd);
 
 		glUniformMatrix4fv(tw_start_transform_unif, 1, GL_FALSE, (GLfloat*)(timeWarpStartTransform4x4.data()));
+		err = glGetError();
+		if (err){
+			LOGT("Timewarp: USE tw_start to PBO_buffer failed %d", err);
+		}
 		glUniformMatrix4fv(tw_end_transform_unif, 1, GL_FALSE,  (GLfloat*)(timeWarpEndTransform4x4.data()));
-
+		err = glGetError();
+		if (err){
+			LOGT("Timewarp: tw_endto PBO_buffer failed %d", err);
+		}
 		// Debugging aid, toggle switch for rendering in the fragment shader
 		glUniform1i(glGetUniformLocation(timewarpShaderProgram, "ArrayIndex"), 0);
 		glUniform1i(eye_sampler_0, 0);
-
+		err = glGetError();
+		if (err){
+			LOGT("Timewarp: eye_sampler to PBO_buffer failed %d", err);
+		}
 		#ifndef USE_ALT_EYE_FORMAT
 		// Bind the shared texture handle
 		glBindTexture(GL_TEXTURE_2D_ARRAY, most_recent_frame->texture_handle);
 		#endif
 
-		//glBindVertexArray(tw_vao);
-
+		glBindVertexArray(tw_vao);
+		err = glGetError();
+		if (err){
+			LOGT("Timewarp: egl bind vertex array %d", err);
+		}
 //		auto gpu_start_wall_time = std::chrono::system_clock::now();
 
 		//Query result Removed FIXIT
@@ -615,9 +739,9 @@ public:
 //		glGenQueries(1, &query);
 //		glBeginQuery(GL_TIME_ELAPSED, query);
 		LOGT("num eyes %d", HMD::NUM_EYES);
-
+		
 		// Loop over each eye.
-		for (int eye = 0; eye < HMD::NUM_EYES; eye++ ){
+		for (int eye = 0; eye < HMD::NUM_EYES; eye++ ) {
 			#ifdef USE_ALT_EYE_FORMAT // If we're using Monado-style buffers we need to rebind eyebuffers.... eugh!
 			glBindTexture(GL_TEXTURE_2D, most_recent_frame->texture_handles[eye]);
 			#endif
@@ -630,6 +754,7 @@ public:
 			// to that region of the screen. This prevents re-uploading
 			// GPU data for each eye.
 			glBindBuffer(GL_ARRAY_BUFFER, distortion_positions_vbo);
+
 			glVertexAttribPointer(
 			    distortion_pos_attr,
 			    3,
@@ -639,7 +764,6 @@ public:
 			    (void*)(eye * num_distortion_vertices * sizeof(HMD::mesh_coord3d_t))
 			);
 			glEnableVertexAttribArray(distortion_pos_attr);
-
 			// We do the exact same thing for the UV GPU memory.
 			glBindBuffer(GL_ARRAY_BUFFER, distortion_uv0_vbo);
 			glVertexAttribPointer(
@@ -651,7 +775,6 @@ public:
 			    (void*)(eye * num_distortion_vertices * sizeof(HMD::mesh_coord2d_t))
 			);
 			glEnableVertexAttribArray(distortion_uv0_attr);
-
 			// We do the exact same thing for the UV GPU memory.
 			glBindBuffer(GL_ARRAY_BUFFER, distortion_uv1_vbo);
 			glVertexAttribPointer(
@@ -663,7 +786,6 @@ public:
 			    (void*)(eye * num_distortion_vertices * sizeof(HMD::mesh_coord2d_t))
 			);
 			glEnableVertexAttribArray(distortion_uv1_attr);
-
 			// We do the exact same thing for the UV GPU memory.
 			glBindBuffer(GL_ARRAY_BUFFER, distortion_uv2_vbo);
 			glVertexAttribPointer(
@@ -708,7 +830,6 @@ public:
 #endif
 		// Call Hologram
 		_m_hologram.put(_m_hologram.allocate<hologram_input>(++_hologram_seq));
-
 		// Call swap buffers; when vsync is enabled, this will return to the CPU thread once
 		//     the buffers have been successfully swapped.
 		// TODO: GLX V SYNCH SWAP BUFFER
@@ -717,6 +838,8 @@ public:
         RAC_ERRNO_MSG("timewarp_gl before glXSwapBuffers");
 		eglSwapBuffers(xwin->display, xwin->surface);
 		RAC_ERRNO_MSG("timewarp_gl after glXSwapBuffers");
+		err = eglGetError();
+		LOGT("SWAP BUFFER %d", err);
 
 		// The swap time needs to be obtained and published as soon as possible
 		time_last_swap = std::chrono::system_clock::now();
@@ -738,6 +861,8 @@ public:
 			{predict_to_display},
 			{render_to_display},
 		}});
+
+		LOGT("OFFLOAD DISABLE %d", enable_offload);
 
 		if (enable_offload) {
 			// Read texture image from texture buffer

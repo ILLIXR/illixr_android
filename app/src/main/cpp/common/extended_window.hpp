@@ -177,6 +177,9 @@ namespace ILLIXR {
             // eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
             try {
                 surface = eglCreateWindowSurface(display, config, my_window, nullptr);
+
+                //surface = eglCreatePbufferSurface(display, config, nullptr);
+
             }
             catch (const std::exception& e) {
                 LOGI("Eroorreewfrefe");

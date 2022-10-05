@@ -202,7 +202,7 @@ public:
 				
 				glBindTexture(GL_TEXTURE_2D, eyeTextures[eye_idx]);
 				//FIXIT
-				//glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, eyeTextures[eye_idx], 0);
+				glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, eyeTextures[eye_idx], 0);
 				glBindTexture(GL_TEXTURE_2D, 0);
 				glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
 
@@ -359,7 +359,7 @@ private:
 
 		glBindTexture(GL_TEXTURE_2D, *texture_handle);
 		//FIXIT
-		//glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, *texture_handle, 0);
+		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *texture_handle, 0);
     	glBindTexture(GL_TEXTURE_2D, 0);
 
 		// attach a renderbuffer to depth attachment point

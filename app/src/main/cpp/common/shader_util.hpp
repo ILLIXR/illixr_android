@@ -49,9 +49,9 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
     GLuint vertex_shader_handle, fragment_shader_handle;
     EGLContext context = eglGetCurrentContext();
     if(context == nullptr)
-        LOGS("CONTEXT IS NULL PTR");
+        LOGS("CONTEXT IS NULL PTR .. here");
     else
-        LOGS("CONTEXT IS NOT NULL");
+        LOGS("CONTEXT IS NOT NULL ... here");
 
 
     vertex_shader_handle = glCreateShader(GL_VERTEX_SHADER);
@@ -77,12 +77,7 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
     GLint fshader_len = strlen(fragment_shader);
     glShaderSource(fragment_shader_handle, 1, &fragment_shader, &fshader_len);
     glCompileShader(fragment_shader_handle);
-    GLuint err = eglGetError();
-    if (err){
-        LOGS("fragment shader compilw %d", err);
-    }
     glGetShaderiv(fragment_shader_handle, GL_COMPILE_STATUS, &fragResult);
-
     if (fragResult == GL_FALSE) {
         GLsizei length = 0;
         std::vector<GLchar> gl_buf_log;
@@ -96,6 +91,9 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
         LOGS("FRAGMENT SHADER COMPILED");
     // Create program and link shaders
     shader_program = glCreateProgram();
+    GLuint erroe = glGetError();
+    LOGS("Timewarp: gl create program failed %d", erroe);
+
     glAttachShader(shader_program, vertex_shader_handle);
     glAttachShader(shader_program, fragment_shader_handle);
     const GLenum gl_err_attach = glGetError();
@@ -108,7 +106,6 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
     // Link and verify
 
     glLinkProgram(shader_program);
-
     const GLenum gl_err_link = glGetError();
     if (gl_err_link != GL_NO_ERROR) {
         ILLIXR::abort("[shader_util] Linking failed");
@@ -134,5 +131,12 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
     glDetachShader(shader_program, vertex_shader_handle);
     glDetachShader(shader_program, fragment_shader_handle);
 
-    return shader_program;
+    if (shader_program != 0) {
+        LOGS("Shader program value %d", shader_program);
+        return shader_program;
+    }
+    else {
+        ILLIXR::abort();
+        return -1;
+    }
 }
