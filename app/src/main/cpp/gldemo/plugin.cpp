@@ -147,6 +147,9 @@ public:
 
 			glUseProgram(demoShaderProgram);
 			glBindVertexArray(demo_vao);
+			GLint dims[4] = {0};
+			glGetIntegerv(GL_VIEWPORT, dims);
+			LOGIT("DIMS %d %d %d %d", dims[0], dims[1], dims[2], dims[3]);
 			glViewport(0, 0, EYE_TEXTURE_WIDTH, EYE_TEXTURE_HEIGHT);
 
 			glEnable(GL_CULL_FACE);
@@ -201,7 +204,6 @@ public:
 				glUniformMatrix4fv(projectionAttr, 1, GL_FALSE, (GLfloat*)(basicProjection.data()));
 				
 				glBindTexture(GL_TEXTURE_2D, eyeTextures[eye_idx]);
-				//FIXIT
 				glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, eyeTextures[eye_idx], 0);
 				glBindTexture(GL_TEXTURE_2D, 0);
 				glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
@@ -358,7 +360,6 @@ private:
         std::cout << "About to bind eyebuffer texture, texture handle: " << *texture_handle << std::endl;
 
 		glBindTexture(GL_TEXTURE_2D, *texture_handle);
-		//FIXIT
 		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *texture_handle, 0);
     	glBindTexture(GL_TEXTURE_2D, 0);
 

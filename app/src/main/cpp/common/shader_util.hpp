@@ -101,6 +101,8 @@ static GLuint init_and_link (const char* vertex_shader, const char* fragment_sha
         ILLIXR::abort("[shader_util] AttachShader or createProgram failed");
     }
     LOGS("ATTACH SHADER DONE");
+    glBindAttribLocation(shader_program, 0, "in_position");
+    glBindAttribLocation(shader_program, 1, "in_uv");
 
     ///////////////////
     // Link and verify

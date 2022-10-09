@@ -75,6 +75,7 @@ private:
 	const std::shared_ptr<switchboard> sb;
 	const std::shared_ptr<pose_prediction> pp;
 
+	bool flag = false;
 	static constexpr int   SCREEN_WIDTH    = ILLIXR::FB_WIDTH;
 	static constexpr int   SCREEN_HEIGHT   = ILLIXR::FB_HEIGHT;
 
@@ -175,6 +176,17 @@ private:
 	// The flag is reset to GL_NO_ERROR after a glGetError call
 	GLenum err;
 
+	void printMatrix(const Eigen::Matrix4f& renderProjectionMatrix) {
+		if(flag == false) {
+			Eigen::IOFormat fmt(4, 0, ", ", "\n", "", "");
+			std::ofstream myfile;
+			myfile.open ("/sdcard/Android/data/com.example.native_activity/demo_data/transformdata.txt");
+			myfile << renderProjectionMatrix.format(fmt) << std::endl;;
+			myfile.close();
+			flag = true;
+		}
+
+	}
 	// Only needed for offloading
 	GLubyte* readTextureImage(){
 
@@ -315,10 +327,14 @@ private:
 			}
 		}
 		// Construct a basic perspective projection
-		math_util::projection( &basicProjection, 40.0f, 40.0f, 40.0f, 40.0f, 0.1f, 0.0f );
-
+		//math_util::projection( &basicProjection, 40.0f, 40.0f, 40.0f, 40.0f, 0.1f, 0.0f );
+		math_util::projection_fov(&basicProjection, display_params::fov_x / 2.0f, display_params::fov_x / 2.0f,
+								  display_params::fov_y / 2.0f, display_params::fov_y / 2.0f, rendering_params::near_z,
+								  rendering_params::far_z);
+		printMatrix(basicProjection);
 		LOGT("timewarp_gl at bottom of build timewarp");
 	}
+
 
 	/* Calculate timewarm transform from projection matrix, view matrix, etc */
 	void CalculateTimeWarpTransform( Eigen::Matrix4f& transform, const Eigen::Matrix4f& renderProjectionMatrix,
@@ -532,97 +548,98 @@ public:
 		LOGT("EGL MAKE CURRENT IN TIMEWARP");
 	}
 
-	GLuint LoadShader(GLenum type, const char *shaderSrc) {
-
-		GLuint shader;
-		GLint compiled;
-		// Create the shader object
-		shader = glCreateShader(type);
-
-		if(shader == 0)
-			return 0;
-		// Load the shader source
-		glShaderSource(shader, 1, &shaderSrc, NULL);
-		glCompileShader(shader);
-		// Check the compile status
-		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-		if(!compiled)
-		{
-			GLint infoLen = 0;
-			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
-			if(infoLen > 1)
-			{
-				LOGT("COMPILE ERROR");
-			}
-			glDeleteShader(shader);
-			return 0;
-		}
-
-		return shader;
-	}
-
-	int drawTriangle(EGLDisplay eglDisplay, EGLSurface eglSurface) {
-		const char *vShaderStr =
-				"attribute vec4 vPosition;   \n"
-				"void main()                 \n"
-                "{                           \n"
-                "   gl_Position = vPosition; \n"
-                "}                           \n";
-
-        const char *fShaderStr =
-                "precision mediump float;                   \n"
-                "void main()                                \n"
-                "{                                          \n"
-                "  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); \n"
-                "}                                          \n";
-
-        GLuint vertexShader;
-        GLuint fragmentShader;
-        GLuint programObject;
-        GLint linked;
-
-        vertexShader = LoadShader(GL_VERTEX_SHADER, vShaderStr);
-        fragmentShader = LoadShader(GL_FRAGMENT_SHADER, fShaderStr);
-
-		programObject = glCreateProgram();
-		if(programObject == 0)
-			return 0;
-
-		glAttachShader(programObject, vertexShader);
-		glAttachShader(programObject, fragmentShader);
-
-		glBindAttribLocation(programObject, 0, "vPosition");
-		glLinkProgram(programObject);
-		glGetProgramiv(programObject, GL_LINK_STATUS, &linked);
-		if(!linked)    {
-			GLint infoLen = 0;
-			glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, &infoLen);
-			if(infoLen > 1)      {
-				//char* infoLog = malloc(sizeof(char) * infoLen);
-				//glGetProgramInfoLog(programObject, infoLen, NULL, infoLog);
-				//esLogMessage("Error linking program:\n%s\n", infoLog);
-				//free(infoLog);
-				LOGT("ERROR WITH LINKING");
-			}
-			glDeleteProgram(programObject);
-			return -1;
-		}
-		glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
-
-		GLfloat vVertices[] = {0.0f,  0.5f, 0.0f,                           -0.5f, -0.5f, 0.0f,                          0.5f, -0.5f,  0.0f};
-		GLint dims[4] = {0};
-		glGetIntegerv(GL_VIEWPORT, dims);
-		GLint fbWidth = dims[2];
-		GLint fbHeight = dims[3];
-		glViewport(0, 0, fbWidth, fbHeight);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glUseProgram(programObject);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-		glEnableVertexAttribArray(0);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-		eglSwapBuffers(eglDisplay, eglSurface);
-		return 5;
-	}
+//	GLuint LoadShader(GLenum type, const char *shaderSrc) {
+//
+//		GLuint shader;
+//		GLint compiled;
+//		// Create the shader object
+//		shader = glCreateShader(type);
+//
+//		if(shader == 0)
+//			return 0;
+//		// Load the shader source
+//		glShaderSource(shader, 1, &shaderSrc, NULL);
+//		glCompileShader(shader);
+//		// Check the compile status
+//		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+//		if(!compiled)
+//		{
+//			GLint infoLen = 0;
+//			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
+//			if(infoLen > 1)
+//			{
+//				LOGT("COMPILE ERROR");
+//			}
+//			glDeleteShader(shader);
+//			return 0;
+//		}
+//
+//		return shader;
+//	}
+//
+//	int drawTriangle(EGLDisplay eglDisplay, EGLSurface eglSurface) {
+//		const char *vShaderStr =
+//				"attribute vec4 vPosition;   \n"
+//				"void main()                 \n"
+//                "{                           \n"
+//                "   gl_Position = vPosition; \n"
+//                "}                           \n";
+//
+//        const char *fShaderStr =
+//                "precision mediump float;                   \n"
+//                "void main()                                \n"
+//                "{                                          \n"
+//                "  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); \n"
+//                "}                                          \n";
+//
+//        GLuint vertexShader;
+//        GLuint fragmentShader;
+//        GLuint programObject;
+//        GLint linked;
+//
+//        vertexShader = LoadShader(GL_VERTEX_SHADER, vShaderStr);
+//        fragmentShader = LoadShader(GL_FRAGMENT_SHADER, fShaderStr);
+//
+//		programObject = glCreateProgram();
+//		if(programObject == 0)
+//			return 0;
+//
+//		glAttachShader(programObject, vertexShader);
+//		glAttachShader(programObject, fragmentShader);
+//
+//		glBindAttribLocation(programObject, 0, "vPosition");
+//		glLinkProgram(programObject);
+//		glGetProgramiv(programObject, GL_LINK_STATUS, &linked);
+//		if(!linked)    {
+//			GLint infoLen = 0;
+//			glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, &infoLen);
+//			if(infoLen > 1)      {
+//				//char* infoLog = malloc(sizeof(char) * infoLen);
+//				//glGetProgramInfoLog(programObject, infoLen, NULL, infoLog);
+//				//esLogMessage("Error linking program:\n%s\n", infoLog);
+//				//free(infoLog);
+//				LOGT("ERROR WITH LINKING");
+//			}
+//			glDeleteProgram(programObject);
+//			return -1;
+//		}
+//		glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+//
+//		GLfloat vVertices[] = {0.0f,  0.5f, 0.0f,                           -0.5f, -0.5f, 0.0f,                          0.5f, -0.5f,  0.0f};
+//		GLint dims[4] = {0};
+//		glGetIntegerv(GL_VIEWPORT, dims);
+//		GLint fbWidth = dims[2];
+//		GLint fbHeight = dims[3];
+//LOGT("Screen dimensions %d %d %d %d", fbWidth, fbHeight, SCREEN_WIDTH, SCREEN_HEIGHT);
+//		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+//		glClear(GL_COLOR_BUFFER_BIT);
+//		glUseProgram(programObject);
+//		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+//		glEnableVertexAttribArray(0);
+//		glDrawArrays(GL_TRIANGLES, 0, 3);
+//		eglSwapBuffers(eglDisplay, eglSurface);
+//		return 5;
+//	}
 
 	virtual void warp([[maybe_unused]] time_type time) {
 		LOGT("timewarp_gl at start of warp");
@@ -637,14 +654,16 @@ public:
 		GLint fbWidth = dims[2];
 		GLint fbHeight = dims[3];
 		LOGT("DIMS %d %d %d %d", dims[0], dims[1], dims[2], dims[3]);
+		LOGT("Screen dimensions %d %d %d %d", fbWidth, fbHeight, SCREEN_WIDTH, SCREEN_HEIGHT);
+
 		glBindFramebuffer(GL_FRAMEBUFFER,0);
-		glViewport(0, 0, fbWidth, fbHeight);
-		//glClearColor(0, 0, 0, 0);
-		glClearColor(0.4, 0.6, 1, 0);
+		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+		glClearColor(0, 0, 0, 0);
+		//glClearColor(1, 0, 0, 0);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         RAC_ERRNO_MSG("timewarp_gl after glClear");
-
+		//glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
 		err = eglGetError();
 		if (err){
@@ -763,6 +782,7 @@ public:
 			    0,
 			    (void*)(eye * num_distortion_vertices * sizeof(HMD::mesh_coord3d_t))
 			);
+			LOGT("RRAY SIZE %d", eye * num_distortion_vertices);
 			glEnableVertexAttribArray(distortion_pos_attr);
 			// We do the exact same thing for the UV GPU memory.
 			glBindBuffer(GL_ARRAY_BUFFER, distortion_uv0_vbo);
@@ -833,8 +853,10 @@ public:
 		// Call swap buffers; when vsync is enabled, this will return to the CPU thread once
 		//     the buffers have been successfully swapped.
 		// TODO: GLX V SYNCH SWAP BUFFER
+		EGLint value;
+		eglQueryContext(xwin->display, xwin->context, EGL_RENDER_BUFFER, &value);
+		LOGT("QUERY SURFACE HEGHT %d", value);
 		[[maybe_unused]] time_type time_before_swap = std::chrono::system_clock::now();
-
         RAC_ERRNO_MSG("timewarp_gl before glXSwapBuffers");
 		eglSwapBuffers(xwin->display, xwin->surface);
 		RAC_ERRNO_MSG("timewarp_gl after glXSwapBuffers");
