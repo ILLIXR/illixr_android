@@ -54,13 +54,13 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
     switch(cmd) {
         case APP_CMD_INIT_WINDOW:
         {
-            //std::vector<std::string> arguments = { "libpose_lookup.so", "libtimewarp_gl.so", "libgldemo.so" };
-            std::vector<std::string> arguments = {"libfaux_pose.so" , "libgldemo.so",  "libtimewarp_gl.so", };
+            std::vector<std::string> arguments = { "libpose_lookup.so", "libgldemo.so" , "libtimewarp_gl.so"};
+            //std::vector<std::string> arguments = {"libfaux_pose.so" , "libgldemo.so",  "libtimewarp_gl.so", };
 
             std::vector<char*> argv;
             for (const auto& arg : arguments)
                 argv.push_back((char*)arg.data());
-            setenv("ILLIXR_DATA", "ILLIXR_DATA/mav0", true);
+            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
             setenv("ILLIXR_DEMO_DATA", "/sdcard/Android/data/com.example.native_activity/demo_data", true);
             setenv("ILLIXR_OFFLOAD_ENABLE", "False", true);
             setenv("ILLIXR_ALIGNMENT_ENABLE", "False", true);

@@ -74,21 +74,16 @@ add_library(timewarp_gl
         runtime/data_format.cpp
         )
 
-#add_library(pose_lookup
-#        SHARED
-#        pose_lookup/plugin.cpp
-#        )
+add_library(pose_lookup
+        SHARED
+        pose_lookup/plugin.cpp
+        )
 
 add_library(faux_pose
         SHARED
         faux_pose/plugin.cpp
         runtime/data_format.cpp
         )
-
-#add_library(sample
-#        SHARED
-#        sample/sample.cpp
-#        )
 
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
@@ -105,10 +100,10 @@ target_include_directories(timewarp_gl PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-#target_include_directories(pose_lookup PRIVATE
-#        ${OpenCV_LIBS}
-#        ${jnigraphics-lib}
-#        ${ANDROID_NDK}/sources/android/native_app_glue)
+target_include_directories(pose_lookup PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(faux_pose PRIVATE
         ${OpenCV_LIBS}
@@ -141,11 +136,11 @@ target_link_libraries(timewarp_gl
     data_format2
     )
 
-#target_link_libraries(pose_lookup
-#    EGL
-#    GLESv3
-#    log
-#    )
+target_link_libraries(pose_lookup
+    EGL
+    GLESv3
+    log
+    )
 
 target_link_libraries(faux_pose
     EGL
