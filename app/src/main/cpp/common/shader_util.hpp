@@ -1,144 +1,87 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include "EGL/egl.h"
-#include <string>
-#include <cstring>
-#include <vector>
 #include "error_util.hpp"
-
-#define LOGS(...) ((void)__android_log_print(ANDROID_LOG_INFO, "shader", __VA_ARGS__))
+#include "EGL/egl.h"
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 using namespace ILLIXR;
 
 static constexpr std::size_t GL_MAX_LOG_LENGTH = 4096U;
 
-/*
-static void GLAPIENTRY
-MessageCallback([[maybe_unused]] GLenum source,
-[[maybe_unused]] GLenum type,
-        [[maybe_unused]] GLuint id,
-[[maybe_unused]] GLenum severity,
-        [[maybe_unused]] GLsizei length,
-[[maybe_unused]] const GLchar* message,
-[[maybe_unused]] const void* userParam )
-{
-#ifndef NDEBUG
-if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
-/// Don't show message if severity level is notification. Non-fatal.
-return;
-}
-std::cerr << "GL CALLBACK: " << (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "")
-<< " type = 0x" << std::hex << type << std::dec
-<< ", severity = 0x" << std::hex << severity << std::dec
-<< ", message = " << message
-<< std::endl;
-// https://www.khronos.org/opengl/wiki/Debug_Output#Message_Components
-if (severity == GL_DEBUG_SEVERITY_HIGH) {
-/// Fatal error if severity level is high.
-ILLIXR::abort();
-} /// else => severity level low and medium are non-fatal.
-#endif
-}
-*/
-
-static GLuint init_and_link (const char* vertex_shader, const char* fragment_shader){
-
+static GLuint init_and_link(const char* vertex_shader, const char* fragment_shader) {
     // GL handles for intermediary objects.
     GLint result, shader_program;
     GLuint vertex_shader_handle, fragment_shader_handle;
-    EGLContext context = eglGetCurrentContext();
-    if(context == nullptr)
-        LOGS("CONTEXT IS NULL PTR .. here");
-    else
-        LOGS("CONTEXT IS NOT NULL ... here");
-
-
     vertex_shader_handle = glCreateShader(GL_VERTEX_SHADER);
-
-    GLint vshader_len = strlen(vertex_shader);
+    GLint vshader_len    = strlen(vertex_shader);
     glShaderSource(vertex_shader_handle, 1, &vertex_shader, &vshader_len);
     glCompileShader(vertex_shader_handle);
     glGetShaderiv(vertex_shader_handle, GL_COMPILE_STATUS, &result);
     if (result == GL_FALSE) {
-        GLsizei length = 0;
+        GLsizei             length = 0;
         std::vector<GLchar> gl_buf_log;
         gl_buf_log.resize(GL_MAX_LOG_LENGTH);
 
-        glGetShaderInfoLog(vertex_shader_handle, GL_MAX_LOG_LENGTH*sizeof(GLchar), &length, gl_buf_log.data());
+        glGetShaderInfoLog(vertex_shader_handle, GL_MAX_LOG_LENGTH * sizeof(GLchar), &length, gl_buf_log.data());
         const std::string msg{gl_buf_log.begin(), gl_buf_log.end()};
-        LOGS("Length %d msg size %d", length, static_cast<GLsizei>(msg.size()));
         assert(length == static_cast<GLsizei>(msg.size()) && "Length of log should match GLchar vector contents");
         ILLIXR::abort("[shader_util] Failed to get vertex_shader_handle: " + msg);
     }
 
-    GLint fragResult = GL_FALSE;
+    GLint fragResult       = GL_FALSE;
     fragment_shader_handle = glCreateShader(GL_FRAGMENT_SHADER);
-    GLint fshader_len = strlen(fragment_shader);
+    GLint fshader_len      = strlen(fragment_shader);
     glShaderSource(fragment_shader_handle, 1, &fragment_shader, &fshader_len);
     glCompileShader(fragment_shader_handle);
     glGetShaderiv(fragment_shader_handle, GL_COMPILE_STATUS, &fragResult);
     if (fragResult == GL_FALSE) {
-        GLsizei length = 0;
+        GLsizei             length = 0;
         std::vector<GLchar> gl_buf_log;
         gl_buf_log.resize(GL_MAX_LOG_LENGTH);
 
-        glGetShaderInfoLog(fragment_shader_handle, GL_MAX_LOG_LENGTH*sizeof(GLchar), &length, gl_buf_log.data());
+        glGetShaderInfoLog(fragment_shader_handle, GL_MAX_LOG_LENGTH * sizeof(GLchar), &length, gl_buf_log.data());
         const std::string msg{gl_buf_log.begin(), gl_buf_log.end()};
         assert(length == static_cast<GLsizei>(msg.size()) && "Length of log should match GLchar vector contents");
         ILLIXR::abort("[shader_util] Failed to get fragment_shader_handle: " + msg);
     }
-        LOGS("FRAGMENT SHADER COMPILED");
+
     // Create program and link shaders
     shader_program = glCreateProgram();
-    GLuint erroe = glGetError();
-    LOGS("Timewarp: gl create program failed %d", erroe);
-
     glAttachShader(shader_program, vertex_shader_handle);
     glAttachShader(shader_program, fragment_shader_handle);
     const GLenum gl_err_attach = glGetError();
     if (gl_err_attach != GL_NO_ERROR) {
         ILLIXR::abort("[shader_util] AttachShader or createProgram failed");
     }
-    LOGS("ATTACH SHADER DONE");
-    glBindAttribLocation(shader_program, 0, "in_position");
-    glBindAttribLocation(shader_program, 1, "in_uv");
 
     ///////////////////
     // Link and verify
 
     glLinkProgram(shader_program);
+
     const GLenum gl_err_link = glGetError();
     if (gl_err_link != GL_NO_ERROR) {
         ILLIXR::abort("[shader_util] Linking failed");
     }
-    LOGS("LINK SHADER PROGRAM DONE");
 
     glGetProgramiv(shader_program, GL_LINK_STATUS, &result);
     if (result == GL_FALSE) {
-        GLsizei length = 0;
+        GLsizei             length = 0;
         std::vector<GLchar> gl_buf_log;
         gl_buf_log.resize(GL_MAX_LOG_LENGTH);
 
-        glGetProgramInfoLog(shader_program, GL_MAX_LOG_LENGTH*sizeof(GLchar), &length, gl_buf_log.data());
+        glGetProgramInfoLog(shader_program, GL_MAX_LOG_LENGTH * sizeof(GLchar), &length, gl_buf_log.data());
         const std::string msg{gl_buf_log.begin(), gl_buf_log.end()};
         assert(length == static_cast<GLsizei>(msg.size()) && "Length of log should match GLchar vector contents");
         ILLIXR::abort("[shader_util] Failed to get shader program: " + msg);
     }
 
-    LOGS("GL PROGRAM IV DONE");
-
-
     // After successful link, detach shaders from shader program
     glDetachShader(shader_program, vertex_shader_handle);
     glDetachShader(shader_program, fragment_shader_handle);
 
-    if (shader_program != 0) {
-        LOGS("Shader program value %d", shader_program);
-        return shader_program;
-    }
-    else {
-        ILLIXR::abort();
-        return -1;
-    }
+    return shader_program;
 }

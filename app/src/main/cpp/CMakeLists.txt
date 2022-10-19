@@ -50,39 +50,30 @@ set(CMAKE_SHARED_LINKER_FLAGS
     "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate -v -fvisibility=hidden")
 
 #Compile data_format
-add_executable(data_format2  runtime/data_format.cpp)
-set_property(TARGET data_format2 PROPERTY ENABLE_EXPORTS 1)
+#add_executable(data_format2  runtime/data_format.cpp)
+#set_property(TARGET data_format2 PROPERTY ENABLE_EXPORTS 1)
 
 
 add_library(native-activity
             SHARED
             main.cpp
             runtime/plugin.cpp
-            runtime/data_format.cpp
         )
 
 add_library(gldemo
         SHARED
         gldemo/plugin.cpp
-        runtime/data_format.cpp
         )
 
 add_library(timewarp_gl
         SHARED
         timewarp_gl/plugin.cpp
-        GLFW/utils/hmd.cpp
-        runtime/data_format.cpp
+        timewarp_gl/utils/hmd.cpp
         )
 
 add_library(pose_lookup
         SHARED
         pose_lookup/plugin.cpp
-        )
-
-add_library(faux_pose
-        SHARED
-        faux_pose/plugin.cpp
-        runtime/data_format.cpp
         )
 
 target_include_directories(native-activity PRIVATE
@@ -105,11 +96,6 @@ target_include_directories(pose_lookup PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_include_directories(faux_pose PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
 # add lib dependencies
 
 
@@ -119,30 +105,21 @@ target_link_libraries(native-activity
     EGL
     GLESv3
     log
-    data_format2
     )
 
 target_link_libraries(gldemo
     EGL
     GLESv3
     log
-    data_format2
     )
 
 target_link_libraries(timewarp_gl
     EGL
     GLESv3
     log
-    data_format2
     )
 
 target_link_libraries(pose_lookup
-    EGL
-    GLESv3
-    log
-    )
-
-target_link_libraries(faux_pose
     EGL
     GLESv3
     log

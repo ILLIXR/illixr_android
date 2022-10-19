@@ -12,19 +12,19 @@ public:
     static constexpr int NUM_COLOR_CHANNELS = 3;
 
     struct mesh_coord2d_t {
-        GLfloat x;
-        GLfloat y;
+        khronos_float_t x;
+        khronos_float_t y;
     };
 
     struct mesh_coord3d_t {
-        GLfloat x;
-        GLfloat y;
-        GLfloat z;
+        khronos_float_t x;
+        khronos_float_t y;
+        khronos_float_t z;
     };
 
     struct uv_coord_t {
-        GLfloat u;
-        GLfloat v;
+        khronos_float_t u;
+        khronos_float_t v;
     };
 
     struct hmd_info_t {
