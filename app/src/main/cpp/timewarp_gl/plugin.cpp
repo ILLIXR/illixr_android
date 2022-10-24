@@ -7,9 +7,11 @@
 #include "common/shader_util.hpp"
 #include "common/switchboard.hpp"
 #include "common/threadloop.hpp"
+#include "common/common_lock.hpp"
 #include "shaders/basic_shader.hpp"
 #include "shaders/timewarp_shader.hpp"
 #include "utils/hmd.hpp"
+
 
 #include <EGL/egl.h>
 #include <GLES3/gl32.h>
@@ -52,6 +54,7 @@ public:
 			: threadloop{name_, pb_}
 			, sb{pb->lookup_impl<switchboard>()}
 			, pp{pb->lookup_impl<pose_prediction>()}
+            , cl{pb->lookup_impl<common_lock>()}
 			, xwin{pb->lookup_impl<xlib_gl_extended_window>()}
 			, _m_clock{pb->lookup_impl<RelativeClock>()}
 			, _m_eyebuffer{sb->get_reader<rendered_frame>("eyebuffer")}
@@ -71,6 +74,7 @@ public:
 private:
 	const std::shared_ptr<switchboard>             sb;
 	const std::shared_ptr<pose_prediction>         pp;
+    const std::shared_ptr<common_lock>             cl;
 	const std::shared_ptr<xlib_gl_extended_window> xwin;
 	const std::shared_ptr<const RelativeClock>     _m_clock;
 
@@ -331,7 +335,7 @@ public:
 		BuildTimewarp(hmd_info);
 		eglWaitGL();
 		// includes setting swap interval
-		sleep(5);
+		cl->get_lock();
 		[[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result && "glXMakeCurrent should not fail");
 
@@ -428,9 +432,11 @@ public:
 
 		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 		assert(gl_result_1 && "glXMakeCurrent should not fail");
+        cl->release_lock();
 	}
 
 	virtual void _p_one_iteration() override {
+        cl->get_lock();
 		[[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result && "glXMakeCurrent should not fail");
 
@@ -547,6 +553,7 @@ public:
 //		glEndQuery(GL_TIME_ELAPSED);
 
 		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
+
 #ifndef NDEBUG
 		const duration time_since_render = _m_clock->now() - most_recent_frame->render_time;
 
@@ -567,7 +574,7 @@ public:
 		[[maybe_unused]] time_point time_before_swap = _m_clock->now();
 
 		eglSwapBuffers(xwin->display, xwin->surface);
-
+		cl->release_lock();
 		// The swap time needs to be obtained and published as soon as possible
 		time_last_swap                              = _m_clock->now();
 		[[maybe_unused]] time_point time_after_swap = time_last_swap;

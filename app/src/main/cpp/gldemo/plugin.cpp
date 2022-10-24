@@ -8,6 +8,7 @@
 #include "common/shader_util.hpp"
 #include "common/switchboard.hpp"
 #include "common/threadloop.hpp"
+#include "common/common_lock.hpp"
 #include "shaders/demo_shader.hpp"
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -39,6 +40,7 @@ public:
 			, xwin{pb->lookup_impl<xlib_gl_extended_window>()}
 			, sb{pb->lookup_impl<switchboard>()}
 			, pp{pb->lookup_impl<pose_prediction>()}
+			, cl{pb->lookup_impl<common_lock>()}
 			, _m_clock{pb->lookup_impl<RelativeClock>()}
 			, _m_vsync{sb->get_reader<switchboard::event_wrapper<time_point>>("vsync_estimate")}
 			, _m_eyebuffer{sb->get_writer<rendered_frame>("eyebuffer")} { }
@@ -103,7 +105,7 @@ public:
 	void _p_one_iteration() override {
 		// Essentially, XRWaitFrame.
 		wait_vsync();
-
+        cl->get_lock();
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
         assert(gl_result && "glXMakeCurrent should not fail");
 
@@ -192,7 +194,7 @@ public:
 
 		which_buffer = !which_buffer;
 		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
-
+        cl->release_lock();
 #ifndef NDEBUG
 		if (log_count > LOG_PERIOD) {
 			log_count = 0;
@@ -211,6 +213,7 @@ private:
 	const std::shared_ptr<const xlib_gl_extended_window>             xwin;
 	const std::shared_ptr<switchboard>                                sb;
 	const std::shared_ptr<pose_prediction>                            pp;
+	const std::shared_ptr<common_lock>                                cl;
 	const std::shared_ptr<const RelativeClock>                        _m_clock;
 	const switchboard::reader<switchboard::event_wrapper<time_point>> _m_vsync;
 
@@ -292,6 +295,7 @@ private:
 public:
 	// We override start() to control our own lifecycle
 	virtual void start() override {
+        cl->get_lock();
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
         assert(gl_result_0 && "glXMakeCurrent should not fail");
 
@@ -342,6 +346,7 @@ public:
 
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL , nullptr));
         assert(gl_result_1 && "glXMakeCurrent should not fail");
+        cl->release_lock();
 
 		// Effectively, last vsync was at zero.
 		// Try to run gldemo right away.

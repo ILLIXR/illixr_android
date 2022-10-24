@@ -54,7 +54,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
     switch(cmd) {
         case APP_CMD_INIT_WINDOW:
         {
-            std::vector<std::string> arguments = { "libpose_lookup.so", "libgldemo.so" , "libtimewarp_gl.so"};
+            std::vector<std::string> arguments = { "libpose_lookup.so", "libcommon_lock.so", "libgldemo.so" , "libtimewarp_gl.so"};
             //std::vector<std::string> arguments = {"libfaux_pose.so" , "libgldemo.so",  "libtimewarp_gl.so", };
 
             std::vector<char*> argv;

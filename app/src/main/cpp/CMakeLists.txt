@@ -65,6 +65,11 @@ add_library(gldemo
         gldemo/plugin.cpp
         )
 
+add_library(common_lock
+        SHARED
+        common_lock/plugin.cpp
+        )
+
 add_library(timewarp_gl
         SHARED
         timewarp_gl/plugin.cpp
@@ -82,6 +87,11 @@ target_include_directories(native-activity PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(gldemo PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(common_lock PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
@@ -112,6 +122,12 @@ target_link_libraries(gldemo
     GLESv3
     log
     )
+
+target_link_libraries(common_lock
+        EGL
+        GLESv3
+        log
+        )
 
 target_link_libraries(timewarp_gl
     EGL
