@@ -18,19 +18,14 @@ public:
             , _m_ground_truth_offset{sb->get_reader<switchboard::event_wrapper<Eigen::Vector3f>>("ground_truth_offset")}{ }
 
     void get_lock() {
-        //lock.lock();
-        while(my_lock != 0) { ;
-        }
-        my_lock = 1;
-        LOGI("got lock ");
+        lock.lock();
     }
 
     void release_lock() {
-        my_lock = 0;
+        lock.unlock();
     }
 
 private:
-    std::atomic<int> my_lock = 0;
     mutable std::atomic<bool>                                        first_time{true};
     const std::shared_ptr<switchboard>                               sb;
     switchboard::reader<pose_type>                                   _m_slow_pose;
