@@ -10,6 +10,7 @@
 #include "common/extended_window.hpp"
 #include "common/shader_util.hpp"
 #include "common/pose_prediction.hpp"
+#include "common/common_lock.hpp"
 #include "common/gl_util/obj.hpp"
 #include "shaders/demo_shader.hpp"
 #include "common/global_module_defs.hpp"
@@ -52,6 +53,7 @@ public:
 		, xwin{pb->lookup_impl<xlib_gl_extended_window>()}
 		, sb{pb->lookup_impl<switchboard>()}
 		, pp{pb->lookup_impl<pose_prediction>()}
+        , cl{pb->lookup_impl<common_lock>()}
 		, _m_vsync{sb->get_reader<switchboard::event_wrapper<time_type>>("vsync_estimate")}
 		, _m_eyebuffer{sb->get_writer<ILLIXR::rendered_frame>("eyebuffer")}
 	{
@@ -134,7 +136,7 @@ public:
 
 			// Essentially, XRWaitFrame.
 			wait_vsync();
-
+            cl->get_lock();
 			[[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 			assert(gl_result && "glXMakeCurrent should not fail");
 			LOGIG("CONTEXT CURRENT");
@@ -252,6 +254,7 @@ public:
 		}
 		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 		LOGIG("CONTEXT Released");
+        cl->release_lock();
 
 #ifndef NDEBUG
 		if (log_count > LOG_PERIOD) {
@@ -273,6 +276,7 @@ private:
 	const std::shared_ptr<const xlib_gl_extended_window> xwin; //Us shared pointer instead of unique
 	const std::shared_ptr<switchboard> sb;
 	const std::shared_ptr<pose_prediction> pp;
+    const std::shared_ptr<common_lock> cl;
 	const switchboard::reader<switchboard::event_wrapper<time_type>> _m_vsync;
 
 	// Switchboard plug for application eye buffer.
@@ -389,6 +393,7 @@ public:
 			LOGIG("XWIN CONTEXT IS NULL");
 		else
 			LOGIG("XWIN CONTEXT IS NOT NULL");
+        cl->get_lock();
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result_0 && "glXMakeCurrent should not fail");
 		RAC_ERRNO_MSG("gldemo after glXMakeCurrent");
@@ -453,7 +458,7 @@ public:
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL , nullptr));
 		assert(gl_result_1 && "glXMakeCurrent should not fail");
 		RAC_ERRNO_MSG("gldemo after glXMakeCurrent");
-
+        cl->release_lock();
         time_last = std::chrono::system_clock::now();
 		threadloop::start();
 

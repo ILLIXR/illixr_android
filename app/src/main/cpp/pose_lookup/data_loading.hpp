@@ -41,32 +41,32 @@ load_data() {
 
 	std::map<ullong, sensor_types> data;
 
-	//std::ifstream gt_file { illixr_data + "/state_groundtruth_estimate0/data.csv"};
+	std::ifstream gt_file { illixr_data + "/state_groundtruth_estimate0/data.csv"};
 	//std::string filename = "/home/madhuparna/AndroidStudioProjects/illixr-native-activity/app/src/main/cpp/ILLIXR_DATA/state_groundtruth_estimate0/data.csv";
-	std::string filename = "/home/madhuparna/random.txt";
-	std::ifstream gt_file ; //(filename);
-    gt_file.open(filename);
+	//std::string filename = "/home/madhuparna/random.txt";
+	//std::ifstream gt_file(filename);
+    //gt_file.open(filename);
 
 	//AAssetManager* mgr = AAsetManager_fromJava(env, assetManager);
 	//AAssetManager *aAssetManager = AndroidHelper::getAssetManager();
-	int n = filename.size();
-    char ch_file[n+1];
-    strcpy(ch_file, filename.c_str());
+	//int n = filename.size();
+   // char ch_file[n+1];
+    //strcpy(ch_file, filename.c_str());
 	if (!gt_file.good()) {
-		LOG("Not a good path .... %s", ch_file);
+		//LOG("Not a good path .... %s", ch_file);
 	    std::cerr << "${ILLIXR_DATA}/state_groundtruth_estimate0/data.csv (" << illixr_data <<  "/state_groundtruth_estimate0/data.csv) is not a good path" << std::endl;
         ILLIXR::abort();
 	}
-	LOG("befo .... %s", ch_file);
+	//LOG("befo .... %s", ch_file);
 	//ILLIXR::abort();
 	for(CSVIterator row{gt_file, 1}; row != CSVIterator{}; ++row) {
-		LOG("inside .... %s", ch_file);
+	//	LOG("inside .... %s", ch_file);
 		ullong t = std::stoull(row[0]);
 		Eigen::Vector3f av {std::stof(row[1]), std::stof(row[2]), std::stof(row[3])};
 		Eigen::Quaternionf la {std::stof(row[4]), std::stof(row[5]), std::stof(row[6]), std::stof(row[7])};
 		data[t] = {{}, av, la};
 	}
-	LOG("outside .... %s", ch_file);
+	//LOG("outside .... %s", ch_file);
 
 	return data;
 }

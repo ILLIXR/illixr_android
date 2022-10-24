@@ -12,6 +12,7 @@
 #include "shaders/basic_shader.hpp"
 #include "shaders/timewarp_shader.hpp"
 #include "common/pose_prediction.hpp"
+#include "common/common_lock.hpp"
 #include "common/global_module_defs.hpp"
 #include "common/error_util.hpp"
 #include <EGL/egl.h>
@@ -55,6 +56,7 @@ public:
 		: threadloop{name_, pb_}
 		, sb{pb->lookup_impl<switchboard>()}
 		, pp{pb->lookup_impl<pose_prediction>()}
+        , cl{pb->lookup_impl<common_lock>()}
 		, xwin{pb->lookup_impl<xlib_gl_extended_window>()}
 		, _m_eyebuffer{sb->get_reader<ILLIXR::rendered_frame>("eyebuffer")}
 		, _m_hologram{sb->get_writer<hologram_input>("hologram_in")}
@@ -74,6 +76,7 @@ public:
 private:
 	const std::shared_ptr<switchboard> sb;
 	const std::shared_ptr<pose_prediction> pp;
+    const std::shared_ptr<common_lock> cl;
 
 	bool flag = false;
 	static constexpr int   SCREEN_WIDTH    = ILLIXR::FB_WIDTH;
@@ -426,6 +429,7 @@ public:
 		bool wait_result = eglWaitGL();
 		LOGI("EGL WAIT %d", wait_result);
 		// includes setting swap interval
+		cl->get_lock();
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result_0 && "glXMakeCurrent should not fail");
 
@@ -545,6 +549,7 @@ public:
 
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
 		assert(gl_result_1 && "glXMakeCurrent should not fail");
+		cl->release_lock();
 		LOGT("EGL MAKE CURRENT IN TIMEWARP");
 	}
 
@@ -643,7 +648,7 @@ public:
 
 	virtual void warp([[maybe_unused]] time_type time) {
 		LOGT("timewarp_gl at start of warp");
-
+		cl->get_lock();
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result && "glXMakeCurrent should not fail");
 //		int rettype = drawTriangle(xwin->display, xwin->surface);
@@ -942,6 +947,7 @@ public:
 //		}});
 
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
+		cl->release_lock();
 		LOGT("Executes upto here ..");
 #ifndef NDEBUG
 		if (log_count > LOG_PERIOD) {
