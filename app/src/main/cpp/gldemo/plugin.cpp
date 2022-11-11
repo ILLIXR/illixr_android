@@ -120,14 +120,6 @@ public:
 	void _p_thread_setup() override {
 		RAC_ERRNO_MSG("gldemo at start of _p_thread_setup");
 		LOGIG("%d %d", ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT);
-		// Note: glXMakeContextCurrent must be called from the thread which will be using it.
-//        [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
-//		LOGIG("CONTEXT CURRENT");
-//		assert(gl_result && "glXMakeCurrent should not fail");
-//
-//		RAC_ERRNO_MSG("gldemo at end of _p_thread_setup");
-//		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
-
 	}
 
 	void _p_one_iteration() override {
@@ -230,7 +222,6 @@ public:
                           << ", FPS: " << fps
                           << std::endl;
                 LOGIG("LOG_COUNT > log_period");
-
             }
 #endif
             time_last = std::chrono::system_clock::now();
@@ -253,7 +244,6 @@ public:
 			lastFrameTime = std::chrono::system_clock::now();
 		}
 		[[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
-		LOGIG("CONTEXT Released");
         cl->release_lock();
 
 #ifndef NDEBUG
@@ -263,8 +253,6 @@ public:
 			log_count++;
 		}
 #endif
-
-        LOGIG("gldemo at end of _p_one_iteration");
 	}
 
 #ifndef NDEBUG
@@ -350,14 +338,7 @@ private:
     	glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
 		glGenRenderbuffers(1, depth_target);
     	glBindRenderbuffer(GL_RENDERBUFFER, *depth_target);
-		LOGIT("eYE TECTURE %d %d %d", EYE_TEXTURE_HEIGHT, EYE_TEXTURE_WIDTH, GL_MAX_RENDERBUFFER_SIZE);
     	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, EYE_TEXTURE_WIDTH, EYE_TEXTURE_HEIGHT);
-		GLuint err = eglGetError();
-		if (err){
-			LOGIT("glRenderBuffer %d", err);
-		}
-    	//glRenderbufferStorageMultisample(GL_RENDERBUFFER, fboSampleCount, GL_DEPTH_COMPONENT, EYE_TEXTURE_WIDTH, EYE_TEXTURE_HEIGHT);
-
     	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 		// Bind eyebuffer texture
@@ -385,14 +366,6 @@ public:
 	// Dummy "application" overrides _p_start to control its own lifecycle/scheduling.
 	virtual void start() override {
 		RAC_ERRNO_MSG("gldemo at start of gldemo start function");
-		LOGIG("START OF GLDEMO");
-		EGLContext ct = xwin->context;
-		LOGIG("%d %d", ILLIXR::FB_WIDTH, ILLIXR::FB_HEIGHT);
-
-		if(ct == NULL)
-			LOGIG("XWIN CONTEXT IS NULL");
-		else
-			LOGIG("XWIN CONTEXT IS NOT NULL");
         cl->get_lock();
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result_0 && "glXMakeCurrent should not fail");
@@ -461,9 +434,7 @@ public:
         cl->release_lock();
         time_last = std::chrono::system_clock::now();
 		threadloop::start();
-
-		LOGIG("gldemo at end of start()");
-	}
+    }
 };
 
 PLUGIN_MAIN(gldemo)

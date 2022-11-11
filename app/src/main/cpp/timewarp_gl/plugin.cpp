@@ -188,7 +188,6 @@ private:
 			myfile.close();
 			flag = true;
 		}
-
 	}
 	// Only needed for offloading
 	GLubyte* readTextureImage(){
@@ -255,7 +254,6 @@ private:
 	}
 
 	void BuildTimewarp(HMD::hmd_info_t* hmdInfo) {
-		LOGT("Begin BusindTimewarp");
 		// Calculate the number of vertices+indices in the distortion mesh.
 		num_distortion_vertices = ( hmdInfo->eyeTilesHigh + 1 ) * ( hmdInfo->eyeTilesWide + 1 );
 		num_distortion_indices = hmdInfo->eyeTilesHigh * hmdInfo->eyeTilesWide * 6;
@@ -335,7 +333,6 @@ private:
 								  display_params::fov_y / 2.0f, display_params::fov_y / 2.0f, rendering_params::near_z,
 								  rendering_params::far_z);
 		printMatrix(basicProjection);
-		LOGT("timewarp_gl at bottom of build timewarp");
 	}
 
 
@@ -382,7 +379,6 @@ private:
 public:
 
 	virtual void _p_one_iteration() override {
-	    LOGT("timewarp_gl at start of _p_one_iteration");
 	    const time_type time_now = std::chrono::system_clock::now();
 		warp(time_now);
 	}
@@ -398,7 +394,6 @@ public:
 		std::this_thread::sleep_for(std::chrono::duration<double>(EstimateTimeToSleep(DELAY_FRACTION)));
 		//LOGT("eye buffer ro_nullable checking .. ");
 		if (_m_eyebuffer.get_ro_nullable() != nullptr) {
-			LOGT("eye buffer ro_nullable not null ");
 			return skip_option::run;
 		} else {
 			//LOGT("eye buffer ro_nullable is null ");
@@ -409,8 +404,6 @@ public:
 	}
 
 	virtual void _p_thread_setup() override {
-        LOGT("timewarp_gl at start of _p_thread_setup");
-
 		time_last_swap = std::chrono::system_clock::now();
 
 		// Generate reference HMD and physical body dimensions
@@ -419,13 +412,6 @@ public:
 
     	// Construct timewarp meshes and other data
     	BuildTimewarp(&hmd_info);
-
-        EGLContext context = xwin->context;
-        if(context == NULL)
-            LOGS("CONTEXT IS NULL PTR");
-        else
-            LOGS("CONTEXT IS NOT NULL");
-
 		bool wait_result = eglWaitGL();
 		LOGI("EGL WAIT %d", wait_result);
 		// includes setting swap interval
@@ -433,33 +419,10 @@ public:
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result_0 && "glXMakeCurrent should not fail");
 
-		// set swap interval for 1
 		RAC_ERRNO_MSG("timewarp_gl before vsync swap interval set");
-		//FIXIT
-		//glXSwapIntervalEXTProc glXSwapIntervalEXT = 0;
-		//glXSwapIntervalEXT = (glXSwapIntervalEXTProc) glXGetProcAddressARB((const GLubyte *)"glXSwapIntervalEXT");
-		//FIXIT
 		eglSwapInterval(xwin->display, 1);
 		RAC_ERRNO_MSG("timewarp_gl after vsync swap interval set");
 
-		// Init and verify GLEW
-		/*
-		glewExperimental = GL_TRUE;
-		const GLenum glew_err = glewInit();
-		if (glew_err != GLEW_OK) {
-			/// TODO: Clean up?
-            std::cerr << "[timewarp_gl] GLEW Error: " << glewGetErrorString(glew_err) << std::endl;
-            ILLIXR::abort("[timewarp_gl] Failed to initialize GLEW");
-		}
-
-		glEnable(GL_DEBUG_OUTPUT);
-
-		glDebugMessageCallback(MessageCallback, 0);
-		 */
-		//glEnable(GL_DEBUG_OUTPUT);
-		// TODO: X window v-synch
-
-		// Create and bind global VAO object
 		glGenVertexArrays(1, &tw_vao);
     	glBindVertexArray(tw_vao);
 
@@ -495,7 +458,6 @@ public:
 		glBufferData(GL_ARRAY_BUFFER, num_elems_pos_uv * sizeof(HMD::mesh_coord3d_t), distortion_positions_data, GL_STATIC_DRAW);
 
 		glVertexAttribPointer(distortion_pos_attr, 3, GL_FLOAT, GL_FALSE, 0, 0);
-		//glEnableVertexAttribArray(distortion_pos_attr);
 
 		// Config distortion uv0 vbo
 		glGenBuffers(1, &distortion_uv0_vbo);
@@ -506,7 +468,6 @@ public:
 		glBufferData(GL_ARRAY_BUFFER, num_elems_pos_uv * sizeof(HMD::uv_coord_t), distortion_uv0_data, GL_STATIC_DRAW);
 		LOGT("Distortion_uv0_attr %d", distortion_uv0_attr);
 		glVertexAttribPointer(distortion_uv0_attr, 2, GL_FLOAT, GL_FALSE, 0, 0);
-		//glEnableVertexAttribArray(distortion_uv0_attr);
 
 		// Config distortion uv1 vbo
 		glGenBuffers(1, &distortion_uv1_vbo);
@@ -517,7 +478,6 @@ public:
 		glBufferData(GL_ARRAY_BUFFER, num_elems_pos_uv * sizeof(HMD::uv_coord_t), distortion_uv1_data, GL_STATIC_DRAW);
 
 		glVertexAttribPointer(distortion_uv1_attr, 2, GL_FLOAT, GL_FALSE, 0, 0);
-		//glEnableVertexAttribArray(distortion_uv1_attr);
 
 		// Config distortion uv2 vbo
 		glGenBuffers(1, &distortion_uv2_vbo);
@@ -553,107 +513,11 @@ public:
 		LOGT("EGL MAKE CURRENT IN TIMEWARP");
 	}
 
-//	GLuint LoadShader(GLenum type, const char *shaderSrc) {
-//
-//		GLuint shader;
-//		GLint compiled;
-//		// Create the shader object
-//		shader = glCreateShader(type);
-//
-//		if(shader == 0)
-//			return 0;
-//		// Load the shader source
-//		glShaderSource(shader, 1, &shaderSrc, NULL);
-//		glCompileShader(shader);
-//		// Check the compile status
-//		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-//		if(!compiled)
-//		{
-//			GLint infoLen = 0;
-//			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
-//			if(infoLen > 1)
-//			{
-//				LOGT("COMPILE ERROR");
-//			}
-//			glDeleteShader(shader);
-//			return 0;
-//		}
-//
-//		return shader;
-//	}
-//
-//	int drawTriangle(EGLDisplay eglDisplay, EGLSurface eglSurface) {
-//		const char *vShaderStr =
-//				"attribute vec4 vPosition;   \n"
-//				"void main()                 \n"
-//                "{                           \n"
-//                "   gl_Position = vPosition; \n"
-//                "}                           \n";
-//
-//        const char *fShaderStr =
-//                "precision mediump float;                   \n"
-//                "void main()                                \n"
-//                "{                                          \n"
-//                "  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); \n"
-//                "}                                          \n";
-//
-//        GLuint vertexShader;
-//        GLuint fragmentShader;
-//        GLuint programObject;
-//        GLint linked;
-//
-//        vertexShader = LoadShader(GL_VERTEX_SHADER, vShaderStr);
-//        fragmentShader = LoadShader(GL_FRAGMENT_SHADER, fShaderStr);
-//
-//		programObject = glCreateProgram();
-//		if(programObject == 0)
-//			return 0;
-//
-//		glAttachShader(programObject, vertexShader);
-//		glAttachShader(programObject, fragmentShader);
-//
-//		glBindAttribLocation(programObject, 0, "vPosition");
-//		glLinkProgram(programObject);
-//		glGetProgramiv(programObject, GL_LINK_STATUS, &linked);
-//		if(!linked)    {
-//			GLint infoLen = 0;
-//			glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, &infoLen);
-//			if(infoLen > 1)      {
-//				//char* infoLog = malloc(sizeof(char) * infoLen);
-//				//glGetProgramInfoLog(programObject, infoLen, NULL, infoLog);
-//				//esLogMessage("Error linking program:\n%s\n", infoLog);
-//				//free(infoLog);
-//				LOGT("ERROR WITH LINKING");
-//			}
-//			glDeleteProgram(programObject);
-//			return -1;
-//		}
-//		glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
-//
-//		GLfloat vVertices[] = {0.0f,  0.5f, 0.0f,                           -0.5f, -0.5f, 0.0f,                          0.5f, -0.5f,  0.0f};
-//		GLint dims[4] = {0};
-//		glGetIntegerv(GL_VIEWPORT, dims);
-//		GLint fbWidth = dims[2];
-//		GLint fbHeight = dims[3];
-//LOGT("Screen dimensions %d %d %d %d", fbWidth, fbHeight, SCREEN_WIDTH, SCREEN_HEIGHT);
-//		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-//		glClear(GL_COLOR_BUFFER_BIT);
-//		glUseProgram(programObject);
-//		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-//		glEnableVertexAttribArray(0);
-//		glDrawArrays(GL_TRIANGLES, 0, 3);
-//		eglSwapBuffers(eglDisplay, eglSurface);
-//		return 5;
-//	}
-
 	virtual void warp([[maybe_unused]] time_type time) {
 		LOGT("timewarp_gl at start of warp");
 		cl->get_lock();
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
 		assert(gl_result && "glXMakeCurrent should not fail");
-//		int rettype = drawTriangle(xwin->display, xwin->surface);
-//		LOGT("RETTYPR %d", rettype);
-//		return;
 		GLint dims[4] = {0};
 		glGetIntegerv(GL_VIEWPORT, dims);
 		GLint fbWidth = dims[2];
@@ -664,8 +528,6 @@ public:
 		glBindFramebuffer(GL_FRAMEBUFFER,0);
 		glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		glClearColor(0, 0, 0, 0);
-		//glClearColor(1, 0, 0, 0);
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         RAC_ERRNO_MSG("timewarp_gl after glClear");
 		//glEnable(GL_DEPTH_TEST);
@@ -684,12 +546,6 @@ public:
 		if (err){
 			LOGT("Timewarp: USE PROG to PBO_buffer failed %d", err);
 		}
-
-//		GLfloat vVertices[] = {0.0f,  100.00f, 0.0f,-0.5f, -0.5f, 25.00f,0.5f, -0.5f,  0.0f};
-//		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-//		glEnableVertexAttribArray(0);
-//		glDrawArrays(GL_TRIANGLES, 0, 3);
-//
 
 		// Generate "starting" view matrix, from the pose
 		// sampled at the time of rendering the frame.

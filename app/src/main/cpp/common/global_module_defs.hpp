@@ -14,7 +14,7 @@ namespace ILLIXR {
 #define FB_WIDTH FB_WIDTH
 
 //Setting default Framebuffer width
-static constexpr int FB_WIDTH = 1080; //Pixels
+static constexpr int FB_WIDTH = 1080*2; //Pixels
 #endif
 
 #ifndef FB_HEIGHT
