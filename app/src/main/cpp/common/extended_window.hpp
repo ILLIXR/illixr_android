@@ -57,14 +57,10 @@ namespace ILLIXR {
             EGLint numConfigs;
             EGLConfig config = nullptr;
             eglChooseConfig(display, attribs, &config, 1, &numConfigs);
-            LOGI("config chosen");
-            LOGI("Num configs %d", numConfigs);
-
             std::unique_ptr < EGLConfig[] > supportedConfigs(new EGLConfig[numConfigs]);
             assert(supportedConfigs);
             eglChooseConfig(display, attribs, supportedConfigs.get(), numConfigs, &numConfigs);
             assert(numConfigs);
-            LOGI("Num configs %d", numConfigs);
             auto i = 0;
             for (; i < numConfigs; i++) {
                 auto &cfg = supportedConfigs[i];
@@ -86,10 +82,7 @@ namespace ILLIXR {
             if (config == nullptr) {
                 return;
             }
-            LOGI("EGL config initialized successfully");
-
             eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
-            LOGI("EGL get config attr worked");
             if (window != nullptr) {
                 LOGI("window is not nullptr");
             }
