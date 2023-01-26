@@ -586,7 +586,7 @@ public:
         // CPU thread once the buffers have been successfully swapped.
         [[maybe_unused]] time_point time_before_swap = _m_clock->now();
 
-        eglSwapBuffers(xwin->display, xwin->surface);
+        //eglSwapBuffers(xwin->display, xwin->surface);
 
         // The swap time needs to be obtained and published as soon as possible
         time_last_swap                              = _m_clock->now();

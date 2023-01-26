@@ -55,6 +55,11 @@ add_library(native-activity
             runtime/plugin.cpp
         )
 
+add_library(runtime
+        SHARED
+        runtime/plugin.cpp
+        )
+
 add_library(gldemo
         SHARED
         gldemo/plugin.cpp
@@ -82,6 +87,11 @@ add_library(pose_lookup
 #        )
 
 target_include_directories(native-activity PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(runtime PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
@@ -121,6 +131,12 @@ target_link_libraries(native-activity
     GLESv3
     log
     )
+
+target_link_libraries(runtime
+        EGL
+        GLESv3
+        log
+        )
 
 target_link_libraries(gldemo
     EGL
