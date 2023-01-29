@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId = 'com.example.native_activity'
-        minSdkVersion 18
+        minSdkVersion 21
         targetSdkVersion 32
         externalNativeBuild {
             cmake {

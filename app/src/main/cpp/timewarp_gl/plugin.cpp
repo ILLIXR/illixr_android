@@ -17,13 +17,18 @@
 #include "utils/hmd.hpp"
 
 #include <EGL/egl.h>
-#include <GLES3/gl32.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <vulkan/vulkan.h>
+
+#define LOGT(...) ((void)__android_log_print(ANDROID_LOG_INFO, "timewarp", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -71,8 +76,31 @@ public:
         // which results in a "multipath" between the pose and the video stream.
         // In production systems, this is certainly a good thing, but it makes the system harder to analyze.
         , disable_warp{ILLIXR::str_to_bool(ILLIXR::getenv_or("ILLIXR_TIMEWARP_DISABLE", "False"))}
-        , enable_offload{ILLIXR::str_to_bool(ILLIXR::getenv_or("ILLIXR_OFFLOAD_ENABLE", "False"))} { }
+        , enable_offload{ILLIXR::str_to_bool(ILLIXR::getenv_or("ILLIXR_OFFLOAD_ENABLE", "False"))} {
+        image_handles_ready = false;
+        swapchain_ready     = false;
+        sb->schedule<image_handle>(id, "image_handle", [this](switchboard::ptr<const image_handle> handle, std::size_t) {
+            // only 2 swapchains (for the left and right eye) are supported for now.
+            if (handle->swapchain_index == 0) {
+                std::cout << "SWAPCHAIN 0 READY" << std::endl;
+            } else if (handle->swapchain_index == 1) {
+                std::cout << "SWAPCHAIN 1 READY" << std::endl;
+            } else {
+                return;
+            }
 
+            assert(handle->swapchain_index == 0 || handle->swapchain_index == 1);
+            this->_m_image_handles[handle->swapchain_index].push_back(*handle);
+
+            if (this->_m_image_handles[0].size() == (size_t) handle->num_images &&
+                this->_m_image_handles[1].size() == (size_t) handle->num_images) {
+                this->image_handles_ready = true;
+                std::cout << "IMAGES READY" << std::endl;
+            }
+        });
+
+        std::cout << "Timewarp done!" << std::endl;
+    }
 private:
     const std::shared_ptr<switchboard>             sb;
     const std::shared_ptr<pose_prediction>         pp;
@@ -82,6 +110,12 @@ private:
 
     // Note: 0.9 works fine without hologram, but we need a larger safety net with hologram enabled
     static constexpr double DELAY_FRACTION = 0.9;
+
+    graphics_api                             client_backend;
+    std::atomic<bool>                        image_handles_ready;
+    bool                                     swapchain_ready;
+    std::array<std::vector<image_handle>, 2> _m_image_handles;
+    std::array<std::vector<GLuint>, 2>       _m_swapchain;
 
     // Switchboard plug for application eye buffer.
     switchboard::reader<rendered_frame> _m_eyebuffer;
@@ -141,6 +175,7 @@ private:
     GLuint tw_start_transform_unif;
     GLuint tw_end_transform_unif;
     // Basic perspective projection matrix
+    GLuint flip_y_unif;
     Eigen::Matrix4f basicProjection;
 
     // Hologram call data
@@ -190,6 +225,50 @@ private:
 #endif
 
         return pixels;
+    }
+    GLuint ConvertVkFormatToGL(int64_t vk_format, GLint swizzle_mask[]) {
+        switch (vk_format) {
+            case VK_FORMAT_R8G8B8A8_UNORM:
+                return GL_RGBA8;
+            case VK_FORMAT_B8G8R8A8_SRGB: {
+                swizzle_mask[0] = GL_BLUE;
+                swizzle_mask[2] = GL_RED;
+            }
+            case VK_FORMAT_R8G8B8A8_SRGB:
+                return GL_SRGB8_ALPHA8;
+            default:
+                return 0;
+        }
+    }
+
+    void VulkanGLInterop(const vk_image_handle& vk_handle, int swapchain_index) {
+        [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
+        assert(gl_result && "glXMakeCurrent should not fail");
+        //assert(GLEW_EXT_memory_object_fd && "[timewarp_gl] Missing object memory extensions for Vulkan-GL interop");
+        GLint ExtensionCount;
+        glGetIntegerv(GL_NUM_EXTENSIONS, &ExtensionCount);
+        LOGT("%d",ExtensionCount);
+        for(int iter = 0; iter < ExtensionCount ; ++iter) {
+            LOGT("gl extensions .. %s",glGetStringi(GL_EXTENSIONS, iter));
+        }
+        // first get the memory handle of the vulkan object
+//        GLuint memory_handle;
+//        GLint  dedicated = GL_TRUE;
+//        glCreateMemoryObjectsEXT((GLsizei)1, &memory_handle);
+//        assert(glIsMemoryObjectEXT(memory_handle) && "GL memory handle must be created correctly");
+//        glMemoryObjectParameterivEXT(memory_handle, GL_DEDICATED_MEMORY_OBJECT_EXT, &dedicated);
+//        glImportMemoryFdEXT(memory_handle, vk_handle.allocation_size, GL_HANDLE_TYPE_OPAQUE_FD_EXT, vk_handle.file_descriptor);
+
+        // then use the imported memory as the opengl texture
+//        GLint  swizzle_mask[4] = {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
+//        GLuint format          = ConvertVkFormatToGL(vk_handle.format, swizzle_mask);
+//        assert(format != 0 && "Given VK format not handled!");
+//        GLuint image_handle;
+//        glGenTextures(1, &image_handle);
+//        glBindTexture(GL_TEXTURE_2D, image_handle);
+//        glTextureStorageMem2DEXT(image_handle, 1, format, vk_handle.width, vk_handle.height, memory_handle, 0);
+//        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask);
+//        _m_swapchain[swapchain_index].push_back(image_handle);
     }
 
     void BuildTimewarp(HMD::hmd_info_t& hmdInfo) {
@@ -312,7 +391,7 @@ public:
         // MTP here. More you wait, closer to the display sync you sample the pose.
 
         std::this_thread::sleep_for(EstimateTimeToSleep(DELAY_FRACTION));
-        if (_m_eyebuffer.get_ro_nullable() != nullptr) {
+        if (image_handles_ready.load() && _m_eyebuffer.get_ro_nullable() != nullptr) {
             return skip_option::run;
         } else {
             // Null means system is nothing has been pushed yet
@@ -381,7 +460,7 @@ public:
 
         eye_sampler_0 = glGetUniformLocation(timewarpShaderProgram, "Texture[0]");
         eye_sampler_1 = glGetUniformLocation(timewarpShaderProgram, "Texture[1]");
-
+        flip_y_unif = glGetUniformLocation(timewarpShaderProgram, "flipY");
         // Config distortion mesh position vbo
         glGenBuffers(1, &distortion_positions_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, distortion_positions_vbo);
@@ -447,6 +526,23 @@ public:
 
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
         assert(gl_result_1 && "eglMakeCurrent should not fail");
+        if (!swapchain_ready) {
+            assert(image_handles_ready);
+
+            client_backend = _m_image_handles[0][0].type;
+            for (int eye = 0; eye < 2; eye++) {
+                uint32_t num_images = _m_image_handles[eye][0].num_images;
+                for (uint32_t image_index = 0; image_index < num_images; image_index++) {
+                    if (client_backend == graphics_api::OPENGL) {
+                        _m_swapchain[eye].push_back(_m_image_handles[eye][image_index].gl_handle);
+                    } else {
+                        std::cout << "CONVERTING IMAGES TO GL" << std::endl;
+                        VulkanGLInterop(_m_image_handles[eye][image_index].vk_handle, eye);
+                    }
+                }
+            }
+            swapchain_ready = true;
+        }
         cl->release_lock();
     }
 
@@ -496,7 +592,7 @@ public:
 
         glUniformMatrix4fv(tw_start_transform_unif, 1, GL_FALSE, (GLfloat*) (timeWarpStartTransform4x4.data()));
         glUniformMatrix4fv(tw_end_transform_unif, 1, GL_FALSE, (GLfloat*) (timeWarpEndTransform4x4.data()));
-
+        glUniform1i(flip_y_unif, client_backend == graphics_api::VULKAN);
         // Debugging aid, toggle switch for rendering in the fragment shader
         glUniform1i(glGetUniformLocation(timewarpShaderProgram, "ArrayIndex"), 0);
         glUniform1i(eye_sampler_0, 0);
@@ -519,7 +615,10 @@ public:
         // Loop over each eye.
         for (int eye = 0; eye < HMD::NUM_EYES; eye++) {
 #ifdef USE_ALT_EYE_FORMAT // If we're using Monado-style buffers we need to rebind eyebuffers.... eugh!
-            glBindTexture(GL_TEXTURE_2D, most_recent_frame->texture_handles[eye]);
+            [[maybe_unused]] const bool isTexture =
+                    static_cast<bool>(glIsTexture(_m_swapchain[eye][most_recent_frame->swapchain_indices[eye]]));
+            assert(isTexture && "The requested image is not a texture!");
+            glBindTexture(GL_TEXTURE_2D, _m_swapchain[eye][most_recent_frame->swapchain_indices[eye]]);
 #endif
 
             // The distortion_positions_vbo GPU buffer already contains
@@ -586,6 +685,7 @@ public:
         // CPU thread once the buffers have been successfully swapped.
         [[maybe_unused]] time_point time_before_swap = _m_clock->now();
 
+        LOGT("EGL Swap buffer ...");
         //eglSwapBuffers(xwin->display, xwin->surface);
 
         // The swap time needs to be obtained and published as soon as possible
