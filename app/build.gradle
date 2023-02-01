@@ -4,11 +4,11 @@ plugins {
 
 android {
     compileSdkVersion 32
-    ndkVersion '22.1.7171670'
+    ndkVersion '21.4.7075529'
 
     defaultConfig {
         applicationId = 'com.example.native_activity'
-        minSdkVersion 21
+        minSdk 28
         targetSdkVersion 32
         externalNativeBuild {
             cmake {

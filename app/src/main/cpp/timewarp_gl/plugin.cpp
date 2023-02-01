@@ -16,9 +16,17 @@
 #include "shaders/timewarp_shader.hpp"
 #include "utils/hmd.hpp"
 
+#define EGL_EGLEXT_PROTOTYPES 1
+#define GL_GLEXT_PROTOTYPES 1
+#define GL_EXT_EGL_image_storage 0
+
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
+//#include <GLES3/gl32.h>
+//#include <GLES3/gl3ext.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#include <android/hardware_buffer.h>
 
 #include <atomic>
 #include <chrono>
@@ -82,9 +90,9 @@ public:
         sb->schedule<image_handle>(id, "image_handle", [this](switchboard::ptr<const image_handle> handle, std::size_t) {
             // only 2 swapchains (for the left and right eye) are supported for now.
             if (handle->swapchain_index == 0) {
-                std::cout << "SWAPCHAIN 0 READY" << std::endl;
+                LOGT("SWAPCHAIN 0 READY");
             } else if (handle->swapchain_index == 1) {
-                std::cout << "SWAPCHAIN 1 READY" << std::endl;
+                LOGT("SWAPCHAIN 1 READY");
             } else {
                 return;
             }
@@ -95,7 +103,8 @@ public:
             if (this->_m_image_handles[0].size() == (size_t) handle->num_images &&
                 this->_m_image_handles[1].size() == (size_t) handle->num_images) {
                 this->image_handles_ready = true;
-                std::cout << "IMAGES READY" << std::endl;
+                //std::cout << "IMAGES READY" << std::endl;
+                LOGT("IMAGES READY");
             }
         });
 
@@ -240,26 +249,21 @@ private:
                 return 0;
         }
     }
-
-    void VulkanGLInterop(const vk_image_handle& vk_handle, int swapchain_index) {
-        [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
-        assert(gl_result && "glXMakeCurrent should not fail");
-        //assert(GLEW_EXT_memory_object_fd && "[timewarp_gl] Missing object memory extensions for Vulkan-GL interop");
-        GLint ExtensionCount;
-        glGetIntegerv(GL_NUM_EXTENSIONS, &ExtensionCount);
-        LOGT("%d",ExtensionCount);
-        for(int iter = 0; iter < ExtensionCount ; ++iter) {
-            LOGT("gl extensions .. %s",glGetStringi(GL_EXTENSIONS, iter));
-        }
-        // first get the memory handle of the vulkan object
+//
+//    void VulkanGLInterop(const vk_image_handle& vk_handle, int swapchain_index) {
+//        [[maybe_unused]] const bool gl_result = static_cast<bool>(glXMakeCurrent(xwin->dpy, xwin->win, xwin->glc));
+//        assert(gl_result && "glXMakeCurrent should not fail");
+//        assert(GLEW_EXT_memory_object_fd && "[timewarp_gl] Missing object memory extensions for Vulkan-GL interop");
+//
+//        // first get the memory handle of the vulkan object
 //        GLuint memory_handle;
 //        GLint  dedicated = GL_TRUE;
-//        glCreateMemoryObjectsEXT((GLsizei)1, &memory_handle);
+//        glCreateMemoryObjectsEXT(1, &memory_handle);
 //        assert(glIsMemoryObjectEXT(memory_handle) && "GL memory handle must be created correctly");
 //        glMemoryObjectParameterivEXT(memory_handle, GL_DEDICATED_MEMORY_OBJECT_EXT, &dedicated);
 //        glImportMemoryFdEXT(memory_handle, vk_handle.allocation_size, GL_HANDLE_TYPE_OPAQUE_FD_EXT, vk_handle.file_descriptor);
-
-        // then use the imported memory as the opengl texture
+//
+//        // then use the imported memory as the opengl texture
 //        GLint  swizzle_mask[4] = {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
 //        GLuint format          = ConvertVkFormatToGL(vk_handle.format, swizzle_mask);
 //        assert(format != 0 && "Given VK format not handled!");
@@ -269,6 +273,39 @@ private:
 //        glTextureStorageMem2DEXT(image_handle, 1, format, vk_handle.width, vk_handle.height, memory_handle, 0);
 //        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_mask);
 //        _m_swapchain[swapchain_index].push_back(image_handle);
+//    }
+
+    void VulkanGLInteropBuffer(const vk_buffer_handle& vk_buffer_handle, int swapchain_index) {
+        [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
+        assert(gl_result && "glXMakeCurrent should not fail");
+        EGLClientBuffer native_buffer = NULL;
+        native_buffer = eglGetNativeClientBufferANDROID(vk_buffer_handle.ahardware_buffer);
+        AHardwareBuffer_Desc desc;
+//      AHardwareBuffer_describe(vk_buffer_handle.ahardware_buffer, &desc);
+        EGLint attrs[] = {
+                EGL_IMAGE_PRESERVED_KHR,
+                EGL_TRUE,
+                EGL_PROTECTED_CONTENT_EXT,
+                (desc.usage & AHARDWAREBUFFER_USAGE_PROTECTED_CONTENT) ? EGL_TRUE : EGL_FALSE,
+                EGL_NONE,
+                EGL_NONE,
+                EGL_NONE,
+        };
+        EGLenum source = EGL_NATIVE_BUFFER_ANDROID;
+        EGLImageKHR image = eglCreateImageKHR(xwin->display, EGL_NO_CONTEXT, source, native_buffer, attrs);
+        GLint  swizzle_mask[4] = {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
+        GLuint format          = ConvertVkFormatToGL(vk_buffer_handle.format, swizzle_mask);
+        assert(format != 0 && "Given VK format not handled!");
+        GLuint image_handle;
+        glGenTextures(1, &image_handle);
+        glBindTexture(GL_TEXTURE_2D, image_handle);
+        glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image); //Try the EXT alternative
+        //glTextureStorageMem2DEXT(image_handle, 1, format, vk_buffer_handle.width, vk_buffer_handle.height, native_buffer, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzle_mask[0]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swizzle_mask[1]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzle_mask[2]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzle_mask[3]);
+        _m_swapchain[swapchain_index].push_back(image_handle);
     }
 
     void BuildTimewarp(HMD::hmd_info_t& hmdInfo) {
@@ -526,6 +563,8 @@ public:
 
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
         assert(gl_result_1 && "eglMakeCurrent should not fail");
+        LOGT("Android api level : %d",__ANDROID_API__);
+
         if (!swapchain_ready) {
             assert(image_handles_ready);
 
@@ -536,8 +575,9 @@ public:
                     if (client_backend == graphics_api::OPENGL) {
                         _m_swapchain[eye].push_back(_m_image_handles[eye][image_index].gl_handle);
                     } else {
-                        std::cout << "CONVERTING IMAGES TO GL" << std::endl;
-                        VulkanGLInterop(_m_image_handles[eye][image_index].vk_handle, eye);
+                        LOGT("CONVERTING IMAGES TO GL");
+                        //VulkanGLInterop(_m_image_handles[eye][image_index].vk_handle, eye);
+                        VulkanGLInteropBuffer(_m_image_handles[eye][image_index].vk_buffer_handle, eye);
                     }
                 }
             }
@@ -687,7 +727,7 @@ public:
 
         LOGT("EGL Swap buffer ...");
         //eglSwapBuffers(xwin->display, xwin->surface);
-
+        LOGT("Android api level : %d",__ANDROID_API__);
         // The swap time needs to be obtained and published as soon as possible
         time_last_swap                              = _m_clock->now();
         [[maybe_unused]] time_point time_after_swap = time_last_swap;
