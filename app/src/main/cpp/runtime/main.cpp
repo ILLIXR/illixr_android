@@ -70,7 +70,8 @@ int runtime_main(int argc, char* const* argv, ANativeWindow* window) {
 #ifdef ILLIXR_MONADO_MAINLINE
     r = ILLIXR::runtime_factory();
 #else
-    r = ILLIXR::runtime_factory(EGL_NO_CONTEXT, window);
+    //r = ILLIXR::runtime_factory(EGL_NO_CONTEXT, window);
+    r = ILLIXR::runtime_factory();
 #endif /// ILLIXR_MONADO_MAINLINE
 
 #ifndef NDEBUG

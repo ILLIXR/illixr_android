@@ -322,7 +322,6 @@ public:
         // Create two shared eye textures, one for each eye
         createSharedEyebuffer(&(eyeTextures[0]));
         createSharedEyebuffer(&(eyeTextures[1]));
-
         // Initialize FBO and depth targets, attaching to the frame handle
         createFBO(&(eyeTextures[0]), &eyeTextureFBO, &eyeTextureDepthTarget);
 

@@ -154,6 +154,7 @@ target_link_libraries(timewarp_gl
     EGL
     GLESv3
     log
+    android
     )
 
 target_link_libraries(pose_lookup

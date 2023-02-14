@@ -6,7 +6,7 @@
 #include <thread>
 #include <vector>
 #include "runtime/main.h"
-
+#define  ILLIXR_MONADO 0
 using namespace ILLIXR;
 
 #define LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android-main", __VA_ARGS__))
