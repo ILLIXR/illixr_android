@@ -1026,6 +1026,11 @@ public:
 
         // Loop over each eye.
         for (int eye = 0; eye < HMD::NUM_EYES; eye++) {
+            glBindFramebuffer(GL_FRAMEBUFFER, _m_eye_framebuffers[eye]);
+            glViewport(0, 0, display_params::width_pixels * 0.5, display_params::height_pixels);
+            glClearColor(1.0, 1.0, 1.0, 1.0);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            glDepthFunc(GL_LEQUAL);
 #ifdef USE_ALT_EYE_FORMAT // If we're using Monado-style buffers we need to rebind eyebuffers.... eugh!
             [[maybe_unused]] const bool isTexture =
                     static_cast<bool>(glIsTexture(_m_eye_swapchains[eye][most_recent_frame->swapchain_indices[eye]]));
@@ -1114,12 +1119,12 @@ public:
                 glBlitFramebuffer(
                         0, 0, display_params::width_pixels * 0.5, display_params::height_pixels, 0, 0, display_params::width_pixels * 0.5, display_params::height_pixels, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-                        glBindFramebuffer(GL_READ_FRAMEBUFFER, _m_eye_framebuffers[1]);
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, _m_eye_framebuffers[1]);
                 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
                 glBlitFramebuffer(
                         0, 0, display_params::width_pixels * 0.5, display_params::height_pixels, display_params::width_pixels * 0.5, 0, display_params::width_pixels, display_params::height_pixels, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-                        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 eglSwapBuffers(dpy, surface);
         #endif
         // The swap time needs to be obtained and published as soon as possible
