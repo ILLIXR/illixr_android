@@ -19,10 +19,15 @@ cmake_minimum_required(VERSION 3.18.0)
 # build native_app_glue as a static lib
 set(OpenCV_STATIC ON)
 set(OpenCV_DIR $ENV{OPENCV_ANDROID}/sdk/native/jni)
+
 #find_package(OpenCV REQUIRED)
 #set(CMAKE_BUILD_TYPE "Release")
 # Declares and names the project.
-include_directories(~/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni/include)
+#include_directories(~/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni/include)
+#include_directories(/home/madhuparna/Downloads/OpenCV4Android/OpenCV-android-sdk/sdk/native/jni/include)
+include_directories(/home/madhuparna/opencv/android_build/out/sdk/native/jni/include)
+#include_directories(/home/madhuparna/opencv/build/include)
+
 include_directories(GLFW)
 include_directories(Eigen)
 include_directories(boost)
@@ -31,9 +36,18 @@ include_directories(runtime)
 include_directories(timewarp_gl)
 include_directories(GLFW/utils)
 include_directories(gldemo)
-#include_directories(pose_lookup)
+include_directories(pose_lookup)
+include_directories(rk4_integrator)
+include_directories(pose_prediction)
 include_directories(ILLIXR_DATA)
+include_directories(open_vins)
+include_directories(open_vins/ov_core/src/utils)
+include_directories(open_vins/ov_core/src/init)
+include_directories(open_vins/ov_core/*)
+include_directories(open_vins/ov_msckf/state)
 
+#add_subdirectory(open_vins/ov_core)
+#add_subdirectory(open_vins/ov_msckf)
 #set(CMAKE_C_COMPILER "clang-10")
 
 set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
@@ -49,10 +63,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_SHARED_LINKER_FLAGS
     "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate -v -fvisibility=hidden")
 
+#add_library( cv_core-lib SHARED IMPORTED)
+#set_target_properties( cv_core-lib
+#        PROPERTIES IMPORTED_LOCATION
+#        /home/madhuparna/opencv/build/lib/${ANDROID_ABI}/libopencv_core.so )
+
 add_library(native-activity
-            SHARED
-            main.cpp
-            runtime/plugin.cpp
+        SHARED
+        main.cpp
+        runtime/plugin.cpp
         )
 
 add_library(runtime
@@ -81,11 +100,27 @@ add_library(pose_lookup
         pose_lookup/plugin.cpp
         )
 
+add_library(pose_prediction
+        SHARED
+        pose_prediction/plugin.cpp
+        )
+
+add_library(rk4_integrator
+        SHARED
+        rk4_integrator/plugin.cpp
+        )
+
+#add_library(open_vins
+#        SHARED
+#        open_vins/ov_msckf/src/slam2.cpp
+#        )
+
 #add_library(faux_pose
 #        SHARED
 #        faux_pose/plugin.cpp
 #        )
 
+find_library(jnigraphics-lib jnigraphics)
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
@@ -116,6 +151,21 @@ target_include_directories(pose_lookup PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
+target_include_directories(pose_prediction PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(rk4_integrator PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+#target_include_directories(open_vins PRIVATE
+#        ${OpenCV_LIBS}
+#        ${jnigraphics-lib}
+#        ${ANDROID_NDK}/sources/android/native_app_glue)
+
 #target_include_directories(faux_pose PRIVATE
 #        ${OpenCV_LIBS}
 #        ${jnigraphics-lib}
@@ -130,38 +180,66 @@ target_link_libraries(native-activity
     EGL
     GLESv3
     log
+    opencv_core
+#    cv_core-lib
     )
 
 target_link_libraries(runtime
-        EGL
-        GLESv3
-        log
-        )
+    EGL
+    GLESv3
+    log
+#    cv_core-lib
+    )
 
 target_link_libraries(gldemo
     EGL
     GLESv3
     log
+#    cv_core-lib
     )
 
 target_link_libraries(common_lock
-        EGL
-        GLESv3
-        log
-        )
+    EGL
+    GLESv3
+    log
+#    cv_core-lib
+    )
 
 target_link_libraries(timewarp_gl
     EGL
     GLESv3
     log
     android
+#    cv_core-lib
     )
 
 target_link_libraries(pose_lookup
     EGL
     GLESv3
     log
+#    cv_core-lib
     )
+
+target_link_libraries(pose_prediction
+    EGL
+    GLESv3
+    log
+#    cv_core-lib
+    )
+
+
+target_link_libraries(rk4_integrator
+    EGL
+    GLESv3
+    log
+#    cv_core-lib
+    )
+
+#target_link_libraries(open_vins
+#    EGL
+#    GLESv3
+#    log
+#    )
 
 #target_link_libraries(faux_pose
 #    EGL

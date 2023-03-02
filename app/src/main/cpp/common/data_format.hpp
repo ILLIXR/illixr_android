@@ -4,6 +4,7 @@
 #include <chrono>
 #include <iostream>
 #include <memory>
+//#include <opencv2/core/mat.hpp>
 #include <opencv2/core/mat.hpp>
 #undef Success // For 'Success' conflict
 #include <Eigen/Dense>
@@ -41,15 +42,26 @@ namespace ILLIXR {
                 , img1{img1_} { }
     };
 
-    struct imu_type {
-        time_point                  timestamp;
-        Eigen::Matrix<double, 3, 1> wm;
-        Eigen::Matrix<double, 3, 1> am;
+    struct cam_type : switchboard::event {
+        time_point time;
+        cv::Mat    img0;
+        cv::Mat    img1;
 
-        imu_type(time_point timestamp_, Eigen::Matrix<double, 3, 1> wm_, Eigen::Matrix<double, 3, 1> am_)
-                : timestamp{timestamp_}
-                , wm{wm_}
-                , am{am_} { }
+        cam_type(time_point _time, cv::Mat _img0, cv::Mat _img1)
+                : time{_time}
+                , img0{_img0}
+                , img1{_img1} { }
+    };
+
+    struct imu_type : switchboard::event {
+        time_point      time;
+        Eigen::Vector3d angular_v;
+        Eigen::Vector3d linear_a;
+
+        imu_type(time_point time_, Eigen::Vector3d angular_v_, Eigen::Vector3d linear_a_)
+                : time{time_}
+                , angular_v{angular_v_}
+                , linear_a{linear_a_} { }
     };
 
     class rgb_depth_type : public switchboard::event {
