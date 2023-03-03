@@ -38,6 +38,7 @@ include_directories(gldemo)
 include_directories(open_vins/ov_core)
 #include_directories(open_vins/ov_msckf)
 include_directories(rk4_integrator)
+include_directories(pose_prediction)
 #include_directories(pose_lookup)
 #include_directories(ILLIXR_DATA)
 #set(CMAKE_C_COMPILER "clang-10")
@@ -85,6 +86,11 @@ add_library(timewarp_gl
 add_library(pose_lookup
         SHARED
         pose_lookup/plugin.cpp
+        )
+
+add_library(pose_prediction
+        SHARED
+        pose_prediction/plugin.cpp
         )
 
 add_library(rk4_integrator
@@ -184,6 +190,11 @@ target_include_directories(pose_lookup PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
+target_include_directories(pose_prediction PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
 target_include_directories(rk4_integrator PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
@@ -193,7 +204,6 @@ target_include_directories(ov_core_lib PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue
-
         )
 
 target_include_directories(ov_msckf_lib PRIVATE
@@ -249,6 +259,12 @@ target_link_libraries(timewarp_gl
         )
 
 target_link_libraries(pose_lookup
+        EGL
+        GLESv3
+        log
+        )
+
+target_link_libraries(pose_prediction
         EGL
         GLESv3
         log

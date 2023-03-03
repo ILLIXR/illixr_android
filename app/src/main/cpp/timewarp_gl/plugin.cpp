@@ -258,31 +258,31 @@ public:
         });
 
         #ifdef ILLIXR_MONADO
-        sb->schedule<semaphore_handle>(id, "semaphore_handle", [this](switchboard::ptr<const semaphore_handle> handle, std::size_t) {
-                // We need one semaphore to indicate when the reprojection is ready, and another when it's done
-            static bool left_semaphore_ready = false, right_semaphore_ready = false;
-            switch (handle->usage) {
-                case semaphore_usage::LEFT_RENDER_COMPLETE: {
-                        _m_semaphore_handles[0] = *handle;
-                        left_semaphore_ready = true;
-                        break;
-                    }
-                case semaphore_usage::RIGHT_RENDER_COMPLETE: {
-                        _m_semaphore_handles[1] = *handle;
-                        right_semaphore_ready = true;
-                        break;
-                    }
-                default: {
-                        std::cout << "Invalid semaphore usage provided" << std::endl;
-                        break;
-                    }
-                }
-
-                if (left_semaphore_ready && right_semaphore_ready) {
-                this->semaphore_handles_ready = true;
-                        LOGT("SEMAPHORE READY");
-                }
-            });
+//        sb->schedule<semaphore_handle>(id, "semaphore_handle", [this](switchboard::ptr<const semaphore_handle> handle, std::size_t) {
+//                // We need one semaphore to indicate when the reprojection is ready, and another when it's done
+//            static bool left_semaphore_ready = false, right_semaphore_ready = false;
+//            switch (handle->usage) {
+//                case semaphore_usage::LEFT_RENDER_COMPLETE: {
+//                        _m_semaphore_handles[0] = *handle;
+//                        left_semaphore_ready = true;
+//                        break;
+//                    }
+//                case semaphore_usage::RIGHT_RENDER_COMPLETE: {
+//                        _m_semaphore_handles[1] = *handle;
+//                        right_semaphore_ready = true;
+//                        break;
+//                    }
+//                default: {
+//                        std::cout << "Invalid semaphore usage provided" << std::endl;
+//                        break;
+//                    }
+//                }
+//
+//                if (left_semaphore_ready && right_semaphore_ready) {
+//                this->semaphore_handles_ready = true;
+//                        LOGT("SEMAPHORE READY");
+//                }
+//            });
         #endif
     }
 private:

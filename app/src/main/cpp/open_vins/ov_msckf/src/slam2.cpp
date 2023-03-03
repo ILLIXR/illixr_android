@@ -15,9 +15,12 @@
 #include "common/data_format.hpp"
 #include "common/phonebook.hpp"
 #include "common/relative_clock.hpp"
+#include <android/log.h>
 
 using namespace ILLIXR;
 using namespace ov_msckf;
+
+#define LOGS(...) ((void)__android_log_print(ANDROID_LOG_INFO, "slam2", __VA_ARGS__))
 
 // Comment in if using ZED instead of offline_imu_cam
 // TODO: Pull from config YAML file
@@ -214,10 +217,11 @@ public:
 
 	void feed_imu_cam(switchboard::ptr<const imu_type> datum, std::size_t iteration_no) {
 		// Ensures that slam doesnt start before valid IMU readings come in
+        LOGS("FEED_IMU_CAM");
 		if (datum == nullptr) {
 			return;
 		}
-
+        LOGS("DATUM IS NOT NULLPTR");
 		// Feed the IMU measurement. There should always be IMU data in each call to feed_imu_cam
 		open_vins_estimator.feed_measurement_imu(duration2double(datum->time.time_since_epoch()), datum->angular_v, datum->linear_a);
 
@@ -225,9 +229,11 @@ public:
 		// Buffered Async:
 		cam = _m_cam.size() == 0 ? nullptr : _m_cam.dequeue();
 		// If there is not cam data this func call, break early
+        LOGS("CHECKING CAM");
 		if (!cam) {
 			return;
 		}
+        LOGS("CAM IS NULL");
 		if (!cam_buffer) {
 			cam_buffer = cam;
 			return;
