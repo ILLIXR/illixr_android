@@ -11,6 +11,9 @@
 #include <Eigen/Dense>
 #include <iomanip>
 #include <thread>
+#include <android/log.h>
+
+#define LOGR(...) ((void)__android_log_print(ANDROID_LOG_INFO, "rk4_integrator", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -26,6 +29,7 @@ public:
         sb->schedule<imu_type>(id, "imu", [&](switchboard::ptr<const imu_type> datum, size_t) {
             callback(datum);
         });
+        LOGR("RK4 INTEGRATOR STARTED");
     }
 
     void callback(switchboard::ptr<const imu_type> datum) {
@@ -130,10 +134,11 @@ private:
                 curr_vel  = new_vel;
             }
         }
-
+        LOGR("Writing to imu_raw");
         _m_imu_raw.put(_m_imu_raw.allocate(w_hat, a_hat, w_hat2, a_hat2, curr_pos, curr_vel,
                                            Eigen::Quaterniond{curr_quat(3), curr_quat(0), curr_quat(1), curr_quat(2)},
                                            real_time));
+        LOGR("Done writing to imu_raw");
     }
 
     // Select IMU readings based on timestamp similar to how OpenVINS selects IMU values to propagate

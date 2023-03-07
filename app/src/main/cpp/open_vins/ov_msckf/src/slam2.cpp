@@ -195,7 +195,7 @@ public:
 			, _m_cam{sb->get_buffered_reader<cam_type>("cam")}
 			, open_vins_estimator{manager_params}
 	{
-
+		LOGS("SLAM PLUGIN STARTED");
 		// Disabling OpenCV threading is faster on x86 desktop but slower on
 		// jetson. Keeping this here for manual disabling.
 		// cv::setNumThreads(0);
@@ -208,7 +208,9 @@ public:
 
 
 	virtual void start() override {
+        LOGS("SLAM START");
 		plugin::start();
+		//create_params();
 		sb->schedule<imu_type>(id, "imu", [&](switchboard::ptr<const imu_type> datum, std::size_t iteration_no) {
 			this->feed_imu_cam(datum, iteration_no);
 		});
@@ -221,7 +223,8 @@ public:
 		if (datum == nullptr) {
 			return;
 		}
-        LOGS("DATUM IS NOT NULLPTR");
+        LOGS("DATUM IS NOT NULLPTR %d", (int)_m_cam.size());
+        ;;
 		// Feed the IMU measurement. There should always be IMU data in each call to feed_imu_cam
 		open_vins_estimator.feed_measurement_imu(duration2double(datum->time.time_since_epoch()), datum->angular_v, datum->linear_a);
 
@@ -229,11 +232,10 @@ public:
 		// Buffered Async:
 		cam = _m_cam.size() == 0 ? nullptr : _m_cam.dequeue();
 		// If there is not cam data this func call, break early
-        LOGS("CHECKING CAM");
 		if (!cam) {
 			return;
 		}
-        LOGS("CAM IS NULL");
+        LOGS("CAM IS NOT NULL" );
 		if (!cam_buffer) {
 			cam_buffer = cam;
 			return;
@@ -270,14 +272,14 @@ public:
 		assert(isfinite(swapped_pos[0]));
 		assert(isfinite(swapped_pos[1]));
 		assert(isfinite(swapped_pos[2]));
-
+        LOGS("open vins estimator");
 		if (open_vins_estimator.initialized()) {
 			_m_pose.put(_m_pose.allocate(
 					cam_buffer->time,
 					swapped_pos,
 					swapped_rot
 			));
-
+            LOGS("Writing to imu integrator input");
 			_m_imu_integrator_input.put(_m_imu_integrator_input.allocate(
 					cam_buffer->time,
 					from_seconds(state->_calib_dt_CAMtoIMU->value()(0)),
@@ -296,6 +298,7 @@ public:
 					vel,
 					swapped_rot2
 			));
+            LOGS("Done writing to imu integrator input");
 		}
 		cam_buffer = cam;
 	}
