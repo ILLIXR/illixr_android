@@ -292,6 +292,9 @@ target_link_libraries(android_cam
         GLESv3
         log
         cv_core-lib
+        camera2ndk
+        mediandk
+        android
         )
 
 target_link_libraries(ov_core_lib
