@@ -129,16 +129,43 @@ set_target_properties( cv_calib3d-lib
         PROPERTIES IMPORTED_LOCATION
         /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_calib3d.so)
 
+
+add_library( cv_highgui-lib SHARED IMPORTED)
+set_target_properties( cv_highgui-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_highgui.so)
+
+add_library( cv_features2d-lib SHARED IMPORTED)
+set_target_properties( cv_features2d-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_features2d.so)
+
+add_library( cv_aruco-lib SHARED IMPORTED)
+set_target_properties( cv_aruco-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_aruco.so)
+
+#Boost
+add_library( boost_chrono-lib SHARED IMPORTED)
+set_target_properties( boost_chrono-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/boost-android/arm64/lib/libboost_chrono.so)
+
+add_library( boost_thread-lib SHARED IMPORTED)
+set_target_properties( boost_thread-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/boost-android/arm64/lib/libboost_thread.so)
+
 add_library(ov_core_lib
         SHARED
         open_vins/ov_core/src/dummy.cpp
         open_vins/ov_core/src/init/InertialInitializer.cpp
         open_vins/ov_core/src/sim/BsplineSE3.cpp
         open_vins/ov_core/src/track/TrackBase.cpp
-#        #src/track/TrackAruco.cpp #
-#        open_vins/ov_core/src/track/TrackDescriptor.cpp
-#        open_vins/ov_core/src/track/TrackKLT.cpp
-#        open_vins/ov_core/src/track/TrackSIM.cpp
+        #open_vins/ov_core/src/track/TrackAruco.cpp
+        open_vins/ov_core/src/track/TrackDescriptor.cpp
+        open_vins/ov_core/src/track/TrackKLT.cpp
+        open_vins/ov_core/src/track/TrackSIM.cpp
         open_vins/ov_core/src/types/Landmark.cpp
         open_vins/ov_core/src/feat/Feature.cpp
         open_vins/ov_core/src/feat/FeatureInitializer.cpp
@@ -292,6 +319,7 @@ target_link_libraries(android_cam
         GLESv3
         log
         cv_core-lib
+        cv_imgproc-lib
         camera2ndk
         mediandk
         android
@@ -305,6 +333,11 @@ target_link_libraries(ov_core_lib
         cv_tracking-lib
         cv_video-lib
         cv_calib3d-lib
+        cv_highgui-lib
+        cv_features2d-lib
+        cv_aruco-lib
+        boost_chrono-lib
+        boost_thread-lib
         log)
 
 target_link_libraries(ov_msckf_lib

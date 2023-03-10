@@ -99,12 +99,10 @@ namespace ov_core {
         bool do_downsizing;
 
         // Our dictionary that we will extract aruco tags with
-        //cv::Ptr<cv::aruco::Dictionary> aruco_dict;
-        cv::aruco::Dictionary aruco_dict;
+        cv::Ptr<cv::aruco::Dictionary> aruco_dict;
 
         // Parameters the opencv extractor uses
-        //cv::Ptr<cv::aruco::DetectorParameters> aruco_params;
-        cv::aruco::DetectorParameters aruco_params;
+        cv::Ptr<cv::aruco::DetectorParameters> aruco_params;
 
         // Mutex for our ids_aruco, corners, rejects which we use for drawing
         std::mutex mtx_aruco;

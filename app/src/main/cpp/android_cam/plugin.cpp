@@ -49,20 +49,49 @@ public:
     static void imageCallback(void* context, AImageReader* reader)
     {
         AImage *image = nullptr;
-        //auto status = AImageReader_acquireNextImage(reader, &image);
-        LOGA("imageCallback()");
+        auto status = AImageReader_acquireNextImage(reader, &image);
+        LOGA("imageCallback() %d", status);
         // Check status here ...
 
         // Try to process data without blocking the callback
         std::thread processor([=](){
 
-            uint8_t *data = nullptr;
-            int len = 0;
-            AImage_getPlaneData(image, 0, &data, &len);
+            uint8_t *rPixel, *gPixel, *bPixel;//, *aPixel;
+            int32_t rLen, gLen, bLen;//, aLen;
+            AImage_getPlaneData(image, 0, &rPixel, &rLen);
+            AImage_getPlaneData(image, 1, &gPixel, &gLen);
+            AImage_getPlaneData(image, 2, &bPixel, &bLen);
+            //AImage_getPlaneData(image, 3, &aPixel, &aLen);
+
+
+            uint8_t * data = new uint8_t[rLen + gLen + bLen];
+            memcpy(data, rPixel, rLen);
+            memcpy(data + rLen, gPixel, gLen);
+            memcpy(data + rLen + gLen, bPixel, bLen);
+            //memcpy(data + rLen + gLen + bLen, aPixel, aLen);
 
             // Process data here
-            // ...
+            cv::Mat gray_image = cv::Mat(IMAGE_WIDTH, IMAGE_HEIGHT, CV_8UC1, data);
+            //cv::Mat gray_image;
+            //cv::cvtColor(img, gray_image, cv::COLOR_BGR2GRAY);
+            cv::resize(gray_image, gray_image, cv::Size(), 0.5, 0.5);
+            std::string my_str = "[ ";
 
+            for(int i=0; i<gray_image.rows; i++)
+            {
+                my_str += "[";
+                for(int j=0; j<gray_image.cols; j++)
+                {
+                    if(j == gray_image.cols -1)
+                        my_str += std::to_string(gray_image.at<float>(i,j));
+                    my_str += std::to_string(gray_image.at<float>(i,j)) + ", ";
+                }
+                if(i == gray_image.rows - 1)
+                    my_str += "]";
+                my_str += "],";
+            }
+            my_str += "]";
+            LOGA("Converted image into cv mat = %s", my_str.c_str());
             AImage_delete(image);
         });
         processor.detach();
@@ -71,13 +100,16 @@ public:
     AImageReader* createJpegReader()
     {
         AImageReader* reader = nullptr;
-        //media_status_t status = AImageReader_new(640, 480, AIMAGE_FORMAT_JPEG, 4, &reader);
+        media_status_t status = AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888, 4, &reader);
 
-        //if (status != AMEDIA_OK)
-        // Handle errors here
+        if (status != AMEDIA_OK)
+        {
+            LOGA("Error with image reader");
+            return nullptr;
+        }
 
         AImageReader_ImageListener listener{
-                .context = nullptr,
+                .context = this,
                 .onImageAvailable = imageCallback,
         };
 
@@ -181,9 +213,11 @@ public:
 
             ACameraMetadata *metadataObj;
             ACameraManager_getCameraCharacteristics(cameraManager, id, &metadataObj);
+            LOGA("get camera characteristics %d", i);
 
             ACameraMetadata_const_entry lensInfo = {0};
             ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_FACING, &lensInfo);
+            LOGA("lens info %d", i);
 
             auto facing = static_cast<acamera_metadata_enum_android_lens_facing_t>(
                     lensInfo.data.u8[0]);
@@ -195,6 +229,8 @@ public:
                 break;
             }
         }
+        LOGA("back camera id %s", backId.c_str());
+
         ACameraManager_deleteCameraIdList(cameraIds);
         return backId;
     }
@@ -204,6 +240,8 @@ public:
         auto id = getBackFacingCamId(cameraManager);
         ACameraManager_openCamera(cameraManager, id.c_str(), &cameraDeviceCallbacks, &cameraDevice);
 
+        ACameraDevice_createCaptureRequest(cameraDevice, TEMPLATE_PREVIEW, &request);
+        ACaptureSessionOutputContainer_create(&outputs);
         imageReader = createJpegReader();
         imageWindow = createSurface(imageReader);
         ANativeWindow_acquire(imageWindow);
@@ -211,11 +249,13 @@ public:
         ACaptureRequest_addTarget(request, imageTarget);
         ACaptureSessionOutput_create(imageWindow, &imageOutput);
         ACaptureSessionOutputContainer_add(outputs, imageOutput);
-
+        LOGA("CREATE CAPTURE SESSION");
         // Create the session
-        ACameraDevice_createCaptureSession(cameraDevice, outputs, &sessionStateCallbacks, &captureSession);
+        camera_status_t status = ACameraDevice_createCaptureSession(cameraDevice, outputs, &sessionStateCallbacks, &captureSession);
         // Start capturing continuously
-        ACameraCaptureSession_setRepeatingRequest(captureSession, &captureCallbacks, 1, &request, nullptr);
+        status = ACameraCaptureSession_setRepeatingRequest(captureSession, &captureCallbacks, 1, &request, nullptr);
+        LOGA("ACameraCaptureSession_setRepeatingRequest status = %d", status);
+
     }
 
     /// For `threadloop` style plugins, do not override the start() method unless you know what you're doing!
@@ -259,6 +299,8 @@ private:
     //ACaptureSessionOutput* output = nullptr;
     ACaptureSessionOutputContainer* outputs = nullptr;
     ACameraCaptureSession* captureSession = nullptr;
+    static const int IMAGE_WIDTH = 640;
+    static const int IMAGE_HEIGHT = 480;
 };
 
 PLUGIN_MAIN(android_cam);
