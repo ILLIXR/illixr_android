@@ -18,11 +18,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include <opencv2/imgproc/types_c.h>
+#include <opencv2/imgproc/imgproc_c.h>
 #include "TrackBase.h"
-#include <opencv2/opencv.hpp>
-#include <opencv2/core/core.hpp>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/imgproc.hpp>
+
 
 using namespace ov_core;
 
@@ -61,14 +60,14 @@ void TrackBase::display_active(cv::Mat &img_out, int r1, int g1, int b1, int r2,
         std::unique_lock<std::mutex> lck(mtx_feeds.at(pair.first));
         // select the subset of the image
         cv::Mat img_temp;
-        if(image_new) cv::cvtColor(img_last_cache[pair.first], img_temp, cv::COLOR_GRAY2RGB);
+        if(image_new) cv::cvtColor(img_last_cache[pair.first], img_temp, CV_GRAY2RGB);
         else img_temp = img_out(cv::Rect(max_width*index_cam,0,max_width,max_height));
         // draw, loop through all keypoints
         for(size_t i=0; i<pts_last[pair.first].size(); i++) {
             // Get bounding pts for our boxes
             cv::Point2f pt_l = pts_last[pair.first].at(i).pt;
             // Draw the extracted points and ID
-            cv::circle(img_temp, pt_l, 2, cv::Scalar(r1,g1,b1), cv::FILLED);
+            cv::circle(img_temp, pt_l, 2, cv::Scalar(r1,g1,b1), CV_FILLED);
             //cv::putText(img_out, std::to_string(ids_left_last.at(i)), pt_l, cv::FONT_HERSHEY_SIMPLEX,0.5,cv::Scalar(0,0,255),1,cv::LINE_AA);
             // Draw rectangle around the point
             cv::Point2f pt_l_top = cv::Point2f(pt_l.x-5,pt_l.y-5);
@@ -123,7 +122,7 @@ void TrackBase::display_history(cv::Mat &img_out, int r1, int g1, int b1, int r2
         std::unique_lock<std::mutex> lck(mtx_feeds.at(pair.first));
         // select the subset of the image
         cv::Mat img_temp;
-        if(image_new) cv::cvtColor(img_last_cache[pair.first], img_temp, cv::COLOR_GRAY2RGB);
+        if(image_new) cv::cvtColor(img_last_cache[pair.first], img_temp, CV_GRAY2RGB);
         else img_temp = img_out(cv::Rect(max_width*index_cam,0,max_width,max_height));
         // draw, loop through all keypoints
         for(size_t i=0; i<ids_last[pair.first].size(); i++) {
@@ -144,7 +143,7 @@ void TrackBase::display_history(cv::Mat &img_out, int r1, int g1, int b1, int r2
                 int color_b = (is_stereo? g2 : b2)-(int)((is_stereo? g1 : b1)/feat->uvs[pair.first].size()*z);
                 // Draw current point
                 cv::Point2f pt_c(feat->uvs[pair.first].at(z)(0),feat->uvs[pair.first].at(z)(1));
-                cv::circle(img_temp, pt_c, 2, cv::Scalar(color_r,color_g,color_b), cv::FILLED);
+                cv::circle(img_temp, pt_c, 2, cv::Scalar(color_r,color_g,color_b), CV_FILLED);
                 // If there is a next point, then display the line from this point to the next
                 if(z+1 < feat->uvs[pair.first].size()) {
                     cv::Point2f pt_n(feat->uvs[pair.first].at(z+1)(0),feat->uvs[pair.first].at(z+1)(1));
@@ -153,7 +152,7 @@ void TrackBase::display_history(cv::Mat &img_out, int r1, int g1, int b1, int r2
                 // If the first point, display the ID
                 if(z==feat->uvs[pair.first].size()-1) {
                     //cv::putText(img_out0, std::to_string(feat->featid), pt_c, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
-                    //cv::circle(img_out0, pt_c, 2, cv::Scalar(color,color,255), cv::FILLED);
+                    //cv::circle(img_out0, pt_c, 2, cv::Scalar(color,color,255), CV_FILLED);
                 }
             }
         }

@@ -156,6 +156,11 @@ set_target_properties( boost_thread-lib
         PROPERTIES IMPORTED_LOCATION
         /home/madhuparna/boost-android/arm64/lib/libboost_thread.so)
 
+add_library( boost_filesystem-lib SHARED IMPORTED)
+set_target_properties( boost_filesystem-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/boost-android/arm64/lib/libboost_filesystem.so)
+
 add_library(ov_core_lib
         SHARED
         open_vins/ov_core/src/dummy.cpp
@@ -338,6 +343,7 @@ target_link_libraries(ov_core_lib
         cv_aruco-lib
         boost_chrono-lib
         boost_thread-lib
+        boost_filesystem-lib
         log)
 
 target_link_libraries(ov_msckf_lib
@@ -360,6 +366,9 @@ target_link_libraries(slam
         cv_core-lib
         cv_imgproc-lib
         cv_tracking-lib
+        boost_chrono-lib
+        boost_thread-lib
+        boost_filesystem-lib
         )
 
 #target_link_libraries(faux_pose

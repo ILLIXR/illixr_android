@@ -24,15 +24,14 @@
 
 #include <string>
 #include <algorithm>
-//#include <fstream>
+#include <fstream>
 #include <Eigen/StdVector>
-//#include <boost/filesystem.hpp>
+#include <boost/filesystem.hpp>
 
-//#include "../../ov_core/src/track/TrackAruco.h"
 //#include "track/TrackAruco.h"
-//#include "ov_core/src/track/TrackDescriptor.h"
-//#include "ov_core/src/track/TrackKLT.h"
-//#include "ov_core/src/track/TrackSIM.h"
+#include "../ov_core/src/track/TrackDescriptor.h"
+#include "../ov_core/src/track/TrackKLT.h"
+#include "../ov_core/src/track/TrackSIM.h"
 #include "../ov_core/src/init/InertialInitializer.h"
 #include "../ov_core/src/types/LandmarkRepresentation.h"
 #include "../ov_core/src/types/Landmark.h"
@@ -42,7 +41,6 @@
 #include "../state/StateHelper.h"
 #include "../update/UpdaterMSCKF.h"
 #include "../update/UpdaterSLAM.h"
-#include <opencv2/opencv.hpp>
 
 #include "VioManagerOptions.h"
 
@@ -68,7 +66,7 @@ namespace ov_msckf {
          * @param params_ Parameters loaded from either ROS or CMDLINE
          */
         VioManager(VioManagerOptions& params_);
-        
+
 
         /**
          * @brief Feed function for inertial data
@@ -118,10 +116,10 @@ namespace ov_msckf {
             is_initialized_vio = true;
 
             // Cleanup any features older then the initialization time
-//            trackFEATS->get_feature_database()->cleanup_measurements(state->_timestamp);
-//            if(trackARUCO != nullptr) {
-//                trackARUCO->get_feature_database()->cleanup_measurements(state->_timestamp);
-//            }
+            trackFEATS->get_feature_database()->cleanup_measurements(state->_timestamp);
+            if(trackARUCO != nullptr) {
+                trackARUCO->get_feature_database()->cleanup_measurements(state->_timestamp);
+            }
 
             // Print what we init'ed with
             printf(GREEN "[INIT]: INITIALIZED FROM GROUNDTRUTH FILE!!!!!\n" RESET);
@@ -155,14 +153,14 @@ namespace ov_msckf {
         }
 
         /// Get feature tracker
-//        TrackBase* get_track_feat() {
-//            return trackFEATS;
-//        }
+        TrackBase* get_track_feat() {
+            return trackFEATS;
+        }
 
         /// Get aruco feature tracker
-//        TrackBase* get_track_aruco() {
-//            return trackARUCO;
-//        }
+        TrackBase* get_track_aruco() {
+            return trackARUCO;
+        }
 
         /// Returns 3d features used in the last update in global frame
         std::vector<Eigen::Vector3d> get_good_features_MSCKF() {
@@ -173,7 +171,7 @@ namespace ov_msckf {
         std::vector<Eigen::Vector3d> get_features_SLAM() {
             std::vector<Eigen::Vector3d> slam_feats;
             for (auto &f : state->_features_SLAM) {
-                //if((int)f.first <= state->_options.max_aruco_features) continue;
+                if((int)f.first <= state->_options.max_aruco_features) continue;
                 if(LandmarkRepresentation::is_relative_representation(f.second->_feat_representation)) {
                     // Assert that we have an anchor pose for this feature
                     assert(f.second->_anchor_cam_id!=-1);
@@ -192,28 +190,28 @@ namespace ov_msckf {
             return slam_feats;
         }
 
-//        /// Returns 3d ARUCO features in the global frame
-//        std::vector<Eigen::Vector3d> get_features_ARUCO() {
-//            std::vector<Eigen::Vector3d> aruco_feats;
-//            for (auto &f : state->_features_SLAM) {
-//                if((int)f.first > state->_options.max_aruco_features) continue;
-//                if(LandmarkRepresentation::is_relative_representation(f.second->_feat_representation)) {
-//                    // Assert that we have an anchor pose for this feature
-//                    assert(f.second->_anchor_cam_id!=-1);
-//                    // Get calibration for our anchor camera
-//                    Eigen::Matrix<double, 3, 3> R_ItoC = state->_calib_IMUtoCAM.at(f.second->_anchor_cam_id)->Rot();
-//                    Eigen::Matrix<double, 3, 1> p_IinC = state->_calib_IMUtoCAM.at(f.second->_anchor_cam_id)->pos();
-//                    // Anchor pose orientation and position
-//                    Eigen::Matrix<double,3,3> R_GtoI = state->_clones_IMU.at(f.second->_anchor_clone_timestamp)->Rot();
-//                    Eigen::Matrix<double,3,1> p_IinG = state->_clones_IMU.at(f.second->_anchor_clone_timestamp)->pos();
-//                    // Feature in the global frame
-//                    aruco_feats.push_back(R_GtoI.transpose() * R_ItoC.transpose()*(f.second->get_xyz(false) - p_IinC) + p_IinG);
-//                } else {
-//                    aruco_feats.push_back(f.second->get_xyz(false));
-//                }
-//            }
-//            return aruco_feats;
-//        }
+        /// Returns 3d ARUCO features in the global frame
+        std::vector<Eigen::Vector3d> get_features_ARUCO() {
+            std::vector<Eigen::Vector3d> aruco_feats;
+            for (auto &f : state->_features_SLAM) {
+                if((int)f.first > state->_options.max_aruco_features) continue;
+                if(LandmarkRepresentation::is_relative_representation(f.second->_feat_representation)) {
+                    // Assert that we have an anchor pose for this feature
+                    assert(f.second->_anchor_cam_id!=-1);
+                    // Get calibration for our anchor camera
+                    Eigen::Matrix<double, 3, 3> R_ItoC = state->_calib_IMUtoCAM.at(f.second->_anchor_cam_id)->Rot();
+                    Eigen::Matrix<double, 3, 1> p_IinC = state->_calib_IMUtoCAM.at(f.second->_anchor_cam_id)->pos();
+                    // Anchor pose orientation and position
+                    Eigen::Matrix<double,3,3> R_GtoI = state->_clones_IMU.at(f.second->_anchor_clone_timestamp)->Rot();
+                    Eigen::Matrix<double,3,1> p_IinG = state->_clones_IMU.at(f.second->_anchor_clone_timestamp)->pos();
+                    // Feature in the global frame
+                    aruco_feats.push_back(R_GtoI.transpose() * R_ItoC.transpose()*(f.second->get_xyz(false) - p_IinC) + p_IinG);
+                } else {
+                    aruco_feats.push_back(f.second->get_xyz(false));
+                }
+            }
+            return aruco_feats;
+        }
 
 
 
@@ -247,10 +245,10 @@ namespace ov_msckf {
         Propagator* propagator;
 
         /// Our sparse feature tracker (klt or descriptor)
-//        TrackBase* trackFEATS = nullptr;
+        TrackBase* trackFEATS = nullptr;
 
         /// Our aruoc tracker
-//        TrackBase* trackARUCO = nullptr;
+        TrackBase* trackARUCO = nullptr;
 
         /// State initializer
         InertialInitializer* initializer;
@@ -268,7 +266,7 @@ namespace ov_msckf {
         std::vector<Eigen::Vector3d> good_features_MSCKF;
 
         // Timing statistic file and variables
-        //std::ofstream of_statistics;
+        std::ofstream of_statistics;
         boost::posix_time::ptime rT1, rT2, rT3, rT4, rT5, rT6, rT7;
         unsigned total_images;
         double total_tracking_time;

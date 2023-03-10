@@ -11,6 +11,8 @@
 #include <thread>
 #include <mutex>
 #include <android/log.h>
+//#include <android/imagedecoder.h>
+//#include <android/bitmap.h>
 #include <camera/NdkCameraManager.h>
 #include <camera/NdkCameraMetadata.h>
 #include <camera/NdkCameraDevice.h>
@@ -40,13 +42,13 @@ public:
         ACameraDevice_close(cameraDevice);
         ACameraManager_delete(cameraManager);
         cameraManager = nullptr;
-        AImageReader_delete(imageReader);
-        imageReader = nullptr;
+//        AImageReader_delete(imageReader);
+//        imageReader = nullptr;
         ACaptureRequest_free(request);
     }
-
+/*
     //Reference: https://github.com/sixo/native-camera/tree/93b05aec6d05604a314dc822b6b09a4cbc3d5104
-    static void imageCallback(void* context, AImageReader* reader)
+     static void imageCallback(void* context, AImageReader* reader)
     {
         AImage *image = nullptr;
         auto status = AImageReader_acquireNextImage(reader, &image);
@@ -56,64 +58,93 @@ public:
         // Try to process data without blocking the callback
         std::thread processor([=](){
 
-            uint8_t *rPixel, *gPixel, *bPixel;//, *aPixel;
-            int32_t rLen, gLen, bLen;//, aLen;
+            uint8_t *rPixel;//, *gPixel, *bPixel;//, *aPixel;
+            int32_t rLen;//, gLen, bLen;//, aLen;
             AImage_getPlaneData(image, 0, &rPixel, &rLen);
-            AImage_getPlaneData(image, 1, &gPixel, &gLen);
-            AImage_getPlaneData(image, 2, &bPixel, &bLen);
+//            AImage_getPlaneData(image, 1, &gPixel, &gLen);
+//            AImage_getPlaneData(image, 2, &bPixel, &bLen);
             //AImage_getPlaneData(image, 3, &aPixel, &aLen);
 
 
-            uint8_t * data = new uint8_t[rLen + gLen + bLen];
+            uint8_t * data = new uint8_t[rLen];//+ gLen + bLen
             memcpy(data, rPixel, rLen);
-            memcpy(data + rLen, gPixel, gLen);
-            memcpy(data + rLen + gLen, bPixel, bLen);
+            //memcpy(data + rLen, gPixel, gLen);
+            //memcpy(data + rLen + gLen, bPixel, bLen);
             //memcpy(data + rLen + gLen + bLen, aPixel, aLen);
+            cv::Mat rawData( 1, rLen, CV_8UC1, (void*)data );
+            mutex.lock();
+            last_image = rawData;
+            mutex.unlock();
+            */
+//            cv::Mat decodedImage = cv::imdecode( rawData, cv::IMREAD_GRAYSCALE/*, flags */ );
+//            if ( decodedImage.data == NULL )
+//            {
+//                LOGA("Jpeg image decoding failed");
+//            }
+//            // Process data here
+//            cv::Mat gray_image = cv::Mat(IMAGE_WIDTH, IMAGE_HEIGHT, CV_8UC1, data);
 
-            // Process data here
-            cv::Mat gray_image = cv::Mat(IMAGE_WIDTH, IMAGE_HEIGHT, CV_8UC1, data);
             //cv::Mat gray_image;
             //cv::cvtColor(img, gray_image, cv::COLOR_BGR2GRAY);
-            cv::resize(gray_image, gray_image, cv::Size(), 0.5, 0.5);
-            std::string my_str = "[ ";
+ //           cv::resize(gray_image, gray_image, cv::Size(), 0.5, 0.5);
+//            std::string my_str = "[ ";
 
-            for(int i=0; i<gray_image.rows; i++)
-            {
-                my_str += "[";
-                for(int j=0; j<gray_image.cols; j++)
-                {
-                    if(j == gray_image.cols -1)
-                        my_str += std::to_string(gray_image.at<float>(i,j));
-                    my_str += std::to_string(gray_image.at<float>(i,j)) + ", ";
-                }
-                if(i == gray_image.rows - 1)
-                    my_str += "]";
-                my_str += "],";
-            }
-            my_str += "]";
-            LOGA("Converted image into cv mat = %s", my_str.c_str());
+//            for(int i=0; i<gray_image.rows; i++)
+//            {
+//                my_str += "[";
+//                for(int j=0; j<gray_image.cols; j++)
+//                {
+//                    if(j == gray_image.cols -1)
+//                        my_str += std::to_string(gray_image.at<float>(i,j));
+//                    my_str += std::to_string(gray_image.at<float>(i,j)) + ", ";
+//                }
+//                if(i == gray_image.rows - 1)
+//                    my_str += "]";
+//                my_str += "],";
+//            }
+//            my_str += "]";
+
+/*
+            LOGA("Converted image into cv mat");
             AImage_delete(image);
         });
         processor.detach();
     }
-
+*/
     AImageReader* createJpegReader()
     {
         AImageReader* reader = nullptr;
-        media_status_t status = AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888, 4, &reader);
+        //AIMAGE_FORMAT_JPEG
+        //AIMAGE_FORMAT_RGB_888
+       // media_status_t status =
+       AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888 , 4, &reader);
+        AImage *image = nullptr;
+        //auto status1 =
+        AImageReader_acquireNextImage(reader, &image);
+        if(image == nullptr)
+            LOGA("Image is null");
+        uint8_t *rPixel;//, *gPixel, *bPixel;//, *aPixel;
+        int32_t rLen;//, gLen, bLen;//, aLen;
+        AImage_getPlaneData(image, 0, &rPixel, &rLen);
 
-        if (status != AMEDIA_OK)
-        {
-            LOGA("Error with image reader");
-            return nullptr;
-        }
-
-        AImageReader_ImageListener listener{
-                .context = this,
-                .onImageAvailable = imageCallback,
-        };
-
-        AImageReader_setImageListener(reader, &listener);
+        uint8_t * data = new uint8_t[rLen];//+ gLen + bLen
+        memcpy(data, rPixel, rLen);
+        cv::Mat rawData( 1, rLen, CV_8UC1, (void*)data );
+        mutex.lock();
+        last_image = rawData;
+        mutex.unlock();
+//        if (status != AMEDIA_OK)
+//        {
+//            LOGA("Error with image reader");
+//            return nullptr;
+//        }
+//
+//        AImageReader_ImageListener listener{
+//                .context = this,
+//                .onImageAvailable = imageCallback,
+//        };
+//
+//        AImageReader_setImageListener(reader, &listener);
 
         return reader;
     }
@@ -242,19 +273,20 @@ public:
 
         ACameraDevice_createCaptureRequest(cameraDevice, TEMPLATE_PREVIEW, &request);
         ACaptureSessionOutputContainer_create(&outputs);
-        imageReader = createJpegReader();
-        imageWindow = createSurface(imageReader);
-        ANativeWindow_acquire(imageWindow);
-        ACameraOutputTarget_create(imageWindow, &imageTarget);
-        ACaptureRequest_addTarget(request, imageTarget);
-        ACaptureSessionOutput_create(imageWindow, &imageOutput);
-        ACaptureSessionOutputContainer_add(outputs, imageOutput);
-        LOGA("CREATE CAPTURE SESSION");
-        // Create the session
-        camera_status_t status = ACameraDevice_createCaptureSession(cameraDevice, outputs, &sessionStateCallbacks, &captureSession);
-        // Start capturing continuously
-        status = ACameraCaptureSession_setRepeatingRequest(captureSession, &captureCallbacks, 1, &request, nullptr);
-        LOGA("ACameraCaptureSession_setRepeatingRequest status = %d", status);
+       // imageReader =
+                createJpegReader();
+//        imageWindow = createSurface(imageReader);
+//        ANativeWindow_acquire(imageWindow);
+//        ACameraOutputTarget_create(imageWindow, &imageTarget);
+//        ACaptureRequest_addTarget(request, imageTarget);
+//        ACaptureSessionOutput_create(imageWindow, &imageOutput);
+//        ACaptureSessionOutputContainer_add(outputs, imageOutput);
+//        LOGA("CREATE CAPTURE SESSION");
+//        // Create the session
+//        camera_status_t status = ACameraDevice_createCaptureSession(cameraDevice, outputs, &sessionStateCallbacks, &captureSession);
+//        // Start capturing continuously
+//        status = ACameraCaptureSession_setRepeatingRequest(captureSession, &captureCallbacks, 1, &request, nullptr);
+//        LOGA("ACameraCaptureSession_setRepeatingRequest status = %d", status);
 
     }
 
@@ -272,8 +304,13 @@ public:
             _m_first_cam_time      = cam_time;
             _m_first_real_time_cam = _m_clock->now();
         }
-        cv::Mat ir_left = cv::Mat::zeros(cv::Size(100, 100), CV_64FC1);
-        cv::Mat ir_right = cv::Mat::zeros(cv::Size(100, 100), CV_64FC1);
+        mutex.lock();
+        cv::Mat ir_left = last_image;//cv::Mat::zeros(cv::Size(100, 100), CV_8UC1);
+        cv::Mat ir_right = last_image;//cv::Mat::zeros(cv::Size(100, 100), CV_8UC1);
+        mutex.unlock();
+//        cv::cvtColor(ir_left,ir_left,cv::COLOR_BGR2GRAY);
+//        cv::cvtColor(ir_right,ir_right,cv::COLOR_BGR2GRAY);
+
         time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
         LOGA("Writing to cam topic ..");
         _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
@@ -284,23 +321,26 @@ private:
     const std::shared_ptr<switchboard>         sb;
     const std::shared_ptr<const RelativeClock> _m_clock;
     switchboard::writer<cam_type>              _m_cam;
-    std::mutex                                 mutex;
+
+
 
     std::optional<ullong>     _m_first_cam_time;
     std::optional<time_point> _m_first_real_time_cam;
 
     ACameraManager* cameraManager = nullptr;
     ACameraDevice* cameraDevice = nullptr;
-    ANativeWindow* imageWindow = nullptr;
-    ACameraOutputTarget* imageTarget = nullptr;
-    AImageReader* imageReader = nullptr;
-    ACaptureSessionOutput* imageOutput = nullptr;
+//    ANativeWindow* imageWindow = nullptr;
+//    ACameraOutputTarget* imageTarget = nullptr;
+//    AImageReader* imageReader = nullptr;
+//    ACaptureSessionOutput* imageOutput = nullptr;
     ACaptureRequest* request = nullptr;
     //ACaptureSessionOutput* output = nullptr;
     ACaptureSessionOutputContainer* outputs = nullptr;
     ACameraCaptureSession* captureSession = nullptr;
     static const int IMAGE_WIDTH = 640;
     static const int IMAGE_HEIGHT = 480;
+    cv::Mat last_image;
+    std::mutex     mutex;
 };
 
 PLUGIN_MAIN(android_cam);

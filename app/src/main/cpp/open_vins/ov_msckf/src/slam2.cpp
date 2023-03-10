@@ -17,6 +17,8 @@
 #include "common/relative_clock.hpp"
 #include <android/log.h>
 
+#define ILLIXR_INTEGRATION 1
+
 using namespace ILLIXR;
 using namespace ov_msckf;
 
