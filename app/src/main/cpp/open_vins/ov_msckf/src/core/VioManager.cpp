@@ -20,6 +20,7 @@
  */
 #include "VioManager.h"
 #include "../ov_core/src/types/Landmark.h"
+#include <android/log.h>
 
 //#include "utils/parse_cmd.h"
 
@@ -28,6 +29,8 @@
 #ifdef ILLIXR_INTEGRATION
 #include "../common/cpu_timer.hpp"
 #endif /// ILLIXR_INTEGRATION
+
+#define LOGV(...) ((void)__android_log_print(ANDROID_LOG_INFO, "vio-manager", __VA_ARGS__))
 
 using namespace ov_core;
 using namespace ov_type;
@@ -182,7 +185,7 @@ void VioManager::feed_measurement_stereo(double timestamp, cv::Mat& img0, cv::Ma
 
     // Assert we have good ids
     assert(cam_id0!=cam_id1);
-
+    LOGV("fEED_MEASUREMENT_STEREO");
     // Feed our stereo trackers, if we are not doing binocular
     if(params.use_stereo) {
         trackFEATS->feed_stereo(timestamp, img0, img1, cam_id0, cam_id1);
@@ -197,7 +200,7 @@ void VioManager::feed_measurement_stereo(double timestamp, cv::Mat& img0, cv::Ma
         t_l.join();
         t_r.join();
     }
-
+    LOGV("After thread");
     // If aruoc is avalible, the also pass to it
     // NOTE: binocular tracking for aruco doesn't make sense as we by default have the ids
     // NOTE: thus we just call the stereo tracking if we are doing binocular!
@@ -209,9 +212,11 @@ void VioManager::feed_measurement_stereo(double timestamp, cv::Mat& img0, cv::Ma
     // If we do not have VIO initialization, then try to initialize
     // TODO: Or if we are trying to reset the system, then do that here!
     if(!is_initialized_vio) {
+        LOGV("Tring to initialize");
         is_initialized_vio = try_to_initialize();
         if(!is_initialized_vio) return;
     }
+    LOGV("done initialization");
 
     // Call on our propagate and update function
     do_feature_propagate_update(timestamp);
@@ -269,6 +274,7 @@ bool VioManager::try_to_initialize() {
     // Return if it failed
     if (!success) {
         std::cout << "NOT ENOUGH POINTS -- Tracking failed" << std::endl;
+        LOGV("NOT ENOUGH POINTS -- Tracking failed");
         return false;
     }
 

@@ -18,6 +18,7 @@
 #include <android/log.h>
 
 #define ILLIXR_INTEGRATION 1
+#define ANDROID_CAM 1
 
 using namespace ILLIXR;
 using namespace ov_msckf;
@@ -38,6 +39,9 @@ VioManagerOptions create_params()
 	// ZED calibration tool; fx, fy, cx, cy, k1, k2, p1, p2
   // https://docs.opencv.org/2.4/doc/tutorials/calib3d/camera_calibration/camera_calibration.html
   intrinsics_0 << 349.686, 349.686, 332.778, 192.423, -0.175708, 0.0284421, 0, 0;
+
+#elif ANDROID_CAM
+    intrinsics_0 << 5924.999512, 5924.999512, 0, 0, 0, 0, 0, 0;
 #else
 	// EuRoC
 	intrinsics_0 << 458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05;
@@ -49,6 +53,11 @@ VioManagerOptions create_params()
             -0.99993288, -0.00420947, -0.01079452, 0.0146056,
             0.00418937, -0.99998945, 0.00188393, -0.00113692,
             0.0, 0.0, 0.0, 1.0};
+#elif ANDROID_CAM
+    std::vector<double> matrix_TCtoI_0 = {1, 0, 0, 0,
+                                          0, 1, 0, 0,
+                                          0, 0, 1, 0,
+                                          0.0, 0.0, 0.0, 1.0};
 #else
 	std::vector<double> matrix_TCtoI_0 = {0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
 										  0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
@@ -82,6 +91,8 @@ VioManagerOptions create_params()
 #ifdef ZED
 	// ZED calibration tool; fx, fy, cx, cy, k1, k2, p1, p2
   intrinsics_1 << 350.01, 350.01, 343.729, 185.405, -0.174559, 0.0277521, 0, 0;
+#elif ANDROID_CAM
+    intrinsics_1 <<  5924.999512, 5924.999512, 0, 0, 0, 0, 0, 0;
 #else
 	// EuRoC
 	intrinsics_1 << 457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.55590700e-05;
@@ -93,6 +104,11 @@ VioManagerOptions create_params()
             -0.99993668, -0.00419281, -0.01044329, -0.04732387,
             0.00421252, -0.99998938, -0.00186674, -0.00098799,
             0.0, 0.0, 0.0, 1.0};
+#elif ANDROID_CAM
+    std::vector<double> matrix_TCtoI_1 = {1, 0, 0, -0.01,
+                                          0, 1, 0, -0.04,
+                                          0, 0, 1, -0.03,
+                                          0.0, 0.0, 0.0, 1.0};
 #else
 	std::vector<double> matrix_TCtoI_1 = {0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
 										  0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
@@ -111,9 +127,9 @@ VioManagerOptions create_params()
 	extrinsics_1.block(0, 0, 4, 1) = rot_2_quat(T_CtoI_1.block(0, 0, 3, 3).transpose());
 	extrinsics_1.block(4, 0, 3, 1) = -T_CtoI_1.block(0, 0, 3, 3).transpose() * T_CtoI_1.block(0, 3, 3, 1);
 
-	params.camera_fisheye.insert({1, false});
-	params.camera_intrinsics.insert({1, intrinsics_1});
-	params.camera_extrinsics.insert({1, extrinsics_1});
+//	params.camera_fisheye.insert({1, false});
+//	params.camera_intrinsics.insert({1, intrinsics_1});
+//	params.camera_extrinsics.insert({1, extrinsics_1});
 
 #ifdef ZED
 	params.camera_wh.insert({1, {672, 376}});
@@ -122,8 +138,9 @@ VioManagerOptions create_params()
 #endif
 
 	// params.state_options.max_slam_features = 0;
-	params.state_options.num_cameras = 2;
-	params.init_window_time = 0.75;
+	params.state_options.num_cameras = 1;
+	//params.init_window_time = 0.75;
+	params.init_window_time = 0.1;
 #ifdef ZED
 	// Hand tuned
   params.init_imu_thresh = 0.5;
@@ -136,7 +153,7 @@ VioManagerOptions create_params()
 	params.grid_y = 3;
 #ifdef ZED
 	// Hand tuned
-  params.num_pts = 200;
+    params.num_pts = 200;
 #else
 	params.num_pts = 150;
 #endif
@@ -158,8 +175,8 @@ VioManagerOptions create_params()
 
 #ifdef ZED
 	// Pixel noise; ZED works with defaults values but these may better account for rolling shutter
-  params.msckf_options.chi2_multipler = 2;
-  params.msckf_options.sigma_pix = 5;
+    params.msckf_options.chi2_multipler = 2;
+    params.msckf_options.sigma_pix = 5;
 	params.slam_options.chi2_multipler = 2;
 	params.slam_options.sigma_pix = 5;
 
@@ -168,6 +185,15 @@ VioManagerOptions create_params()
   params.imu_noises.sigma_ab = 0.00072014; // Accelerometer random walk
   params.imu_noises.sigma_w = 0.00024213;  // Gyroscope noise
   params.imu_noises.sigma_wb = 1.9393e-05; // Gyroscope random walk
+#elif ANDROID_CAM
+	params.msckf_options.chi2_multipler = 1;
+	params.msckf_options.sigma_pix = 1;
+	params.slam_options.chi2_multipler = 1;
+	params.slam_options.sigma_pix = 1;
+    params.imu_noises.sigma_a = 0;  // Accelerometer noise
+    params.imu_noises.sigma_ab = 0; // Accelerometer random walk
+    params.imu_noises.sigma_w = 0;  // Gyroscope noise
+    params.imu_noises.sigma_wb = 0; // Gyroscope random walk
 #else
 	params.slam_options.chi2_multipler = 1;
 	params.slam_options.sigma_pix = 1;
@@ -221,11 +247,11 @@ public:
 
 	void feed_imu_cam(switchboard::ptr<const imu_type> datum, std::size_t iteration_no) {
 		// Ensures that slam doesnt start before valid IMU readings come in
-        LOGS("FEED_IMU_CAM");
+        //LOGS("FEED_IMU_CAM");
 		if (datum == nullptr) {
 			return;
 		}
-        LOGS("DATUM IS NOT NULLPTR %d", (int)_m_cam.size());
+        //LOGS("DATUM IS NOT NULLPTR %d", (int)_m_cam.size());
         ;;
 		// Feed the IMU measurement. There should always be IMU data in each call to feed_imu_cam
 		open_vins_estimator.feed_measurement_imu(duration2double(datum->time.time_since_epoch()), datum->angular_v, datum->linear_a);
@@ -237,7 +263,7 @@ public:
 		if (!cam) {
 			return;
 		}
-        LOGS("CAM IS NOT NULL" );
+        //LOGS("CAM IS NOT NULL" );
 		if (!cam_buffer) {
 			cam_buffer = cam;
 			return;
@@ -255,8 +281,9 @@ public:
 
 		cv::Mat img0{cam_buffer->img0};
 		cv::Mat img1{cam_buffer->img1};
-		open_vins_estimator.feed_measurement_stereo(duration2double(cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
-
+		//open_vins_estimator.feed_measurement_stereo(duration2double(cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
+		open_vins_estimator.feed_measurement_monocular(duration2double(cam_buffer->time.time_since_epoch()), img0, 0);
+        //LOGS("feed_measurement_stereo");
 		// Get the pose returned from SLAM
 		state = open_vins_estimator.get_state();
 		Eigen::Vector4d quat = state->_imu->quat();
@@ -274,14 +301,14 @@ public:
 		assert(isfinite(swapped_pos[0]));
 		assert(isfinite(swapped_pos[1]));
 		assert(isfinite(swapped_pos[2]));
-        LOGS("open vins estimator");
+        //LOGS("open vins estimator");
 		if (open_vins_estimator.initialized()) {
 			_m_pose.put(_m_pose.allocate(
 					cam_buffer->time,
 					swapped_pos,
 					swapped_rot
 			));
-            LOGS("Writing to imu integrator input");
+            //LOGS("Writing to imu integrator input");
 			_m_imu_integrator_input.put(_m_imu_integrator_input.allocate(
 					cam_buffer->time,
 					from_seconds(state->_calib_dt_CAMtoIMU->value()(0)),
@@ -300,7 +327,7 @@ public:
 					vel,
 					swapped_rot2
 			));
-            LOGS("Done writing to imu integrator input");
+           // LOGS("Done writing to imu integrator input");
 		}
 		cam_buffer = cam;
 	}

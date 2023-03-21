@@ -959,8 +959,8 @@ public:
     }
 
     virtual void _p_one_iteration() override {
-        LOGT("ITERATION STARTED");
         cl->get_lock();
+        LOGT("ITERATION STARTED");
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(dpy, surface, surface, glc));
         assert(gl_result && "eglMakeCurrent should not fail");
 
@@ -1131,13 +1131,14 @@ public:
         time_last_swap                              = _m_clock->now();
         [[maybe_unused]] time_point time_after_swap = time_last_swap;
 
+        LOGT("add vsync estimate");
         // Now that we have the most recent swap time, we can publish the new estimate.
         _m_vsync_estimate.put(_m_vsync_estimate.allocate<switchboard::event_wrapper<time_point>>(GetNextSwapTimeEstimate()));
 
         std::chrono::nanoseconds imu_to_display     = time_last_swap - latest_pose.pose.sensor_time;
         std::chrono::nanoseconds predict_to_display = time_last_swap - latest_pose.predict_computed_time;
         std::chrono::nanoseconds render_to_display  = time_last_swap - most_recent_frame->render_time;
-
+        LOGT("mtp logger ..");
         mtp_logger.log(record{mtp_record,
                               {
                                   {iteration_no},
@@ -1186,11 +1187,11 @@ public:
 //
 //        // get the query result
 //        glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsed_time);
-
+        LOGT("egl context.");
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(dpy, NULL, NULL, nullptr));
         assert(gl_result_1 && "eglMakeCurrent should not fail");
         cl->release_lock();
-
+        LOGT("Lock released ..");
         timewarp_gpu_logger.log(record{timewarp_gpu_record,
                                        {
                                            {iteration_no},

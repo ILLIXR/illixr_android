@@ -10,6 +10,7 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <fstream>
 #include <android/log.h>
 //#include <android/imagedecoder.h>
 //#include <android/bitmap.h>
@@ -22,6 +23,11 @@
 #define LOGA(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android_cam", __VA_ARGS__))
 
 using namespace ILLIXR;
+
+static cv::Mat last_image;
+static bool img_ready = false;
+static std::mutex mtx;
+bool once = false;
 
 class android_cam : public threadloop {
 public:
@@ -42,17 +48,23 @@ public:
         ACameraDevice_close(cameraDevice);
         ACameraManager_delete(cameraManager);
         cameraManager = nullptr;
-//        AImageReader_delete(imageReader);
-//        imageReader = nullptr;
+        AImageReader_delete(imageReader);
+        imageReader = nullptr;
         ACaptureRequest_free(request);
     }
-/*
+
     //Reference: https://github.com/sixo/native-camera/tree/93b05aec6d05604a314dc822b6b09a4cbc3d5104
      static void imageCallback(void* context, AImageReader* reader)
     {
         AImage *image = nullptr;
-        auto status = AImageReader_acquireNextImage(reader, &image);
-        LOGA("imageCallback() %d", status);
+        //auto status =
+        AImageReader_acquireNextImage(reader, &image);
+        if(image == nullptr)
+        {
+            LOGA("IMage is null!");
+            return;
+        }
+        //LOGA("imageCallback() %d", status);
         // Check status here ...
 
         // Try to process data without blocking the callback
@@ -61,6 +73,7 @@ public:
             uint8_t *rPixel;//, *gPixel, *bPixel;//, *aPixel;
             int32_t rLen;//, gLen, bLen;//, aLen;
             AImage_getPlaneData(image, 0, &rPixel, &rLen);
+
 //            AImage_getPlaneData(image, 1, &gPixel, &gLen);
 //            AImage_getPlaneData(image, 2, &bPixel, &bLen);
             //AImage_getPlaneData(image, 3, &aPixel, &aLen);
@@ -71,11 +84,16 @@ public:
             //memcpy(data + rLen, gPixel, gLen);
             //memcpy(data + rLen + gLen, bPixel, bLen);
             //memcpy(data + rLen + gLen + bLen, aPixel, aLen);
-            cv::Mat rawData( 1, rLen, CV_8UC1, (void*)data );
-            mutex.lock();
+            cv::Mat rawData( IMAGE_WIDTH, IMAGE_HEIGHT, CV_8UC1, (uint8_t *)data);
+//            bool check = cv::imwrite("/sdcard/Download/monado_img.png", rawData);
+            //LOGA("aNDROID CAM CHECK %d", check);
+
+            mtx.lock();
             last_image = rawData;
-            mutex.unlock();
-            */
+            mtx.unlock();
+            img_ready = true;
+           // is_ready = true;
+
 //            cv::Mat decodedImage = cv::imdecode( rawData, cv::IMREAD_GRAYSCALE/*, flags */ );
 //            if ( decodedImage.data == NULL )
 //            {
@@ -87,64 +105,71 @@ public:
             //cv::Mat gray_image;
             //cv::cvtColor(img, gray_image, cv::COLOR_BGR2GRAY);
  //           cv::resize(gray_image, gray_image, cv::Size(), 0.5, 0.5);
-//            std::string my_str = "[ ";
+ //            if(once == false) {
+//                 std::string dt = "";
+//                 int each = 120;
+//                 for (int i = 0; i < rLen; ++i) {
+//                     if (each == 0) {
+//                         LOGA("Raw buffer = %s", dt.c_str());
+//                         each = 120;
+//                         dt = "";
+//                     }
+//
+//                     dt = dt + std::to_string(data[i]) + " ";
+//                     each--;
+//                 }
+//                 LOGA("Raw buffer = %s", dt.c_str());
+//                 once = true;
+//             }
+//                 std::string my_str = "[ ";
+//
+//                 for (int i = 0; i < rawData.rows; i++) {
+//                     my_str = "[";
+//                     for (int j = 0; j < rawData.cols; j++) {
+//                         if (j == rawData.cols - 1)
+//                             my_str += std::to_string(rawData.at<uint8_t>(i, j));
+//                         else
+//                             my_str += std::to_string(rawData.at<uint8_t>(i, j)) + ", ";
+//                     }
+//                     if (i == rawData.rows - 1) {
+//                         my_str += "]";
+//                         LOGA("Image printed = %s", my_str.c_str());
+//                     } else {
+//                         my_str += "],";
+//                         LOGA("Image printed = %s", my_str.c_str());
+//                     }
+//                 }
+//                 my_str += "]";
+//                 once = true;
+//             }
 
-//            for(int i=0; i<gray_image.rows; i++)
-//            {
-//                my_str += "[";
-//                for(int j=0; j<gray_image.cols; j++)
-//                {
-//                    if(j == gray_image.cols -1)
-//                        my_str += std::to_string(gray_image.at<float>(i,j));
-//                    my_str += std::to_string(gray_image.at<float>(i,j)) + ", ";
-//                }
-//                if(i == gray_image.rows - 1)
-//                    my_str += "]";
-//                my_str += "],";
-//            }
-//            my_str += "]";
-
-/*
-            LOGA("Converted image into cv mat");
+           // LOGA("Converted image into cv mat");
             AImage_delete(image);
         });
         processor.detach();
     }
-*/
+
+
     AImageReader* createJpegReader()
     {
         AImageReader* reader = nullptr;
         //AIMAGE_FORMAT_JPEG
         //AIMAGE_FORMAT_RGB_888
-       // media_status_t status =
+        media_status_t status =
        AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888 , 4, &reader);
-        AImage *image = nullptr;
-        //auto status1 =
-        AImageReader_acquireNextImage(reader, &image);
-        if(image == nullptr)
-            LOGA("Image is null");
-        uint8_t *rPixel;//, *gPixel, *bPixel;//, *aPixel;
-        int32_t rLen;//, gLen, bLen;//, aLen;
-        AImage_getPlaneData(image, 0, &rPixel, &rLen);
 
-        uint8_t * data = new uint8_t[rLen];//+ gLen + bLen
-        memcpy(data, rPixel, rLen);
-        cv::Mat rawData( 1, rLen, CV_8UC1, (void*)data );
-        mutex.lock();
-        last_image = rawData;
-        mutex.unlock();
-//        if (status != AMEDIA_OK)
-//        {
-//            LOGA("Error with image reader");
-//            return nullptr;
-//        }
-//
-//        AImageReader_ImageListener listener{
-//                .context = this,
-//                .onImageAvailable = imageCallback,
-//        };
-//
-//        AImageReader_setImageListener(reader, &listener);
+        if (status != AMEDIA_OK)
+        {
+            LOGA("Error with image reader");
+            return nullptr;
+        }
+
+        AImageReader_ImageListener listener{
+                .context = this,
+                .onImageAvailable = imageCallback,
+        };
+
+        AImageReader_setImageListener(reader, &listener);
 
         return reader;
     }
@@ -153,7 +178,6 @@ public:
     {
         ANativeWindow *nativeWindow;
         AImageReader_getWindow(reader, &nativeWindow);
-
         return nativeWindow;
     }
 
@@ -214,7 +238,7 @@ public:
             void* context, ACameraCaptureSession* session,
             ACaptureRequest* request, const ACameraMetadata* result)
     {
-        LOGA("Capture completed");
+        //LOGA("Capture completed");
     }
 
     ACameraCaptureSession_captureCallbacks captureCallbacks {
@@ -237,7 +261,7 @@ public:
         std::string backId;
 
         LOGA("found camera count %d", cameraIds->numCameras);
-
+        bool camera_found = false;
         for (int i = 0; i < cameraIds->numCameras; ++i)
         {
             const char *id = cameraIds->cameraIds[i];
@@ -253,12 +277,50 @@ public:
             auto facing = static_cast<acamera_metadata_enum_android_lens_facing_t>(
                     lensInfo.data.u8[0]);
 
+            ACameraMetadata_const_entry pose_reference = {0};
+            ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_POSE_REFERENCE, &pose_reference);
+
+            auto pose_ref = static_cast<acamera_metadata_enum_acamera_lens_pose_reference>(
+                    pose_reference.data.u8[0]);
+
+            LOGA("Pose reference is = %d and facing = %d", pose_ref, facing);
             // Found a back-facing camera?
             if (facing == ACAMERA_LENS_FACING_BACK)
             {
                 backId = id;
+                camera_found = true;
+            }
+
+            if(camera_found) {
+                ACameraMetadata_const_entry intrinsics;
+                ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_INTRINSIC_CALIBRATION,
+                                              &intrinsics);
+                for (int x = 0; x < intrinsics.count; ++x) {
+                    LOGA("Intrinsics total = %d : %f : index %d", intrinsics.count,
+                         intrinsics.data.f[x], x);
+                }
+
+//                ACameraMetadata_const_entry distortion;
+//                ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_DISTORTION, &distortion);
+//                for(int x = 0; x < distortion.count ; ++x) {
+//                    LOGA("distortion  = %d : %f : index %d", distortion.count, distortion.data.f[x], x);
+//                }
+
+                ACameraMetadata_const_entry rotation;
+                ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_POSE_ROTATION, &rotation);
+                for (int x = 0; x < rotation.count; ++x) {
+                    LOGA("rotation total = %d : %f : index %d", rotation.count, rotation.data.f[x], x);
+                }
+
+                ACameraMetadata_const_entry translation;
+                ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_POSE_TRANSLATION, &translation);
+                for (int x = 0; x < translation.count; ++x) {
+                    LOGA("translation total = %d : %f : index %d", translation.count, translation.data.f[x], x);
+                }
                 break;
             }
+
+
         }
         LOGA("back camera id %s", backId.c_str());
 
@@ -273,48 +335,56 @@ public:
 
         ACameraDevice_createCaptureRequest(cameraDevice, TEMPLATE_PREVIEW, &request);
         ACaptureSessionOutputContainer_create(&outputs);
-       // imageReader =
-                createJpegReader();
-//        imageWindow = createSurface(imageReader);
-//        ANativeWindow_acquire(imageWindow);
-//        ACameraOutputTarget_create(imageWindow, &imageTarget);
-//        ACaptureRequest_addTarget(request, imageTarget);
-//        ACaptureSessionOutput_create(imageWindow, &imageOutput);
-//        ACaptureSessionOutputContainer_add(outputs, imageOutput);
-//        LOGA("CREATE CAPTURE SESSION");
-//        // Create the session
-//        camera_status_t status = ACameraDevice_createCaptureSession(cameraDevice, outputs, &sessionStateCallbacks, &captureSession);
-//        // Start capturing continuously
-//        status = ACameraCaptureSession_setRepeatingRequest(captureSession, &captureCallbacks, 1, &request, nullptr);
-//        LOGA("ACameraCaptureSession_setRepeatingRequest status = %d", status);
+        imageReader = createJpegReader();
+        imageWindow = createSurface(imageReader);
+        ANativeWindow_acquire(imageWindow);
+        ACameraOutputTarget_create(imageWindow, &imageTarget);
+        ACaptureRequest_addTarget(request, imageTarget);
+
+        ACaptureSessionOutput_create(imageWindow, &imageOutput);
+        ACaptureSessionOutputContainer_add(outputs, imageOutput);
+        // Create the session
+        ACameraDevice_createCaptureSession(cameraDevice, outputs, &sessionStateCallbacks, &captureSession);
+        camera_status_t status = ACameraCaptureSession_setRepeatingRequest(captureSession, &captureCallbacks, 1, &request, nullptr);
+        LOGA("ACameraCaptureSession_setRepeatingRequest status = %d", status);
 
     }
 
     /// For `threadloop` style plugins, do not override the start() method unless you know what you're doing!
     /// _p_one_iteration() is called in a thread created by threadloop::start()
     void _p_one_iteration() override {
-        LOGA("Android_cam started ..");
+        //LOGA("Android_cam started ..");
         std::this_thread::sleep_for(std::chrono::milliseconds{50});
+        if(!img_ready)
+            return;
         if (!_m_clock->is_started()) {
             return;
         }
+       // camera_status_t status = ACameraCaptureSession_capture(captureSession, &captureCallbacks, 1, &request, nullptr);
+       // LOGA("ACameraCaptureSession_setRepeatingRequest status = %d", status);
+
         double ts = std::chrono::system_clock::now().time_since_epoch().count();;
         ullong cam_time = static_cast<ullong>(ts * 1000000);
         if (!_m_first_cam_time) {
             _m_first_cam_time      = cam_time;
             _m_first_real_time_cam = _m_clock->now();
         }
-        mutex.lock();
+
+//        while(is_ready == false) {
+//            ;
+//        }
+        mtx.lock();
         cv::Mat ir_left = last_image;//cv::Mat::zeros(cv::Size(100, 100), CV_8UC1);
         cv::Mat ir_right = last_image;//cv::Mat::zeros(cv::Size(100, 100), CV_8UC1);
-        mutex.unlock();
+        mtx.unlock();
+        //is_ready = false;
 //        cv::cvtColor(ir_left,ir_left,cv::COLOR_BGR2GRAY);
 //        cv::cvtColor(ir_right,ir_right,cv::COLOR_BGR2GRAY);
 
         time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
-        LOGA("Writing to cam topic ..");
+        //LOGA("Writing to cam topic .. width = %d, height =  %d", ir_left.cols , ir_left.rows);
         _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
-        LOGA("Done writing cam ..");
+        //LOGA("Done writing cam ..");
     }
 
 private:
@@ -329,18 +399,17 @@ private:
 
     ACameraManager* cameraManager = nullptr;
     ACameraDevice* cameraDevice = nullptr;
-//    ANativeWindow* imageWindow = nullptr;
-//    ACameraOutputTarget* imageTarget = nullptr;
-//    AImageReader* imageReader = nullptr;
-//    ACaptureSessionOutput* imageOutput = nullptr;
+    ANativeWindow* imageWindow = nullptr;
+    ACameraOutputTarget* imageTarget = nullptr;
+    AImageReader* imageReader = nullptr;
+    ACaptureSessionOutput* imageOutput = nullptr;
     ACaptureRequest* request = nullptr;
-    //ACaptureSessionOutput* output = nullptr;
+//    ACaptureSessionOutput* output = nullptr;
     ACaptureSessionOutputContainer* outputs = nullptr;
     ACameraCaptureSession* captureSession = nullptr;
-    static const int IMAGE_WIDTH = 640;
+    static const int IMAGE_WIDTH = 752;
     static const int IMAGE_HEIGHT = 480;
-    cv::Mat last_image;
-    std::mutex     mutex;
+
 };
 
 PLUGIN_MAIN(android_cam);

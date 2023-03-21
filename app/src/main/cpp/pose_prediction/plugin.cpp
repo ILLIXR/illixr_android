@@ -64,34 +64,34 @@ public:
 
     // future_time: An absolute timepoint in the future
     virtual fast_pose_type get_fast_pose(time_point future_timestamp) const override {
-//        switchboard::ptr<const pose_type> slow_pose = _m_slow_pose.get_ro_nullable();
-//        if (slow_pose == nullptr) {
-//            // No slow pose, return 0
-//            return fast_pose_type{
-//                correct_pose(pose_type{}),
-//                _m_clock->now(),
-//                future_timestamp,
-//            };
-//        }
-//
+        switchboard::ptr<const pose_type> slow_pose = _m_slow_pose.get_ro_nullable();
+        if (slow_pose == nullptr) {
+            // No slow pose, return 0
+            return fast_pose_type{
+                correct_pose(pose_type{}),
+                _m_clock->now(),
+                future_timestamp,
+            };
+        }
+
         switchboard::ptr<const imu_raw_type> imu_raw = _m_imu_raw.get_ro_nullable();
-//        if (imu_raw == nullptr) {
-//#ifndef NDEBUG
-//            LOGP("FAST POSE IS SLOW POSE!\n");
-//#endif
-//            LOGP("FAST POSE IS SLOW POSE!\n");
-//
-//            // No imu_raw, return slow_pose
-//            return fast_pose_type{
-//                .pose                  = correct_pose(*slow_pose),
-//                .predict_computed_time = _m_clock->now(),
-//                .predict_target_time   = future_timestamp,
-//            };
-//        }
-//
+        if (imu_raw == nullptr) {
+#ifndef NDEBUG
+            LOGP("FAST POSE IS SLOW POSE!\n");
+#endif
+            LOGP("FAST POSE IS SLOW POSE!\n");
+
+            // No imu_raw, return slow_pose
+            return fast_pose_type{
+                .pose                  = correct_pose(*slow_pose),
+                .predict_computed_time = _m_clock->now(),
+                .predict_target_time   = future_timestamp,
+            };
+        }
+
 //        // slow_pose and imu_raw, do pose prediction
 
-        double                                              dt = duration2double(future_timestamp - imu_raw->imu_time);
+        double  dt = duration2double(future_timestamp - imu_raw->imu_time);
         std::pair<Eigen::Matrix<double, 13, 1>, time_point> predictor_result = predict_mean_rk4(dt);
 
         auto state_plus = predictor_result.first;
@@ -115,7 +115,7 @@ public:
                 offset     = predicted_pose.orientation.inverse();
             }
         }
-
+        LOGP("POse prediction orientation = %f %f %f %f",predicted_pose.orientation.w(), predicted_pose.orientation.x(), predicted_pose.orientation.y(), predicted_pose.orientation.z());
         // Several timestamps are logged:
         //       - the prediction compute time (time when this prediction was computed, i.e., now)
         //       - the prediction target (the time that was requested for this pose.)

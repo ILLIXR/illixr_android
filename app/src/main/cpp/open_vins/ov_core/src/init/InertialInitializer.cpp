@@ -19,7 +19,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "InertialInitializer.h"
+#include <android/log.h>
 
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "initializer", __VA_ARGS__))
 
 using namespace ov_core;
 
@@ -52,6 +54,7 @@ bool InertialInitializer::initialize_with_imu(double &time0, Eigen::Matrix<doubl
 
     // Return if we don't have any measurements
     if(imu_data.empty()) {
+        LOGI("IMU DATA EMPTY");
         return false;
     }
 
@@ -61,6 +64,7 @@ bool InertialInitializer::initialize_with_imu(double &time0, Eigen::Matrix<doubl
     // First lets collect a window of IMU readings from the newest measurement to the oldest
     std::vector<IMUDATA> window_newest, window_secondnew;
     for(IMUDATA data : imu_data) {
+        LOGI("imu_data timestamp = %f, window_lenth = %f newest = %f", data.timestamp, _window_length, newesttime);
         if(data.timestamp > newesttime-1*_window_length && data.timestamp <= newesttime-0*_window_length) {
             window_newest.push_back(data);
         }
@@ -72,6 +76,8 @@ bool InertialInitializer::initialize_with_imu(double &time0, Eigen::Matrix<doubl
     // Return if both of these failed
     if(window_newest.empty() || window_secondnew.empty()) {
         //printf(YELLOW "InertialInitializer::initialize_with_imu(): unable to select window of IMU readings, not enough readings\n" RESET);
+        LOGI("unable to select window of IMU readings, not enough readings %d", (int)imu_data.size());
+        LOGI("window_newest = %d , second new = %d",window_newest.empty(), window_secondnew.empty());
         return false;
     }
 
@@ -92,6 +98,7 @@ bool InertialInitializer::initialize_with_imu(double &time0, Eigen::Matrix<doubl
         #ifndef NDEBUG
             printf(YELLOW "InertialInitializer::initialize_with_imu(): no IMU excitation, below threshold %.4f < %.4f\n" RESET,a_var,_imu_excite_threshold);
         #endif
+        LOGI("no IMU excitation, below threshold %.4f < %.4f\n",a_var,_imu_excite_threshold);
         return false;
     }
 

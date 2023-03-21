@@ -114,6 +114,11 @@ set_target_properties( cv_imgproc-lib
         PROPERTIES IMPORTED_LOCATION
         /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_imgproc.so )
 
+add_library( cv_imgcodecs-lib SHARED IMPORTED)
+set_target_properties( cv_imgcodecs-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_imgcodecs.so )
+
 add_library( cv_tracking-lib SHARED IMPORTED)
 set_target_properties( cv_tracking-lib
         PROPERTIES IMPORTED_LOCATION
@@ -325,6 +330,8 @@ target_link_libraries(android_cam
         log
         cv_core-lib
         cv_imgproc-lib
+        cv_highgui-lib
+        cv_imgcodecs-lib
         camera2ndk
         mediandk
         android
