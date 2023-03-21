@@ -784,7 +784,9 @@ public:
         BuildTimewarp(hmd_info);
 
         // includes setting swap interval
-        cl->get_lock();
+        //cl->wait_monado();
+        //cl->get_lock();
+        sem_wait(&cl->sem_monado);
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(dpy, surface, surface, glc));
         assert(gl_result_0 && "eglMakeCurrent should not fail");
 
@@ -955,11 +957,14 @@ public:
             LOGT("Rendering ready");
                 rendering_ready = true;
         }
-        cl->release_lock();
+        //cl->release_lock();
+        sem_post(&cl->sem_illixr);
     }
 
     virtual void _p_one_iteration() override {
-        cl->get_lock();
+        //cl->wait_monado();
+        //cl->get_lock();
+        sem_wait(&cl->sem_monado);
         LOGT("ITERATION STARTED");
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(dpy, surface, surface, glc));
         assert(gl_result && "eglMakeCurrent should not fail");
@@ -1190,7 +1195,8 @@ public:
         LOGT("egl context.");
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(dpy, NULL, NULL, nullptr));
         assert(gl_result_1 && "eglMakeCurrent should not fail");
-        cl->release_lock();
+        //cl->release_lock();
+        sem_post(&cl->sem_illixr);
         LOGT("Lock released ..");
         timewarp_gpu_logger.log(record{timewarp_gpu_record,
                                        {

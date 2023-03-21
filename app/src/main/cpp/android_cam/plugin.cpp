@@ -64,7 +64,7 @@ public:
             LOGA("IMage is null!");
             return;
         }
-        //LOGA("imageCallback() %d", status);
+        //LOGA("imageCallback()");
         // Check status here ...
 
         // Try to process data without blocking the callback
@@ -72,22 +72,49 @@ public:
 
             uint8_t *rPixel;//, *gPixel, *bPixel;//, *aPixel;
             int32_t rLen;//, gLen, bLen;//, aLen;
+            int32_t yPixelStride, yRowStride;
+            AImage_getPlanePixelStride(image, 0, &yPixelStride);
+            AImage_getPlaneRowStride(image, 0, &yRowStride);
             AImage_getPlaneData(image, 0, &rPixel, &rLen);
+            //LOGA("Pixel stride = %d and row stride = %d", yPixelStride, yRowStride);
+            uint8_t * data = new uint8_t[rLen];//+ gLen + bLen
 
+            if (yPixelStride == 1) {
+                for (int y = 0; y < IMAGE_HEIGHT; y++)
+                    memcpy(data + y*IMAGE_WIDTH, rPixel + y*yRowStride, IMAGE_WIDTH);
+            }
 //            AImage_getPlaneData(image, 1, &gPixel, &gLen);
 //            AImage_getPlaneData(image, 2, &bPixel, &bLen);
             //AImage_getPlaneData(image, 3, &aPixel, &aLen);
 
-
-            uint8_t * data = new uint8_t[rLen];//+ gLen + bLen
-            memcpy(data, rPixel, rLen);
+            //memcpy(data, rPixel, rLen);
             //memcpy(data + rLen, gPixel, gLen);
             //memcpy(data + rLen + gLen, bPixel, bLen);
             //memcpy(data + rLen + gLen + bLen, aPixel, aLen);
-            cv::Mat rawData( IMAGE_WIDTH, IMAGE_HEIGHT, CV_8UC1, (uint8_t *)data);
-//            bool check = cv::imwrite("/sdcard/Download/monado_img.png", rawData);
-            //LOGA("aNDROID CAM CHECK %d", check);
-
+            cv::Mat rawData( IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC1, (uint8_t *)data);
+//            if(!once) {
+//                bool check = cv::imwrite(
+//                        "/sdcard/Android/data/com.example.native_activity/my_img.png", rawData);
+//                LOGA("ANDROID CAM CHECK %d", check);
+//                once = true;
+//
+//
+//                std::ofstream fout("/sdcard/Android/data/com.example.native_activity/img.txt");
+//
+//                if (!fout) {
+//                    LOGA("fout fail");
+//                }
+//
+//                for (int i = 0; i < rawData.rows; i++) {
+//                    for (int j = 0; j < rawData.cols; j++) {
+//                        fout << rawData.at<uint8_t>(i, j) << "\t";
+//                    }
+//                    fout << "\n";
+//                    LOGA("READING");
+//                }
+//
+//                fout.close();
+//            }
             mtx.lock();
             last_image = rawData;
             mtx.unlock();
@@ -156,7 +183,7 @@ public:
         //AIMAGE_FORMAT_JPEG
         //AIMAGE_FORMAT_RGB_888
         media_status_t status =
-       AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888 , 4, &reader);
+        AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888 , 4, &reader);
 
         if (status != AMEDIA_OK)
         {
@@ -277,13 +304,13 @@ public:
             auto facing = static_cast<acamera_metadata_enum_android_lens_facing_t>(
                     lensInfo.data.u8[0]);
 
-            ACameraMetadata_const_entry pose_reference = {0};
-            ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_POSE_REFERENCE, &pose_reference);
+//            ACameraMetadata_const_entry pose_reference = {0};
+//            ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_POSE_REFERENCE, &pose_reference);
+//
+//            auto pose_ref = static_cast<acamera_metadata_enum_acamera_lens_pose_reference>(
+//                    pose_reference.data.u8[0]);
 
-            auto pose_ref = static_cast<acamera_metadata_enum_acamera_lens_pose_reference>(
-                    pose_reference.data.u8[0]);
-
-            LOGA("Pose reference is = %d and facing = %d", pose_ref, facing);
+//            LOGA("Pose reference is = %d and facing = %d", pose_ref, facing);
             // Found a back-facing camera?
             if (facing == ACAMERA_LENS_FACING_BACK)
             {
