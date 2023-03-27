@@ -1092,6 +1092,7 @@ public:
 
         glFinish();
         LOGT("ITERATION finished");
+        sem_post(&cl->sem_illixr);
         _m_illixr_signal.put(_m_illixr_signal.allocate<illixr_signal>(++prev_counter));
 //        glEndQuery(GL_TIME_ELAPSED);
 
@@ -1196,7 +1197,6 @@ public:
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(dpy, NULL, NULL, nullptr));
         assert(gl_result_1 && "eglMakeCurrent should not fail");
         //cl->release_lock();
-        sem_post(&cl->sem_illixr);
         LOGT("Lock released ..");
         timewarp_gpu_logger.log(record{timewarp_gpu_record,
                                        {

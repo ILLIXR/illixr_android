@@ -92,12 +92,12 @@ public:
             //memcpy(data + rLen + gLen, bPixel, bLen);
             //memcpy(data + rLen + gLen + bLen, aPixel, aLen);
             cv::Mat rawData( IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC1, (uint8_t *)data);
-//            if(!once) {
-//                bool check = cv::imwrite(
-//                        "/sdcard/Android/data/com.example.native_activity/my_img.png", rawData);
-//                LOGA("ANDROID CAM CHECK %d", check);
-//                once = true;
-//
+            if(!once) {
+                bool check = cv::imwrite(
+                        "/sdcard/Android/data/com.example.native_activity/my_img.png", rawData);
+                LOGA("ANDROID CAM CHECK %d", check);
+                once = true;
+
 //
 //                std::ofstream fout("/sdcard/Android/data/com.example.native_activity/img.txt");
 //
@@ -114,7 +114,7 @@ public:
 //                }
 //
 //                fout.close();
-//            }
+            }
             mtx.lock();
             last_image = rawData;
             mtx.unlock();
@@ -391,7 +391,7 @@ public:
        // LOGA("ACameraCaptureSession_setRepeatingRequest status = %d", status);
 
         double ts = std::chrono::system_clock::now().time_since_epoch().count();;
-        ullong cam_time = static_cast<ullong>(ts * 1000000);
+        ullong cam_time = static_cast<ullong>(ts * 1000);
         if (!_m_first_cam_time) {
             _m_first_cam_time      = cam_time;
             _m_first_real_time_cam = _m_clock->now();
@@ -410,6 +410,7 @@ public:
 
         time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
         //LOGA("Writing to cam topic .. width = %d, height =  %d", ir_left.cols , ir_left.rows);
+        LOGA("TIME = %lf and cam_time %llu",duration2double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
         _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
         //LOGA("Done writing cam ..");
     }

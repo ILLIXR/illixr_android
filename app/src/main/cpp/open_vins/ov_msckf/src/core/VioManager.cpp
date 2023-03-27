@@ -172,6 +172,7 @@ void VioManager::feed_measurement_monocular(double timestamp, cv::Mat& img0, siz
         if(!is_initialized_vio) return;
     }
 
+    LOGV("feature propagate");
     // Call on our propagate and update function
     do_feature_propagate_update(timestamp);
 
@@ -322,6 +323,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // Return if the camera measurement is out of order
     if(state->_timestamp >= timestamp) {
         printf(YELLOW "image received out of order (prop dt = %3f)\n" RESET,(timestamp-state->_timestamp));
+        LOGV(YELLOW "image received out of order (prop dt = %3f)\n" RESET,(timestamp-state->_timestamp));
         return;
     }
 
@@ -335,6 +337,8 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // We can start processing things when we have at least 5 clones since we can start triangulating things...
     if((int)state->_clones_IMU.size() < std::min(state->_options.max_clone_size,5)) {
         printf("waiting for enough clone states (%d of %d)....\n",(int)state->_clones_IMU.size(),std::min(state->_options.max_clone_size,5));
+        LOGV("waiting for enough clone states (%d of %d)....\n",(int)state->_clones_IMU.size(),std::min(state->_options.max_clone_size,5));
+
         return;
     }
 
@@ -342,6 +346,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     if(state->_timestamp != timestamp) {
         printf(RED "[PROP]: Propagator unable to propagate the state forward in time!\n" RESET);
         printf(RED "[PROP]: It has been %.3f since last time we propagated\n" RESET,timestamp-state->_timestamp);
+        LOGV(RED "[PROP]: It has been %.3f since last time we propagated\n" RESET,timestamp-state->_timestamp);
         return;
     }
 
@@ -556,6 +561,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     double time_marg = (rT7-rT6).total_microseconds() * 1e-3;
     double time_total = (rT7-rT1).total_microseconds() * 1e-3;
 
+    LOGV("[TIME]: %.4f ms for tracking", time_track);
 #ifndef NDEBUG
     // Timing information
     printf(BLUE "[TIME]: %.4f ms for tracking\n" RESET, time_track);
@@ -575,6 +581,9 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     total_filter_time += (time_total - time_track);
     total_frame_time += time_total;
 
+    LOGV("[AVG-TIME]: %.4f ms for tracking\n", total_tracking_time / (double) total_images);
+    LOGV("[AVG-TIME]: %.4f ms for filter\n", total_filter_time / (double) total_images);
+    LOGV("[AVG-TIME]: %.4f ms for total\n", total_frame_time / (double) total_images);
 #ifndef NDEBUG
     // Average time breakdown between frontend and backend
     printf(GREEN "[AVG-TIME]: %.4f ms for tracking\n" RESET, total_tracking_time / (double) total_images);

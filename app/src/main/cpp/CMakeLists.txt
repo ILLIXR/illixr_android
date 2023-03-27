@@ -351,6 +351,7 @@ target_link_libraries(ov_core_lib
         boost_chrono-lib
         boost_thread-lib
         boost_filesystem-lib
+        android
         log)
 
 target_link_libraries(ov_msckf_lib

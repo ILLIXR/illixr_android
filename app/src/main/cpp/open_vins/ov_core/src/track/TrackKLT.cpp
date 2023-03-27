@@ -26,9 +26,12 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/tracking.hpp>
 #include <boost/thread/detail/thread.hpp>
+#include <android/log.h>
 #ifdef ILLIXR_INTEGRATION
 #include "../../../ov_msckf/src/common/cpu_timer.hpp"
 #endif /// ILLIXR_INTEGRATION
+#define LOGK(...) ((void)__android_log_print(ANDROID_LOG_INFO, "trackKLT", __VA_ARGS__))
+
 
 using namespace ov_core;
 
@@ -89,6 +92,7 @@ void TrackKLT::feed_monocular(double timestamp, cv::Mat &img, size_t cam_id) {
         pts_last[cam_id].clear();
         ids_last[cam_id].clear();
         printf(RED "[KLT-EXTRACTOR]: Failed to get enough points to do RANSAC, resetting.....\n" RESET);
+        LOGK("[KLT-EXTRACTOR]: Failed to get enough points to do RANSAC, resetting.....\n");
         return;
     }
 

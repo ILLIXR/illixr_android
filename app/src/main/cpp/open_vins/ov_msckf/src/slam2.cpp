@@ -41,9 +41,9 @@ VioManagerOptions create_params()
   intrinsics_0 << 349.686, 349.686, 332.778, 192.423, -0.175708, 0.0284421, 0, 0;
 
 #elif ANDROID_CAM
-    intrinsics_0 << 5924.999512, 5924.999512, 0, 0, 0, 0, 0, 0;
+  intrinsics_0 << 975.6487741009474, 975.0107399200864, 555.5191762033793, 715.0163787834289,  0.6160743902998261, -1.787893601936415, 5.556374227822504, -5.57030097324287;
 #else
-	// EuRoC
+//  EuRoC
 	intrinsics_0 << 458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05;
 #endif
 
@@ -54,10 +54,12 @@ VioManagerOptions create_params()
             0.00418937, -0.99998945, 0.00188393, -0.00113692,
             0.0, 0.0, 0.0, 1.0};
 #elif ANDROID_CAM
-    std::vector<double> matrix_TCtoI_0 = {1, 0, 0, 0,
-                                          0, 1, 0, 0,
-                                          0, 0, 1, 0,
-                                          0.0, 0.0, 0.0, 1.0};
+    std::vector<double> matrix_TCtoI_0 = {0.99999067, 0.00281849, 0.00327385, 0.01981983,
+     0.00284178, -0.99997052, -0.00713377, -0.00464974,
+     0.00325365, 0.00714301, -0.9999692, -0.01094682,
+     0.0, 0.0, 0.0, 1.0};
+
+
 #else
 	std::vector<double> matrix_TCtoI_0 = {0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
 										  0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
@@ -92,7 +94,7 @@ VioManagerOptions create_params()
 	// ZED calibration tool; fx, fy, cx, cy, k1, k2, p1, p2
   intrinsics_1 << 350.01, 350.01, 343.729, 185.405, -0.174559, 0.0277521, 0, 0;
 #elif ANDROID_CAM
-    intrinsics_1 <<  5924.999512, 5924.999512, 0, 0, 0, 0, 0, 0;
+	intrinsics_1 << 1895.99975586, 1895.99975586, 959.0, 0, 0.25089993,  0.86630306, -2.17284813,  2.04756095;
 #else
 	// EuRoC
 	intrinsics_1 << 457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.55590700e-05;
@@ -105,10 +107,11 @@ VioManagerOptions create_params()
             0.00421252, -0.99998938, -0.00186674, -0.00098799,
             0.0, 0.0, 0.0, 1.0};
 #elif ANDROID_CAM
-    std::vector<double> matrix_TCtoI_1 = {1, 0, 0, -0.01,
-                                          0, 1, 0, -0.04,
-                                          0, 0, 1, -0.03,
+	std::vector<double> matrix_TCtoI_1 = {0.99999067, 0.00281849, 0.00327385, 0.01981983,
+                                          0.00284178, -0.99997052, -0.00713377, -0.00464974,
+                                          0.00325365, 0.00714301, -0.9999692, -0.01094682,
                                           0.0, 0.0, 0.0, 1.0};
+
 #else
 	std::vector<double> matrix_TCtoI_1 = {0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
 										  0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
@@ -190,10 +193,10 @@ VioManagerOptions create_params()
 	params.msckf_options.sigma_pix = 1;
 	params.slam_options.chi2_multipler = 1;
 	params.slam_options.sigma_pix = 1;
-    params.imu_noises.sigma_a = 0;  // Accelerometer noise
-    params.imu_noises.sigma_ab = 0; // Accelerometer random walk
-    params.imu_noises.sigma_w = 0;  // Gyroscope noise
-    params.imu_noises.sigma_wb = 0; // Gyroscope random walk
+    params.imu_noises.sigma_a = 0.001764;  // Accelerometer noise
+    params.imu_noises.sigma_ab = 0.001764; // Accelerometer random walk
+    params.imu_noises.sigma_w = 0.00012217304764;  // Gyroscope noise
+    params.imu_noises.sigma_wb = 0.00012217304764; // Gyroscope random walk
 #else
 	params.slam_options.chi2_multipler = 1;
 	params.slam_options.sigma_pix = 1;
@@ -289,6 +292,7 @@ public:
 		Eigen::Vector4d quat = state->_imu->quat();
 		Eigen::Vector3d vel = state->_imu->vel();
 		Eigen::Vector3d pose = state->_imu->pos();
+        LOGS("SLAM2 POSE: TIME = %lf %f %f %f",duration2double(cam_buffer->time.time_since_epoch()), pose.x(), pose.y(), pose.z());
 
 		Eigen::Vector3f swapped_pos = Eigen::Vector3f{float(pose(0)), float(pose(1)), float(pose(2))};
 		Eigen::Quaternionf swapped_rot = Eigen::Quaternionf{float(quat(3)), float(quat(0)), float(quat(1)), float(quat(2))};
@@ -303,6 +307,8 @@ public:
 		assert(isfinite(swapped_pos[2]));
         //LOGS("open vins estimator");
 		if (open_vins_estimator.initialized()) {
+            LOGS("Slow pose from open-vins : %f %f %f Orientation : %f %f %f %f", swapped_pos[0], swapped_pos[1], swapped_pos[2],
+                 swapped_rot.w(), swapped_rot.x(), swapped_rot.y(), swapped_rot.z());
 			_m_pose.put(_m_pose.allocate(
 					cam_buffer->time,
 					swapped_pos,
