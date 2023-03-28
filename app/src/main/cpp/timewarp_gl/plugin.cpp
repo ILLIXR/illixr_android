@@ -905,63 +905,7 @@ public:
         assert(gl_result_1 && "eglMakeCurrent should not fail");
         LOGT("Android api level : %d",__ANDROID_API__);
 
-        if (!rendering_ready) {
-            LOGT("not ready now ..");
-            while(!image_handles_ready)
-                ;
-            assert(image_handles_ready);
-            LOGT("ready now ..");
- //           client_backend = _m_image_handles[0][0].type;
-            for (int eye = 0; eye < 2; eye++) {
-                uint32_t num_images = _m_eye_image_handles[eye][0].num_images;
-                for (uint32_t image_index = 0; image_index < num_images; image_index++) {
-                    image_handle image = _m_eye_image_handles[eye][image_index];
-                    if (client_backend == graphics_api::OPENGL) {
-                        _m_eye_swapchains[eye].push_back(image.gl_handle);
-                    } else {
-                        LOGT("CONVERTING IMAGES TO GL");
-                        //VulkanGLInterop(_m_image_handles[eye][image_index].vk_handle, eye);
-                        //ImportVulkanImage(image.vk_handle, image.usage);
-                        VulkanGLInteropBuffer(image.vk_buffer_handle, image.usage);
-                    }
-                }
-            }
-                //swapchain_ready = true;
-                        // If we're using Monado, we need to import the eye output textures to render to.
-                                // Otherwise with native, we can directly create the texture
-            for (int eye = 0; eye < 2; eye++) {
-                #ifdef ILLIXR_MONADO
-                    image_handle image = _m_eye_output_handles[eye];
-                    // ImportVulkanImage(image.vk_handle, image.usage);
-                    VulkanGLInteropBuffer(image.vk_buffer_handle, image.usage);
-                    LOGT("IMPORT VULKAN SEMAPHORE");
-                    // Each eye also has an associated semaphore
-                   // ImportVulkanSemaphore(_m_semaphore_handles[eye]);
-                #else
-                    GLuint eye_output_texture;
-                    glGenTextures(1, &eye_output_texture);
-                    _m_eye_output_textures[eye] = eye_output_texture;
-                    glBindTexture(GL_TEXTURE_2D, eye_output_texture);
-                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, display_params::width_pixels * 0.5f, display_params::height_pixels, 0, GL_RGB, GL_FLOAT, NULL);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                #endif
 
-                // Once the eye output textures are created, we bind them to the framebuffer
-                GLuint framebuffer;
-                glGenFramebuffers(1, &framebuffer);
-                _m_eye_framebuffers[eye] = framebuffer;
-
-                glBindFramebuffer(GL_FRAMEBUFFER, _m_eye_framebuffers[eye]);
-                glBindTexture(GL_TEXTURE_2D, _m_eye_output_textures[eye]);
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _m_eye_output_textures[eye], 0);
-
-                uint32_t attachment = GL_COLOR_ATTACHMENT0;
-                glDrawBuffers(1, &attachment);
-            }
-            LOGT("Rendering ready");
-                rendering_ready = true;
-        }
     #ifdef ILLIXR_MONADO
         sem_post(&cl->sem_illixr);
     #else
@@ -986,6 +930,65 @@ public:
 //        glClearColor(0, 0, 1, 0);
 //        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 //        glDepthFunc(GL_LEQUAL);
+
+        if (!rendering_ready) {
+            LOGT("not ready now ..");
+            while(!image_handles_ready)
+                ;
+            assert(image_handles_ready);
+            LOGT("ready now ..");
+            //           client_backend = _m_image_handles[0][0].type;
+            for (int eye = 0; eye < 2; eye++) {
+                uint32_t num_images = _m_eye_image_handles[eye][0].num_images;
+                for (uint32_t image_index = 0; image_index < num_images; image_index++) {
+                    image_handle image = _m_eye_image_handles[eye][image_index];
+                    if (client_backend == graphics_api::OPENGL) {
+                        _m_eye_swapchains[eye].push_back(image.gl_handle);
+                    } else {
+                        LOGT("CONVERTING IMAGES TO GL");
+                        //VulkanGLInterop(_m_image_handles[eye][image_index].vk_handle, eye);
+                        //ImportVulkanImage(image.vk_handle, image.usage);
+                        VulkanGLInteropBuffer(image.vk_buffer_handle, image.usage);
+                    }
+                }
+            }
+            //swapchain_ready = true;
+            // If we're using Monado, we need to import the eye output textures to render to.
+            // Otherwise with native, we can directly create the texture
+            for (int eye = 0; eye < 2; eye++) {
+#ifdef ILLIXR_MONADO
+                image_handle image = _m_eye_output_handles[eye];
+                    // ImportVulkanImage(image.vk_handle, image.usage);
+                    VulkanGLInteropBuffer(image.vk_buffer_handle, image.usage);
+                    LOGT("IMPORT VULKAN SEMAPHORE");
+                    // Each eye also has an associated semaphore
+                   // ImportVulkanSemaphore(_m_semaphore_handles[eye]);
+#else
+                GLuint eye_output_texture;
+                glGenTextures(1, &eye_output_texture);
+                _m_eye_output_textures[eye] = eye_output_texture;
+                glBindTexture(GL_TEXTURE_2D, eye_output_texture);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, display_params::width_pixels * 0.5f, display_params::height_pixels, 0, GL_RGB, GL_FLOAT, NULL);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+#endif
+
+                // Once the eye output textures are created, we bind them to the framebuffer
+                GLuint framebuffer;
+                glGenFramebuffers(1, &framebuffer);
+                _m_eye_framebuffers[eye] = framebuffer;
+
+                glBindFramebuffer(GL_FRAMEBUFFER, _m_eye_framebuffers[eye]);
+                glBindTexture(GL_TEXTURE_2D, _m_eye_output_textures[eye]);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _m_eye_output_textures[eye], 0);
+
+                uint32_t attachment = GL_COLOR_ATTACHMENT0;
+                glDrawBuffers(1, &attachment);
+            }
+            LOGT("Rendering ready");
+            rendering_ready = true;
+        }
+
         switchboard::ptr<const rendered_frame> most_recent_frame = _m_eyebuffer.get_ro();
 
         // Use the timewarp program
