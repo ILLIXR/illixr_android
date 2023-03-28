@@ -21,7 +21,7 @@
 
 #define EGL_EGLEXT_PROTOTYPES 1
 #define GL_GLEXT_PROTOTYPES
-#define ILLIXR_MONADO 1
+//#define ILLIXR_MONADO 0
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -213,18 +213,18 @@ public:
                             this->_m_eye_swapchains_size[1] = handle->num_images;
                             break;
                         }
-#ifdef ILLIXR_MONADO
-                            case swapchain_usage::LEFT_RENDER: {
-                                this->_m_eye_output_handles[0] = *handle;
-                                left_output_ready = true;
-                                break;
-                            }
-                            case swapchain_usage::RIGHT_RENDER: {
-                                this->_m_eye_output_handles[1] = *handle;
-                                right_output_ready = true;
-                                break;
-                            }
-#endif
+            #ifdef ILLIXR_MONADO
+                        case swapchain_usage::LEFT_RENDER: {
+                            this->_m_eye_output_handles[0] = *handle;
+                            left_output_ready = true;
+                            break;
+                        }
+                        case swapchain_usage::RIGHT_RENDER: {
+                            this->_m_eye_output_handles[1] = *handle;
+                            right_output_ready = true;
+                            break;
+                        }
+            #endif
 
                         default: {
                             std::cout << "Invalid swapchain usage provided" << std::endl;
@@ -293,7 +293,9 @@ private:
     const std::shared_ptr<const RelativeClock>     _m_clock;
         // OpenGL objects
         EGLDisplay  dpy;
-        //ANativeWindow*  window;
+        #ifndef ILLIXR_MONADO
+        ANativeWindow*  window;
+        #endif
         EGLSurface surface;
         EGLContext glc;
     // Note: 0.9 works fine without hologram, but we need a larger safety net with hologram enabled
@@ -785,8 +787,12 @@ public:
 
         // includes setting swap interval
         //cl->wait_monado();
-        //cl->get_lock();
+        //
+#ifdef ILLIXR_MONADO
         sem_wait(&cl->sem_monado);
+#else
+        cl->get_lock();
+#endif
         [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(dpy, surface, surface, glc));
         assert(gl_result_0 && "eglMakeCurrent should not fail");
 
@@ -903,7 +909,6 @@ public:
             LOGT("not ready now ..");
             while(!image_handles_ready)
                 ;
-
             assert(image_handles_ready);
             LOGT("ready now ..");
  //           client_backend = _m_image_handles[0][0].type;
@@ -957,14 +962,22 @@ public:
             LOGT("Rendering ready");
                 rendering_ready = true;
         }
-        //cl->release_lock();
+    #ifdef ILLIXR_MONADO
         sem_post(&cl->sem_illixr);
+    #else
+        cl->release_lock();
+    #endif
     }
 
     virtual void _p_one_iteration() override {
         //cl->wait_monado();
-        //cl->get_lock();
-        sem_wait(&cl->sem_monado);
+
+        //
+        #ifdef ILLIXR_MONADO
+            sem_wait(&cl->sem_monado);
+        #else
+            cl->get_lock();
+        #endif
         LOGT("ITERATION STARTED");
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(dpy, surface, surface, glc));
         assert(gl_result && "eglMakeCurrent should not fail");
@@ -1092,7 +1105,7 @@ public:
 
         glFinish();
         LOGT("ITERATION finished");
-        sem_post(&cl->sem_illixr);
+
         _m_illixr_signal.put(_m_illixr_signal.allocate<illixr_signal>(++prev_counter));
 //        glEndQuery(GL_TIME_ELAPSED);
 
@@ -1197,6 +1210,11 @@ public:
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(dpy, NULL, NULL, nullptr));
         assert(gl_result_1 && "eglMakeCurrent should not fail");
         //cl->release_lock();
+        #ifdef ILLIXR_MONADO
+                sem_post(&cl->sem_illixr);
+        #else
+                cl->release_lock();
+        #endif
         LOGT("Lock released ..");
         timewarp_gpu_logger.log(record{timewarp_gpu_record,
                                        {

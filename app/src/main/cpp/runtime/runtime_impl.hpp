@@ -20,7 +20,12 @@ using namespace ILLIXR;
 
 class runtime_impl : public runtime {
 public:
-    runtime_impl() {
+    runtime_impl(
+#ifndef ILLIXR_MONADO
+            EGLContext appGLCtx,
+            ANativeWindow *window
+#endif
+            ) {
         pb.register_impl<record_logger>(std::make_shared<noop_record_logger>());
         pb.register_impl<gen_guid>(std::make_shared<gen_guid>());
         pb.register_impl<switchboard>(std::make_shared<switchboard>(&pb));
@@ -127,14 +132,14 @@ private:
     std::vector<std::unique_ptr<plugin>> plugins;
 };
 
-#ifdef ILLIXR_MONADO_MAINLINE
-extern "C" runtime* runtime_factory() {
-    RAC_ERRNO_MSG("runtime_impl before creating the runtime");
-    return new runtime_impl{};
-}
+#ifdef ILLIXR_MONADO
+    extern "C" runtime* runtime_factory() {
+        RAC_ERRNO_MSG("runtime_impl before creating the runtime");
+        return new runtime_impl{};
+    }
 #else
-extern "C" runtime* runtime_factory() {
+extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window) {
     RAC_ERRNO_MSG("runtime_impl before creating the runtime");
-    return new runtime_impl{};
+    return new runtime_impl{appGLCtx, window};
 }
 #endif /// ILLIXR_MONADO_MAINLINE

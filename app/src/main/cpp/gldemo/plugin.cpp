@@ -43,6 +43,7 @@ public:
         , cl{pb->lookup_impl<common_lock>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , _m_vsync{sb->get_reader<switchboard::event_wrapper<time_point>>("vsync_estimate")}
+        , _m_image_handle{sb->get_writer<image_handle>("image_handle")}
         , _m_eyebuffer{sb->get_writer<ILLIXR::rendered_frame>("eyebuffer")} { }
 
     // Essentially, a crude equivalent of XRWaitFrame.
@@ -230,6 +231,7 @@ private:
     // We're not "writing" the actual buffer data,
     // we're just atomically writing the handle to the
     // correct eye/framebuffer in the "swapchain".
+    switchboard::writer<image_handle>   _m_image_handle;
     switchboard::writer<rendered_frame> _m_eyebuffer;
 
     GLuint eyeTextures[2];
@@ -321,7 +323,9 @@ public:
 
         // Create two shared eye textures, one for each eye
         createSharedEyebuffer(&(eyeTextures[0]));
+        _m_image_handle.put(_m_image_handle.allocate<image_handle>(image_handle{eyeTextures[0], 1, swapchain_usage::LEFT_SWAPCHAIN}));
         createSharedEyebuffer(&(eyeTextures[1]));
+        _m_image_handle.put(_m_image_handle.allocate<image_handle>(image_handle{eyeTextures[1], 1, swapchain_usage::RIGHT_SWAPCHAIN}));
         // Initialize FBO and depth targets, attaching to the frame handle
         createFBO(&(eyeTextures[0]), &eyeTextureFBO, &eyeTextureDepthTarget);
 
