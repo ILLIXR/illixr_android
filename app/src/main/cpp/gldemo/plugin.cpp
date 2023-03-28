@@ -189,15 +189,22 @@ public:
         lastTime = _m_clock->now();
 
         /// Publish our submitted frame handle to Switchboard!
+//        _m_eyebuffer.put(_m_eyebuffer.allocate<rendered_frame>(rendered_frame{
+//            // Somehow, C++ won't let me construct this object if I remove the `rendered_frame{` and `}`.
+//            // `allocate<rendered_frame>(...)` _should_ forward the arguments to rendered_frame's constructor, but I guess
+//            // not.
+//            std::array<GLuint, 2>{eyeTextures[0], eyeTextures[1]},
+//            std::array<GLuint, 2>{which_buffer, which_buffer},
+//            fast_pose,
+//            fast_pose.predict_computed_time, lastTime}
+//            ));
+
         _m_eyebuffer.put(_m_eyebuffer.allocate<rendered_frame>(rendered_frame{
-            // Somehow, C++ won't let me construct this object if I remove the `rendered_frame{` and `}`.
-            // `allocate<rendered_frame>(...)` _should_ forward the arguments to rendered_frame's constructor, but I guess
-            // not.
-            std::array<GLuint, 2>{eyeTextures[0], eyeTextures[1]},
-            std::array<GLuint, 2>{which_buffer, which_buffer},
-            fast_pose,
-            fast_pose.predict_computed_time, lastTime}
-            ));
+                // Somehow, C++ won't let me construct this object if I remove the `rendered_frame{` and `}`.
+                // `allocate<rendered_frame>(...)` _should_ forward the arguments to rendered_frame's constructor, but I guess
+                // not.
+                std::array<GLuint, 2>{0, 0}, std::array<GLuint, 2>{which_buffer, which_buffer}, fast_pose,
+                fast_pose.predict_computed_time, lastTime}));
 
         which_buffer = !which_buffer;
 

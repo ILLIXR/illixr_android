@@ -972,7 +972,6 @@ public:
     virtual void _p_one_iteration() override {
         //cl->wait_monado();
 
-        //
         #ifdef ILLIXR_MONADO
             sem_wait(&cl->sem_monado);
         #else
@@ -981,12 +980,12 @@ public:
         LOGT("ITERATION STARTED");
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(dpy, surface, surface, glc));
         assert(gl_result && "eglMakeCurrent should not fail");
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, display_params::width_pixels, display_params::height_pixels);
-        glClearColor(1, 0, 0, 0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        glDepthFunc(GL_LEQUAL);
+//
+//        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//        glViewport(0, 0, display_params::width_pixels, display_params::height_pixels);
+//        glClearColor(0, 0, 1, 0);
+//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+//        glDepthFunc(GL_LEQUAL);
         switchboard::ptr<const rendered_frame> most_recent_frame = _m_eyebuffer.get_ro();
 
         // Use the timewarp program
@@ -1046,12 +1045,11 @@ public:
         for (int eye = 0; eye < HMD::NUM_EYES; eye++) {
             glBindFramebuffer(GL_FRAMEBUFFER, _m_eye_framebuffers[eye]);
             glViewport(0, 0, display_params::width_pixels * 0.5, display_params::height_pixels);
-            glClearColor(1.0, 1.0, 1.0, 1.0);
+            glClearColor(1.0, 0.0, 1.0, 1.0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
             glDepthFunc(GL_LEQUAL);
 #ifdef USE_ALT_EYE_FORMAT // If we're using Monado-style buffers we need to rebind eyebuffers.... eugh!
-            [[maybe_unused]] const bool isTexture =
-                    static_cast<bool>(glIsTexture(_m_eye_swapchains[eye][most_recent_frame->swapchain_indices[eye]]));
+            [[maybe_unused]] const bool isTexture = static_cast<bool>(glIsTexture(_m_eye_swapchains[eye][most_recent_frame->swapchain_indices[eye]]));
             assert(isTexture && "The requested image is not a texture!");
             glBindTexture(GL_TEXTURE_2D, _m_eye_swapchains[eye][most_recent_frame->swapchain_indices[eye]]);
 #endif
@@ -1132,6 +1130,8 @@ public:
         //eglSwapBuffers(xwin->display, xwin->surface);
                 // If we're not using Monado, we want to composite the left and right buffers into one
         #ifndef ILLIXR_MONADO
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glViewport(0, 0, display_params::width_pixels, display_params::height_pixels);
                 // Blit the left and right color buffers onto the default color buffer
                 glBindFramebuffer(GL_READ_FRAMEBUFFER, _m_eye_framebuffers[0]);
                 glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
@@ -1143,7 +1143,7 @@ public:
                 glBlitFramebuffer(
                         0, 0, display_params::width_pixels * 0.5, display_params::height_pixels, display_params::width_pixels * 0.5, 0, display_params::width_pixels, display_params::height_pixels, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                //glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 eglSwapBuffers(dpy, surface);
         #endif
         // The swap time needs to be obtained and published as soon as possible
