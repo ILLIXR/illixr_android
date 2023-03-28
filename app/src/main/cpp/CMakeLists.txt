@@ -104,6 +104,7 @@ add_library(android_cam
         android_cam/plugin.cpp
         )
 
+#opencv
 add_library( cv_core-lib SHARED IMPORTED)
 set_target_properties( cv_core-lib
         PROPERTIES IMPORTED_LOCATION
@@ -150,6 +151,21 @@ set_target_properties( cv_aruco-lib
         PROPERTIES IMPORTED_LOCATION
         /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_aruco.so)
 
+add_library( cv_dnn-lib SHARED IMPORTED)
+set_target_properties( cv_dnn-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_dnn.so)
+
+add_library( cv_flann-lib SHARED IMPORTED)
+set_target_properties( cv_flann-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_flann.so)
+
+add_library( cv_objdetect-lib SHARED IMPORTED)
+set_target_properties( cv_objdetect-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_objdetect.so)
+
 #Boost
 add_library( boost_chrono-lib SHARED IMPORTED)
 set_target_properties( boost_chrono-lib
@@ -165,6 +181,11 @@ add_library( boost_filesystem-lib SHARED IMPORTED)
 set_target_properties( boost_filesystem-lib
         PROPERTIES IMPORTED_LOCATION
         /home/madhuparna/boost-android/arm64/lib/libboost_filesystem.so)
+
+add_library( boost_atomic-lib SHARED IMPORTED)
+set_target_properties( boost_atomic-lib
+        PROPERTIES IMPORTED_LOCATION
+        /home/madhuparna/boost-android/arm64/lib/libboost_atomic.so)
 
 add_library(ov_core_lib
         SHARED
@@ -348,9 +369,13 @@ target_link_libraries(ov_core_lib
         cv_highgui-lib
         cv_features2d-lib
         cv_aruco-lib
+        cv_dnn-lib
+        cv_flann-lib
+        cv_objdetect-lib
         boost_chrono-lib
         boost_thread-lib
         boost_filesystem-lib
+        boost_atomic-lib
         android
         log)
 
@@ -377,6 +402,7 @@ target_link_libraries(slam
         boost_chrono-lib
         boost_thread-lib
         boost_filesystem-lib
+        boost_atomic-lib
         )
 
 #target_link_libraries(faux_pose
