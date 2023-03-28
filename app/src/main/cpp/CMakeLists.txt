@@ -39,6 +39,7 @@ include_directories(open_vins/ov_core)
 #include_directories(open_vins/ov_msckf)
 include_directories(rk4_integrator)
 include_directories(android_cam)
+include_directories(android_imu)
 include_directories(pose_prediction)
 #include_directories(pose_lookup)
 #include_directories(ILLIXR_DATA)
@@ -102,6 +103,11 @@ add_library(rk4_integrator
 add_library(android_cam
         SHARED
         android_cam/plugin.cpp
+        )
+
+add_library(android_imu
+        SHARED
+        android_imu/plugin.cpp
         )
 
 #opencv
@@ -269,6 +275,11 @@ target_include_directories(android_cam PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
+target_include_directories(android_imu PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
 target_include_directories(ov_core_lib PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
@@ -355,6 +366,13 @@ target_link_libraries(android_cam
         cv_imgcodecs-lib
         camera2ndk
         mediandk
+        android
+        )
+
+target_link_libraries(android_imu
+        EGL
+        GLESv3
+        log
         android
         )
 

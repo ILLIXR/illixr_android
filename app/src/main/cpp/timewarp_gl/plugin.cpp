@@ -21,7 +21,7 @@
 
 #define EGL_EGLEXT_PROTOTYPES 1
 #define GL_GLEXT_PROTOTYPES
-//#define ILLIXR_MONADO 0
+#define ILLIXR_MONADO 1
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -292,12 +292,12 @@ private:
 //    const std::shared_ptr<xlib_gl_extended_window> xwin;
     const std::shared_ptr<const RelativeClock>     _m_clock;
         // OpenGL objects
-        EGLDisplay  dpy;
-        #ifndef ILLIXR_MONADO
-        ANativeWindow*  window;
-        #endif
-        EGLSurface surface;
-        EGLContext glc;
+    EGLDisplay  dpy;
+    #ifndef ILLIXR_MONADO
+    ANativeWindow*  window;
+    #endif
+    EGLSurface surface;
+    EGLContext glc;
     // Note: 0.9 works fine without hologram, but we need a larger safety net with hologram enabled
     static constexpr double DELAY_FRACTION = 0.9;
     // Shared objects between ILLIXR and the application (either gldemo or Monado)
