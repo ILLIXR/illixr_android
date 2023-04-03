@@ -10,8 +10,9 @@
 #include <chrono>
 #include <thread>
 #include <Eigen/Core>
+#include <fstream>
 
-#define POLL_RATE_USEC (1000L / 60) * 1000
+#define POLL_RATE_USEC 10//(1000L / 60) * 1000
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android_imu", __VA_ARGS__))
 
 using namespace ILLIXR;
@@ -31,6 +32,8 @@ static std::optional<time_point>                           _m_first_real_time_im
 static Eigen::Vector3f gyro;
 static Eigen::Vector3f accel;
 static unsigned long long timestamp;
+static unsigned long long last_timestamp = 0;
+std::ofstream myfile;
 
 class android_imu : public threadloop {
 public:
@@ -62,7 +65,6 @@ private:
             return 1;
 
         ASensorEvent event;
-
         while (ASensorEventQueue_getEvents(d->event_queue, &event, 1) > 0) {
             _m_lock.lock();
             switch (event.type) {
@@ -71,13 +73,25 @@ private:
                     accel[0] = event.acceleration.y;
                     accel[1] = -event.acceleration.x;
                     accel[2] = event.acceleration.z;
+
+//                    accel[0] = event.acceleration.x;
+//                    accel[1] = event.acceleration.y;
+//                    accel[2] = event.acceleration.z;
                     break;
                 }
                 case ASENSOR_TYPE_GYROSCOPE: {
                     gyro[0] = -event.data[1];
                     gyro[1] = event.data[0];
                     gyro[2] = event.data[2];
-                    timestamp = event.timestamp;
+//                    gyro[0] = event.data[0];
+//                    gyro[1] = event.data[1];
+//                    gyro[2] = event.data[2];
+                    //timestamp = event.timestamp;
+
+                    uint64_t time_s = std::chrono::system_clock::now().time_since_epoch().count();
+                    timestamp = time_s;
+//                    myfile << std::to_string(time_s) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
+//                              std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2]) + "," + "\n";
                 }
                 default: ;
             }
@@ -91,6 +105,7 @@ private:
     static void *
     android_run_thread(void *ptr)
     {
+        myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
         struct android_imu_struct *d = (struct android_imu_struct *)ptr;
         const int32_t poll_rate_usec = POLL_RATE_USEC;
 
@@ -122,6 +137,7 @@ private:
         while (ret != ALOOPER_POLL_ERROR) {
             ret = ALooper_pollAll(0, NULL, NULL, NULL);
         }
+        myfile.close();
 
         return NULL;
     }
@@ -129,16 +145,26 @@ private:
     /// For `threadloop` style plugins, do not override the start() method unless you know what you're doing!
     /// _p_one_iteration() is called in a thread created by threadloop::start()
     void _p_one_iteration() override {
-        std::cout << "This goes to the log when `log` is set in the config." << std::endl;
-        std::cerr << "This goes to the console." << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds{100});
+
+        std::this_thread::sleep_for(std::chrono::milliseconds{5});
+        if (!_m_clock->is_started()) {
+            return;
+        }
         _m_lock.lock();
-        ullong imu_time = static_cast<ullong>(timestamp);
+        if(last_timestamp == timestamp)
+        {
+            _m_lock.unlock();
+            return;
+        }
+        last_timestamp = timestamp;
+
+        ullong imu_time = static_cast<ullong>(timestamp*1000);
         if (!_m_first_imu_time) {
           _m_first_imu_time    = imu_time;
           _m_first_real_time_imu = _m_clock->now();
         }
         time_point imu_time_point{*_m_first_real_time_imu + std::chrono::nanoseconds(imu_time - *_m_first_imu_time)};
+        LOGI("ANDROID_IMU WRITING %f", duration2double(std::chrono::nanoseconds(imu_time - *_m_first_imu_time)));
         _m_imu.put(_m_imu.allocate<imu_type>({imu_time_point, accel.cast<double>(), gyro.cast<double>()}));
         _m_lock.unlock();
     }

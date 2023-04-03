@@ -21,7 +21,7 @@
 
 #define EGL_EGLEXT_PROTOTYPES 1
 #define GL_GLEXT_PROTOTYPES
-#define ILLIXR_MONADO 1
+//#define ILLIXR_MONADO 0
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>

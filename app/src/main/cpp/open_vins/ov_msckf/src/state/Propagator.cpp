@@ -19,7 +19,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "Propagator.h"
-
+#include <android/log.h>
+#define LOGP(...) ((void)__android_log_print(ANDROID_LOG_INFO, "propagator", __VA_ARGS__))
 
 
 using namespace ov_core;
@@ -34,6 +35,7 @@ void Propagator::propagate_and_clone(State* state, double timestamp) {
     // We should crash, as this means we would have two clones at the same time!!!!
     if(state->_timestamp == timestamp) {
         printf(RED "Propagator::propagate_and_clone(): Propagation called again at same timestep at last update timestep!!!!\n" RESET);
+        //LOGP("Propagator::propagate_and_clone(): Propagation called again at same timestep at last update timestep!!!!\n");
         std::exit(EXIT_FAILURE);
     }
 
@@ -41,6 +43,7 @@ void Propagator::propagate_and_clone(State* state, double timestamp) {
     if(state->_timestamp > timestamp) {
         printf(RED "Propagator::propagate_and_clone(): Propagation called trying to propagate backwards in time!!!!\n" RESET);
         printf(RED "Propagator::propagate_and_clone(): desired propagation = %.4f\n" RESET, (timestamp-state->_timestamp));
+        //LOGP("Propagator::propagate_and_clone(): desired propagation = %.4f\n" (timestamp-state->_timestamp));
         std::exit(EXIT_FAILURE);
     }
 
@@ -147,6 +150,7 @@ void Propagator::fast_state_propagate(State *state, double timestamp, Eigen::Mat
 
             // Time elapsed over interval
             double dt = prop_data.at(i+1).timestamp-prop_data.at(i).timestamp;
+            LOGP("DT is = %lf",dt);
             //assert(data_plus.timestamp>data_minus.timestamp);
 
             // Corrected imu measurements
@@ -297,7 +301,7 @@ void Propagator::predict_and_compute(State *state, const IMUDATA data_minus, con
     // Time elapsed over interval
     double dt = data_plus.timestamp-data_minus.timestamp;
     //assert(data_plus.timestamp>data_minus.timestamp);
-
+    LOGP("DT is . = %lf",dt);
     // Corrected imu measurements
     Eigen::Matrix<double,3,1> w_hat = data_minus.wm - state->_imu->bias_g();
     Eigen::Matrix<double,3,1> a_hat = data_minus.am - state->_imu->bias_a();

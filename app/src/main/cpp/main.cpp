@@ -17,6 +17,8 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
         {
             std::vector<std::string> arguments = { "", "libslam.so", "libandroid_cam.so", "libandroid_imu.so" ,"librk4_integrator.so",
                                                    "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
+//            std::vector<std::string> arguments = { "", "libslam.so", "liboffline_cam.so", "liboffline_imu.so" ,"librk4_integrator.so",
+//                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
             std::vector<char*> argv;
             for (const auto& arg : arguments)
                 argv.push_back((char*)arg.data());
@@ -25,7 +27,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
             setenv("ILLIXR_OFFLOAD_ENABLE", "False", true);
             setenv("ILLIXR_ALIGNMENT_ENABLE", "False", true);
             setenv("ILLIXR_ENABLE_VERBOSE_ERRORS", "False", true);
-            setenv("ILLIXR_RUN_DURATION", "1000", true);
+            setenv("ILLIXR_RUN_DURATION", "1000000", true);
             setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
             setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
             std::thread runtime_thread(runtime_main, argv.size(), argv.data(), app->window);

@@ -110,6 +110,16 @@ add_library(android_imu
         android_imu/plugin.cpp
         )
 
+add_library(offline_cam
+        SHARED
+        offline_cam/plugin.cpp
+        )
+
+add_library(offline_imu
+        SHARED
+        offline_imu/plugin.cpp
+        )
+
 #opencv
 add_library( cv_core-lib SHARED IMPORTED)
 set_target_properties( cv_core-lib
@@ -280,6 +290,16 @@ target_include_directories(android_imu PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
+target_include_directories(offline_imu PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(offline_cam PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
 target_include_directories(ov_core_lib PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
@@ -356,6 +376,22 @@ target_link_libraries(rk4_integrator
         log
         )
 
+target_link_libraries(offline_imu
+        EGL
+        GLESv3
+        log
+        )
+
+target_link_libraries(offline_cam
+        EGL
+        GLESv3
+        log
+        cv_core-lib
+        cv_imgproc-lib
+        cv_highgui-lib
+        cv_imgcodecs-lib
+        )
+
 target_link_libraries(android_cam
         EGL
         GLESv3
@@ -406,6 +442,7 @@ target_link_libraries(ov_msckf_lib
         cv_imgproc-lib
         cv_tracking-lib
         cv_calib3d-lib
+        android
         )
 
 target_link_libraries(slam
