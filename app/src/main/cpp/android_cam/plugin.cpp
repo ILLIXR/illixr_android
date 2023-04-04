@@ -12,8 +12,6 @@
 #include <mutex>
 #include <fstream>
 #include <android/log.h>
-//#include <android/imagedecoder.h>
-//#include <android/bitmap.h>
 #include <camera/NdkCameraManager.h>
 #include <camera/NdkCameraMetadata.h>
 #include <camera/NdkCameraDevice.h>
@@ -110,8 +108,6 @@ public:
     AImageReader* createJpegReader()
     {
         AImageReader* reader = nullptr;
-        //AIMAGE_FORMAT_JPEG
-        //AIMAGE_FORMAT_RGB_888
         media_status_t status =
         AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888 , 10, &reader);
 

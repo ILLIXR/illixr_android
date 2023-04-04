@@ -12,7 +12,7 @@
 #include <Eigen/Core>
 #include <fstream>
 
-#define POLL_RATE_USEC 10//(1000L / 60) * 1000
+#define POLL_RATE_USEC 5000//(1000L / 60) * 1000
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android_imu", __VA_ARGS__))
 
 using namespace ILLIXR;
@@ -46,7 +46,6 @@ public:
             std::thread (android_run_thread, imu).detach();
         }
 
-    /// Note the virtual.
     virtual ~android_imu() override {
         std::cout << "Deconstructing basic_plugin." << std::endl;
     }
