@@ -12,7 +12,7 @@
 #include <Eigen/Core>
 #include <fstream>
 
-#define POLL_RATE_USEC 5000//(1000L / 60) * 1000
+#define POLL_RATE_USEC 5000 //(1000L / 60) * 1000
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android_imu", __VA_ARGS__))
 
 using namespace ILLIXR;
@@ -82,10 +82,11 @@ private:
                     gyro[0] = -event.data[1];
                     gyro[1] = event.data[0];
                     gyro[2] = event.data[2];
+
 //                    gyro[0] = event.data[0];
 //                    gyro[1] = event.data[1];
 //                    gyro[2] = event.data[2];
-                    //timestamp = event.timestamp;
+//                    timestamp = event.timestamp;
 
                     uint64_t time_s = std::chrono::system_clock::now().time_since_epoch().count();
                     timestamp = time_s;
@@ -150,8 +151,7 @@ private:
             return;
         }
         _m_lock.lock();
-        if(last_timestamp == timestamp)
-        {
+        if(last_timestamp == timestamp) {
             _m_lock.unlock();
             return;
         }

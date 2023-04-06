@@ -56,46 +56,34 @@ public:
      static void imageCallback(void* context, AImageReader* reader)
     {
         AImage *image = nullptr;
-        //auto status =
         AImageReader_acquireNextImage(reader, &image);
         if(image == nullptr)
         {
             LOGA("IMage is null!");
             return;
         }
-        //LOGA("imageCallback()");
-        // Check status here ...
 
         // Try to process data without blocking the callback
-//        std::thread processor([=](){
-
-            uint8_t *rPixel;//, *gPixel, *bPixel;//, *aPixel;
-            int32_t rLen;//, gLen, bLen;//, aLen;
+        //std::thread processor([=](){
+            uint8_t *rPixel;
+            int32_t rLen;
             int32_t yPixelStride, yRowStride;
             AImage_getPlanePixelStride(image, 0, &yPixelStride);
             AImage_getPlaneRowStride(image, 0, &yRowStride);
             AImage_getPlaneData(image, 0, &rPixel, &rLen);
-            //LOGA("Pixel stride = %d and row stride = %d", yPixelStride, yRowStride);
-            uint8_t * data = new uint8_t[rLen];//+ gLen + bLen
+            uint8_t * data = new uint8_t[rLen];
 
             if (yPixelStride == 1) {
                 for (int y = 0; y < IMAGE_HEIGHT; y++)
                     memcpy(data + y*IMAGE_WIDTH, rPixel + y*yRowStride, IMAGE_WIDTH);
             }
             cv::Mat rawData( IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC1, (uint8_t *)data);
-//            if(!once) {
-//                current_ts = std::chrono::system_clock::now().time_since_epoch().count();
-//                bool check = cv::imwrite(
-//                        "/sdcard/Android/data/com.example.native_activity/IMG.png", rawData);
-//                LOGA("ANDROID CAM CHECK %d", check);
-//                once = true;
-//            }
             mtx.lock();
             current_ts = std::chrono::system_clock::now().time_since_epoch().count();
             //uint64_t name = (uint64_t)current_ts;
-//            bool check = cv::imwrite(
-//                "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", rawData);
-//            LOGA("ANDROID CAM CHECK %d", check);
+            // bool check = cv::imwrite(
+            // "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", rawData);
+            // LOGA("ANDROID CAM CHECK %d", check);
             last_image = rawData;
             mtx.unlock();
             img_ready = true;
@@ -190,9 +178,7 @@ public:
     static void onCaptureCompleted (
             void* context, ACameraCaptureSession* session,
             ACaptureRequest* request, const ACameraMetadata* result)
-    {
-        //LOGA("Capture completed");
-    }
+    {}
 
     ACameraCaptureSession_captureCallbacks captureCallbacks {
             .context = nullptr,
@@ -313,8 +299,6 @@ public:
         if (!_m_clock->is_started()) {
             return;
         }
-       // camera_status_t status = ACameraCaptureSession_capture(captureSession, &captureCallbacks, 1, &request, nullptr);
-       // LOGA("ACameraCaptureSession_setRepeatingRequest status = %d", status);
 
         double ts = current_ts;
         ullong cam_time = static_cast<ullong>(ts * 1000);
@@ -323,27 +307,20 @@ public:
             _m_first_real_time_cam = _m_clock->now();
         }
 
-//        while(is_ready == false) {
-//            ;
-//        }
         mtx.lock();
-        cv::Mat ir_left = last_image;//cv::Mat::zeros(cv::Size(100, 100), CV_8UC1);
-        cv::Mat ir_right = last_image;//cv::Mat::zeros(cv::Size(100, 100), CV_8UC1);
+        cv::Mat ir_left = last_image;
+        cv::Mat ir_right = last_image;
 
         time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
-        //LOGA("Writing to cam topic .. width = %d, height =  %d", ir_left.cols , ir_left.rows);
         LOGA("TIME = %lf and cam_time %llu",duration2double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
         _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
         mtx.unlock();
-        //LOGA("Done writing cam ..");
     }
 
 private:
     const std::shared_ptr<switchboard>         sb;
     const std::shared_ptr<const RelativeClock> _m_clock;
     switchboard::writer<cam_type>              _m_cam;
-
-
 
     std::optional<ullong>     _m_first_cam_time;
     std::optional<time_point> _m_first_real_time_cam;
@@ -355,12 +332,10 @@ private:
     AImageReader* imageReader = nullptr;
     ACaptureSessionOutput* imageOutput = nullptr;
     ACaptureRequest* request = nullptr;
-//    ACaptureSessionOutput* output = nullptr;
     ACaptureSessionOutputContainer* outputs = nullptr;
     ACameraCaptureSession* captureSession = nullptr;
     static const int IMAGE_WIDTH = 752;
     static const int IMAGE_HEIGHT = 480;
-
 };
 
 PLUGIN_MAIN(android_cam);
