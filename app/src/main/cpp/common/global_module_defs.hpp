@@ -7,6 +7,8 @@
 #include <math.h>
 #include <stdexcept>
 #include <string>
+#include <jni.h>
+#include <android/native_activity.h>
 
 namespace ILLIXR {
 

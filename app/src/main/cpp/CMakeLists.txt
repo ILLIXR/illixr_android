@@ -120,6 +120,11 @@ add_library(offline_imu
         offline_imu/plugin.cpp
         )
 
+add_library(arcore_plugin
+        SHARED
+        arcore/plugin.cpp
+        )
+
 #opencv
 add_library( cv_core-lib SHARED IMPORTED)
 set_target_properties( cv_core-lib
@@ -235,6 +240,15 @@ add_library(slam
         open_vins/ov_msckf/src/slam2.cpp
         )
 
+# Import the ARCore library.
+add_library(arcore SHARED IMPORTED)
+set_target_properties(arcore
+        PROPERTIES IMPORTED_LOCATION
+        ${ARCORE_LIBPATH}/${ANDROID_ABI}/libarcore_sdk_c.so
+                INTERFACE_INCLUDE_DIRECTORIES ${ARCORE_INCLUDE}
+        )
+
+
 #add_library(faux_pose
 #        SHARED
 #        faux_pose/plugin.cpp
@@ -317,6 +331,11 @@ target_include_directories(slam PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
+target_include_directories(arcore_plugin PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
 #target_include_directories(faux_pose PRIVATE
 #        ${OpenCV_LIBS}
 #        ${jnigraphics-lib}
@@ -331,6 +350,7 @@ target_link_libraries(native-activity
         EGL
         GLESv3
         log
+        arcore
         )
 
 target_link_libraries(runtime
@@ -460,10 +480,19 @@ target_link_libraries(slam
         boost_atomic-lib
         )
 
+target_link_libraries(arcore_plugin
+        EGL
+        GLESv3
+        log
+        android
+        arcore
+        )
 #target_link_libraries(faux_pose
 #    EGL
 #    GLESv3
 #    log
 #    )
+
+
 
 
