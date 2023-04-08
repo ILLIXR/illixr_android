@@ -53,27 +53,27 @@ namespace ILLIXR {
                 , img1{_img1} { }
     };
 
-//    struct imu_type : switchboard::event {
-//        time_point      time;
-//        Eigen::Vector3d angular_v;
-//        Eigen::Vector3d linear_a;
-//
-//        imu_type(time_point time_, Eigen::Vector3d angular_v_, Eigen::Vector3d linear_a_)
-//                : time{time_}
-//                , angular_v{angular_v_}
-//                , linear_a{linear_a_} { }
-//    };
+    struct imu_type : switchboard::event {
+        time_point      time;
+        Eigen::Vector3d angular_v;
+        Eigen::Vector3d linear_a;
 
-    struct imu_type {
-        time_point                  timestamp;
-        Eigen::Matrix<double, 3, 1> wm;
-        Eigen::Matrix<double, 3, 1> am;
-
-        imu_type(time_point timestamp_, Eigen::Matrix<double, 3, 1> wm_, Eigen::Matrix<double, 3, 1> am_)
-                : timestamp{timestamp_}
-                , wm{wm_}
-                , am{am_} { }
+        imu_type(time_point time_, Eigen::Vector3d angular_v_, Eigen::Vector3d linear_a_)
+                : time{time_}
+                , angular_v{angular_v_}
+                , linear_a{linear_a_} { }
     };
+
+//    struct imu_type {
+//        time_point                  timestamp;
+//        Eigen::Matrix<double, 3, 1> wm;
+//        Eigen::Matrix<double, 3, 1> am;
+//
+//        imu_type(time_point timestamp_, Eigen::Matrix<double, 3, 1> wm_, Eigen::Matrix<double, 3, 1> am_)
+//                : timestamp{timestamp_}
+//                , wm{wm_}
+//                , am{am_} { }
+//    };
 
 
     class rgb_depth_type : public switchboard::event {

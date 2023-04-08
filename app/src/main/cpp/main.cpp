@@ -18,7 +18,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
 //            std::vector<std::string> arguments = { "", "libslam.so", "libandroid_cam.so", "libandroid_imu.so" ,"librk4_integrator.so",
 //                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
 //, "liboffline_imu.so"
-            std::vector<std::string> arguments = { "", "libslam.so", "librk4_integrator.so", "liboffline_imu_cam.so" ,
+            std::vector<std::string> arguments = { "", "libslam.so", "librk4_integrator.so", "liboffline_cam.so" , "liboffline_imu.so",
                                                    "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
 //            std::vector<std::string> arguments = { "", "libpose_lookup.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
             std::vector<char*> argv;

@@ -110,20 +110,20 @@ add_library(rk4_integrator
 #        android_imu/plugin.cpp
 #        )
 
-#add_library(offline_cam
-#        SHARED
-#        offline_cam/plugin.cpp
-#        )
-
-#add_library(offline_imu
-#        SHARED
-#        offline_imu/plugin.cpp
-#        )
-
-add_library(offline_imu_cam
+add_library(offline_cam
         SHARED
-        offline_imu_cam/plugin.cpp
+        offline_cam/plugin.cpp
         )
+
+add_library(offline_imu
+        SHARED
+        offline_imu/plugin.cpp
+        )
+
+#add_library(offline_imu_cam
+#        SHARED
+#        offline_imu_cam/plugin.cpp
+#        )
 
 #opencv
 add_library( cv_core-lib SHARED IMPORTED)
@@ -295,20 +295,20 @@ target_include_directories(rk4_integrator PRIVATE
 #        ${jnigraphics-lib}
 #        ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_include_directories(offline_imu_cam PRIVATE
+#target_include_directories(offline_imu_cam PRIVATE
+#        ${OpenCV_LIBS}
+#        ${jnigraphics-lib}
+#        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(offline_imu PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-#target_include_directories(offline_imu PRIVATE
-#        ${OpenCV_LIBS}
-#        ${jnigraphics-lib}
-#        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-#target_include_directories(offline_cam PRIVATE
-#        ${OpenCV_LIBS}
-#        ${jnigraphics-lib}
-#        ${ANDROID_NDK}/sources/android/native_app_glue)
+target_include_directories(offline_cam PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(ov_core_lib PRIVATE
         ${OpenCV_LIBS}
@@ -386,23 +386,13 @@ target_link_libraries(rk4_integrator
         log
         )
 
-#target_link_libraries(offline_imu
-#        EGL
-#        GLESv3
-#        log
-#        )
-
-target_link_libraries(offline_imu_cam
+target_link_libraries(offline_imu
         EGL
         GLESv3
         log
-        cv_core-lib
-        cv_imgproc-lib
-        cv_highgui-lib
-        cv_imgcodecs-lib
         )
-
-#target_link_libraries(offline_cam
+#
+#target_link_libraries(offline_imu_cam
 #        EGL
 #        GLESv3
 #        log
@@ -411,6 +401,16 @@ target_link_libraries(offline_imu_cam
 #        cv_highgui-lib
 #        cv_imgcodecs-lib
 #        )
+
+target_link_libraries(offline_cam
+        EGL
+        GLESv3
+        log
+        cv_core-lib
+        cv_imgproc-lib
+        cv_highgui-lib
+        cv_imgcodecs-lib
+        )
 
 #target_link_libraries(android_cam
 #        EGL
