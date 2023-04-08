@@ -160,18 +160,20 @@ VioManagerOptions create_params()
     params.msckf_options.chi2_multipler = 1;
     params.knn_ratio = .7;
 
-    params.state_options.imu_avg = true;
-    params.state_options.do_fej = true;
-    params.state_options.use_rk4_integration = true;
+//    params.state_options.imu_avg = true;
+//    params.state_options.do_fej = true;
+//    params.state_options.use_rk4_integration = true;
     params.use_stereo = true;
-    params.state_options.do_calib_camera_pose = true;
-    params.state_options.do_calib_camera_intrinsics = true;
-    params.state_options.do_calib_camera_timeoffset = true;
-
+//    params.state_options.do_calib_camera_pose = true;
+//    params.state_options.do_calib_camera_intrinsics = true;
+//    params.state_options.do_calib_camera_timeoffset = true;
+    params.state_options.do_calib_camera_pose = false;
+    params.state_options.do_calib_camera_intrinsics = false;
+    params.state_options.do_calib_camera_timeoffset = false;
     params.dt_slam_delay = 3.0;
-    params.state_options.max_slam_features = 50;
-    params.state_options.max_slam_in_update = 25;
-    params.state_options.max_msckf_in_update = 999;
+    params.state_options.max_slam_features = 10;
+    params.state_options.max_slam_in_update = 5;
+    params.state_options.max_msckf_in_update = 20;
 
 #ifdef ZED
     // Pixel noise; ZED works with defaults values but these may better account for rolling shutter
