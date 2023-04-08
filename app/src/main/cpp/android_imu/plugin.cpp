@@ -69,27 +69,44 @@ private:
             switch (event.type) {
 
                 case ASENSOR_TYPE_ACCELEROMETER: {
-                    accel[0] = event.acceleration.y;
-                    accel[1] = -event.acceleration.x;
+//                    accel[0] = event.acceleration.y;
+//                    accel[1] = -event.acceleration.x;
+//                    accel[2] = event.acceleration.z;
+
+                    accel[0] = event.acceleration.x;
+                    accel[1] = event.acceleration.y;
                     accel[2] = event.acceleration.z;
 
-//                    accel[0] = event.acceleration.x;
-//                    accel[1] = event.acceleration.y;
-//                    accel[2] = event.acceleration.z;
+//                    accel[0] = event.acceleration.z;
+//                    accel[1] = -event.acceleration.x;
+//                    accel[2] = event.acceleration.y;
+
+//                    accel[0] = 1;
+//                    accel[1] = 0;
+//                    accel[2] = 0;
                     break;
                 }
                 case ASENSOR_TYPE_GYROSCOPE: {
-                    gyro[0] = -event.data[1];
-                    gyro[1] = event.data[0];
+//                    gyro[0] = -event.data[1];
+//                    gyro[1] = event.data[0];
+//                    gyro[2] = event.data[2];
+
+                    gyro[0] = event.data[0];
+                    gyro[1] = event.data[1];
                     gyro[2] = event.data[2];
 
-//                    gyro[0] = event.data[0];
-//                    gyro[1] = event.data[1];
-//                    gyro[2] = event.data[2];
+//                    gyro[0] = event.data[2];
+//                    gyro[1] = -event.data[0];
+//                    gyro[2] = event.data[1];
+;
+//                    gyro[0] = 0;
+//                    gyro[1] = 0;
+//                    gyro[2] = 0;
 //                    timestamp = event.timestamp;
 
                     uint64_t time_s = std::chrono::system_clock::now().time_since_epoch().count();
                     timestamp = time_s;
+                    LOGI("IMU Values : accel %f %f %f %f %f %f", accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
 //                    myfile << std::to_string(time_s) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
 //                              std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2]) + "," + "\n";
                 }

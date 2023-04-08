@@ -35,7 +35,8 @@ public:
         init_pos_offset = _m_sensor_data.cbegin()->second.position;
 
         auto newoffset = correct_pose(_m_sensor_data.begin()->second).orientation;
-        set_offset(newoffset);
+        set_offset(Eigen::Quaternionf::Identity());
+        //set_offset(newoffset);
     }
 
     virtual fast_pose_type get_fast_pose() const override {

@@ -7,7 +7,9 @@
 #include <Eigen/Dense>
 #include <shared_mutex>
 #include <android/log.h>
+#include <fstream>
 
+std::ofstream myfile;
 #define LOGP(...) ((void)__android_log_print(ANDROID_LOG_INFO, "pose_prediction", __VA_ARGS__))
 
 using namespace ILLIXR;
@@ -21,19 +23,22 @@ public:
             , _m_imu_raw{sb->get_reader<ILLIXR::imu_raw_type>("imu_raw")}
             , _m_true_pose{sb->get_reader<pose_type>("true_pose")}
             , _m_ground_truth_offset{sb->get_reader<switchboard::event_wrapper<Eigen::Vector3f>>("ground_truth_offset")}
-            , _m_vsync_estimate{sb->get_reader<switchboard::event_wrapper<time_point>>("vsync_estimate")} { }
+            , _m_vsync_estimate{sb->get_reader<switchboard::event_wrapper<time_point>>("vsync_estimate")} {
+        myfile.open ("/sdcard/Android/data/com.example.native_activity/pose_prediction.tum");
+
+    }
 
     // No parameter get_fast_pose() should just predict to the next vsync
     // However, we don't have vsync estimation yet.
     // So we will predict to `now()`, as a temporary approximation
     virtual fast_pose_type get_fast_pose() const override {
         switchboard::ptr<const switchboard::event_wrapper<time_point>> vsync_estimate = _m_vsync_estimate.get_ro_nullable();
-        LOGP("GET FAST POSE");
+       // LOGP("GET FAST POSE");
         if (vsync_estimate == nullptr) {
-            LOGP("with clock");
+            //LOGP("with clock");
             return get_fast_pose(_m_clock->now());
         } else {
-            LOGP("GET FAST POSE");
+            //LOGP("GET FAST POSE");
             return get_fast_pose(*vsync_estimate);
         }
     }
@@ -58,13 +63,14 @@ public:
             offset_pose.position    = Eigen::Vector3f{0, 0, 0};
             offset_pose.orientation = Eigen::Quaternionf{1, 0, 0, 0};
         }
-
         return correct_pose(offset_pose);
     }
 
     // future_time: An absolute timepoint in the future
     virtual fast_pose_type get_fast_pose(time_point future_timestamp) const override {
         switchboard::ptr<const pose_type> slow_pose = _m_slow_pose.get_ro_nullable();
+
+
         if (slow_pose == nullptr) {
             // No slow pose, return 0
             return fast_pose_type{
@@ -79,8 +85,6 @@ public:
 #ifndef NDEBUG
             LOGP("FAST POSE IS SLOW POSE!\n");
 #endif
-            LOGP("FAST POSE IS SLOW POSE!\n");
-
             // No imu_raw, return slow_pose
             return fast_pose_type{
                 .pose                  = correct_pose(*slow_pose),
@@ -89,6 +93,22 @@ public:
             };
         }
 
+
+        if (first_time) {
+            pose_type first_pose = correct_pose(*slow_pose);
+            std::unique_lock lock{offset_mutex};
+            // check again, now that we have mutual exclusion
+            if (first_time) {
+                first_time = false;
+                offset     = first_pose.orientation.inverse();
+            }
+        }
+
+        return fast_pose_type{
+                correct_pose(*slow_pose),
+                _m_clock->now(),
+                future_timestamp,
+        };
 //        // slow_pose and imu_raw, do pose prediction
 
         double  dt = duration2double(future_timestamp - imu_raw->imu_time);
@@ -98,7 +118,6 @@ public:
 
         // predictor_imu_time is the most recent IMU sample that was used to compute the prediction.
         auto predictor_imu_time = predictor_result.second;
-        LOGP("PREDICTED POSE ..");
         pose_type predicted_pose =
                 correct_pose({predictor_imu_time,
                               Eigen::Vector3f{static_cast<float>(state_plus(4)), static_cast<float>(state_plus(5)),
@@ -115,7 +134,10 @@ public:
                 offset     = predicted_pose.orientation.inverse();
             }
         }
-        LOGP("POse prediction orientation = %f %f %f %f",predicted_pose.orientation.w(), predicted_pose.orientation.x(), predicted_pose.orientation.y(), predicted_pose.orientation.z());
+
+//        LOGP("POse position = %f %f %f , prediction orientation = %f %f %f %f",
+//             predicted_pose.position.x(), predicted_pose.position.y(), predicted_pose.position.z()
+//             ,predicted_pose.orientation.w(), predicted_pose.orientation.x(), predicted_pose.orientation.y(), predicted_pose.orientation.z());
         // Several timestamps are logged:
         //       - the prediction compute time (time when this prediction was computed, i.e., now)
         //       - the prediction target (the time that was requested for this pose.)
@@ -176,13 +198,13 @@ public:
     // current Dataset we are using (EuRoC)
     virtual pose_type correct_pose(const pose_type pose) const override {
         pose_type swapped_pose;
-        LOGP("CORRECT POSE");
+        //LOGP("CORRECT POSE");
         // Make any changes to the axes direction below
         // This is a mapping between the coordinate system of the current
         // SLAM (OpenVINS) we are using and the OpenGL system.
-        swapped_pose.position.x() = -pose.position.y();
-        swapped_pose.position.y() = pose.position.z();
-        swapped_pose.position.z() = -pose.position.x();
+        swapped_pose.position.x() = -pose.position.y() ;//+ 2.28 ;
+        swapped_pose.position.y() = pose.position.z() ;//- 1;
+        swapped_pose.position.z() = -pose.position.x() ;//+ 0.49;
 
         // Make any chanes to orientation of the output below
         // For the dataset were currently using (EuRoC), the output orientation acts as though
@@ -191,7 +213,8 @@ public:
 
         swapped_pose.orientation = apply_offset(raw_o);
         swapped_pose.sensor_time = pose.sensor_time;
-
+        myfile << std::to_string(duration2double(swapped_pose.sensor_time.time_since_epoch())) + " " + std::to_string(swapped_pose.position.x()) + " " + std::to_string(swapped_pose.position.y()) + " " + std::to_string(swapped_pose.position.z())
+                  + " " + std::to_string(swapped_pose.orientation.x()) + " " + std::to_string(swapped_pose.orientation.y()) + " " + std::to_string(swapped_pose.orientation.z()) + " " + std::to_string(swapped_pose.orientation.w()) + "\n";
         return swapped_pose;
     }
 
@@ -213,7 +236,7 @@ private:
     std::pair<Eigen::Matrix<double, 13, 1>, time_point> predict_mean_rk4(double dt) const {
         // Pre-compute things
         switchboard::ptr<const imu_raw_type> imu_raw = _m_imu_raw.get_ro();
-        LOGP("Read imu data ..");
+        //LOGP("Read imu data ..");
 
         Eigen::Vector3d w_hat   = imu_raw->w_hat;
         Eigen::Vector3d a_hat   = imu_raw->a_hat;

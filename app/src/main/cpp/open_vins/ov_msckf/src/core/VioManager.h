@@ -66,7 +66,7 @@ namespace ov_msckf {
          * @param params_ Parameters loaded from either ROS or CMDLINE
          */
         VioManager(VioManagerOptions& params_);
-
+        
 
         /**
          * @brief Feed function for inertial data
@@ -117,9 +117,9 @@ namespace ov_msckf {
 
             // Cleanup any features older then the initialization time
             trackFEATS->get_feature_database()->cleanup_measurements(state->_timestamp);
-            if(trackARUCO != nullptr) {
-                trackARUCO->get_feature_database()->cleanup_measurements(state->_timestamp);
-            }
+//            if(trackARUCO != nullptr) {
+//                trackARUCO->get_feature_database()->cleanup_measurements(state->_timestamp);
+//            }
 
             // Print what we init'ed with
             printf(GREEN "[INIT]: INITIALIZED FROM GROUNDTRUTH FILE!!!!!\n" RESET);
@@ -158,9 +158,9 @@ namespace ov_msckf {
         }
 
         /// Get aruco feature tracker
-        TrackBase* get_track_aruco() {
-            return trackARUCO;
-        }
+//        TrackBase* get_track_aruco() {
+//            return trackARUCO;
+//        }
 
         /// Returns 3d features used in the last update in global frame
         std::vector<Eigen::Vector3d> get_good_features_MSCKF() {

@@ -21,8 +21,8 @@
 #define OV_MSCKF_PARSE_CMDLINE_H
 
 
-#include "../core/VioManagerOptions.h"
-#include "../ov_core/src/utils/CLI11.hpp"
+#include "core/VioManagerOptions.h"
+#include "utils/CLI11.hpp"
 
 
 namespace ov_msckf {

@@ -921,7 +921,7 @@ public:
         #else
             cl->get_lock();
         #endif
-        LOGT("ITERATION STARTED");
+        //LOGT("ITERATION STARTED");
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(dpy, surface, surface, glc));
         assert(gl_result && "eglMakeCurrent should not fail");
 //
@@ -932,7 +932,7 @@ public:
 //        glDepthFunc(GL_LEQUAL);
 
         if (!rendering_ready) {
-            LOGT("not ready now ..");
+            //LOGT("not ready now ..");
             while(!image_handles_ready)
                 ;
             assert(image_handles_ready);
@@ -1005,7 +1005,7 @@ public:
         // compensating for display panel refresh delay (wow!)
         Eigen::Matrix4f viewMatrixBegin = Eigen::Matrix4f::Identity();
         Eigen::Matrix4f viewMatrixEnd   = Eigen::Matrix4f::Identity();
-        LOGT("Disable warp %d", disable_warp);
+        //LOGT("Disable warp %d", disable_warp);
         const fast_pose_type latest_pose  = disable_warp ? most_recent_frame->render_pose : pp->get_fast_pose();
         viewMatrixBegin.block(0, 0, 3, 3) = latest_pose.pose.orientation.toRotationMatrix();
 
@@ -1105,7 +1105,7 @@ public:
         }
 
         glFinish();
-        LOGT("ITERATION finished");
+        //LOGT("ITERATION finished");
 
         _m_illixr_signal.put(_m_illixr_signal.allocate<illixr_signal>(++prev_counter));
 //        glEndQuery(GL_TIME_ELAPSED);
@@ -1129,7 +1129,7 @@ public:
         // CPU thread once the buffers have been successfully swapped.
         [[maybe_unused]] time_point time_before_swap = _m_clock->now();
 
-        LOGT("EGL Swap buffer ...");
+        //LOGT("EGL Swap buffer ...");
         //eglSwapBuffers(xwin->display, xwin->surface);
                 // If we're not using Monado, we want to composite the left and right buffers into one
         #ifndef ILLIXR_MONADO
@@ -1153,14 +1153,14 @@ public:
         time_last_swap                              = _m_clock->now();
         [[maybe_unused]] time_point time_after_swap = time_last_swap;
 
-        LOGT("add vsync estimate");
+        //LOGT("add vsync estimate");
         // Now that we have the most recent swap time, we can publish the new estimate.
         _m_vsync_estimate.put(_m_vsync_estimate.allocate<switchboard::event_wrapper<time_point>>(GetNextSwapTimeEstimate()));
 
         std::chrono::nanoseconds imu_to_display     = time_last_swap - latest_pose.pose.sensor_time;
         std::chrono::nanoseconds predict_to_display = time_last_swap - latest_pose.predict_computed_time;
         std::chrono::nanoseconds render_to_display  = time_last_swap - most_recent_frame->render_time;
-        LOGT("mtp logger ..");
+        //LOGT("mtp logger ..");
         mtp_logger.log(record{mtp_record,
                               {
                                   {iteration_no},
@@ -1209,7 +1209,7 @@ public:
 //
 //        // get the query result
 //        glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsed_time);
-        LOGT("egl context.");
+        //LOGT("egl context.");
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(dpy, NULL, NULL, nullptr));
         assert(gl_result_1 && "eglMakeCurrent should not fail");
         //cl->release_lock();
@@ -1218,7 +1218,7 @@ public:
         #else
                 cl->release_lock();
         #endif
-        LOGT("Lock released ..");
+        //LOGT("Lock released ..");
         timewarp_gpu_logger.log(record{timewarp_gpu_record,
                                        {
                                            {iteration_no},

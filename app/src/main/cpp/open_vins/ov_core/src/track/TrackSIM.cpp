@@ -19,8 +19,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "TrackSIM.h"
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
+
 
 using namespace ov_core;
 
@@ -73,5 +72,7 @@ void TrackSIM::feed_measurement_simulation(double timestamp, const std::vector<i
         ids_last[cam_id] = good_ids_left;
 
     }
+
+
 }
 

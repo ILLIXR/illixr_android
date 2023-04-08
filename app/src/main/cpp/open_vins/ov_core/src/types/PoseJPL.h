@@ -25,7 +25,6 @@
 #include "JPLQuat.h"
 #include "../utils/quat_ops.h"
 
-
 namespace ov_type {
 
 
