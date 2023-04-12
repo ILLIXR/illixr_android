@@ -15,11 +15,11 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
     switch(cmd) {
         case APP_CMD_INIT_WINDOW:
         {
-//            std::vector<std::string> arguments = { "", "libslam.so", "libandroid_cam.so", "libandroid_imu.so" ,"librk4_integrator.so",
-//                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
-//, "liboffline_imu.so"
-            std::vector<std::string> arguments = { "", "libslam.so", "librk4_integrator.so", "liboffline_imu_cam.so" ,
+//            std::vector<std::string> arguments = { "", "libandroid_imu_cam.so"};
+            std::vector<std::string> arguments = { "", "libslam.so", "libandroid_imu_cam.so" ,"librk4_integrator.so",
                                                    "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
+//            std::vector<std::string> arguments = { "", "libslam.so", "librk4_integrator.so", "liboffline_imu_cam.so" ,
+//                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
 //            std::vector<std::string> arguments = { "", "libpose_lookup.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
             std::vector<char*> argv;
             for (const auto& arg : arguments)
@@ -43,7 +43,6 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
 
 
 void android_main(struct android_app* state) {
-
     state->onAppCmd = handle_cmd;
     while(true) {
         int ident;

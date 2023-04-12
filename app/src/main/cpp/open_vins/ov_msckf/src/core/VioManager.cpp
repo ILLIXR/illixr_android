@@ -165,6 +165,7 @@ void VioManager::feed_measurement_monocular(double timestamp, cv::Mat& img0, siz
     }
     rT2 =  boost::posix_time::microsec_clock::local_time();
 
+
     // If we do not have VIO initialization, then try to initialize
     // TODO: Or if we are trying to reset the system, then do that here!
     if(!is_initialized_vio) {
@@ -310,17 +311,15 @@ bool VioManager::try_to_initialize() {
 
 void VioManager::do_feature_propagate_update(double timestamp) {
 
-
     //===================================================================================
     // State propagation, and clone augmentation
     //===================================================================================
 
     // Return if the camera measurement is out of order
     if(state->_timestamp >= timestamp) {
-        printf(YELLOW "image received out of order (prop dt = %3f)\n" RESET,(timestamp-state->_timestamp));
+        LOGS(YELLOW "image received out of order (prop dt = %3f)\n" RESET,(timestamp-state->_timestamp));
         return;
     }
-
 
     // Propagate the state forward to the current update time
     // Also augment it with a new clone!
@@ -331,14 +330,14 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // This isn't super ideal, but it keeps the logic after this easier...
     // We can start processing things when we have at least 5 clones since we can start triangulating things...
     if((int)state->_clones_IMU.size() < std::min(state->_options.max_clone_size,5)) {
-		printf("waiting for enough clone states (%d of %d)....\n",(int)state->_clones_IMU.size(),std::min(state->_options.max_clone_size,5));
+		LOGS("waiting for enough clone states (%d of %d)....\n",(int)state->_clones_IMU.size(),std::min(state->_options.max_clone_size,5));
         return;
     }
 
     // Return if we where unable to propagate
     if(state->_timestamp != timestamp) {
-		printf(RED "[PROP]: Propagator unable to propagate the state forward in time!\n" RESET);
-		printf(RED "[PROP]: It has been %.3f since last time we propagated\n" RESET,timestamp-state->_timestamp);
+		LOGS(RED "[PROP]: Propagator unable to propagate the state forward in time!\n" RESET);
+		LOGS(RED "[PROP]: It has been %.3f since last time we propagated\n" RESET,timestamp-state->_timestamp);
         return;
     }
 
@@ -350,7 +349,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // Now, lets get all features that should be used for an update that are lost in the newest frame
     std::vector<Feature*> feats_lost, feats_marg, feats_slam;
     feats_lost = trackFEATS->get_feature_database()->features_not_containing_newer(state->_timestamp);
-
+    LOGS("Lost feats %lu ", feats_lost.size());
     // Don't need to get the oldest features untill we reach our max number of clones
     if((int)state->_clones_IMU.size() > state->_options.max_clone_size) {
         feats_marg = trackFEATS->get_feature_database()->features_containing(state->margtimestep());
@@ -385,9 +384,11 @@ void VioManager::do_feature_propagate_update(double timestamp) {
         }
         // If max track, then add it to our possible slam feature list
         if(reached_max) {
+            LOGS("ADD TO SLAM FEATURE LIST");
             feats_maxtracks.push_back(*it2);
             it2 = feats_marg.erase(it2);
         } else {
+            LOGS("NOT ADDed TO SLAM FEATURE LIST");
             it2++;
         }
     }
@@ -418,6 +419,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // Loop through current SLAM features, we have tracks of them, grab them for this update!
     // Note: if we have a slam feature that has lost tracking, then we should marginalize it out
     // Note: if you do not use FEJ, these types of slam features *degrade* the estimator performance....
+    LOGS("Before fej step %lu", state->_features_SLAM.size());
     for (std::pair<const size_t, Landmark*> &landmark : state->_features_SLAM) {
         if(trackARUCO != nullptr) {
             Feature* feat1 = trackARUCO->get_feature_database()->get_feature(landmark.second->_featid);
@@ -435,6 +437,7 @@ void VioManager::do_feature_propagate_update(double timestamp) {
 
     // Separate our SLAM features into new ones, and old ones
     std::vector<Feature*> feats_slam_DELAYED, feats_slam_UPDATE;
+    LOGS("FEATS_SLAM SIZE WAS %lu", feats_slam.size());
     for(size_t i=0; i<feats_slam.size(); i++) {
         if(state->_features_SLAM.find(feats_slam.at(i)->featid) != state->_features_SLAM.end()) {
             feats_slam_UPDATE.push_back(feats_slam.at(i));
@@ -450,7 +453,6 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     featsup_MSCKF.insert(featsup_MSCKF.end(), feats_marg.begin(), feats_marg.end());
     featsup_MSCKF.insert(featsup_MSCKF.end(), feats_maxtracks.begin(), feats_maxtracks.end());
 
-
     //===================================================================================
     // Now that we have a list of features, lets do the EKF update for MSCKF and SLAM!
     //===================================================================================
@@ -460,10 +462,12 @@ void VioManager::do_feature_propagate_update(double timestamp) {
     // NOTE: this should only really be used if you want to track a lot of features, or have limited computational resources
     if((int)featsup_MSCKF.size() > state->_options.max_msckf_in_update)
         featsup_MSCKF.erase(featsup_MSCKF.begin(), featsup_MSCKF.end()-state->_options.max_msckf_in_update);
+    LOGS("Size of featsup_MSCKF %lu", featsup_MSCKF.size());
 
     auto start2 = chrono::high_resolution_clock::now();
 
     updaterMSCKF->update(state, featsup_MSCKF);
+    LOGS("Size of featsup_MSCKF %lu", featsup_MSCKF.size());
 
     auto stop2 = chrono::high_resolution_clock::now();
     auto duration2 = chrono::duration_cast<chrono::microseconds>(stop2 - start2);
@@ -561,15 +565,15 @@ void VioManager::do_feature_propagate_update(double timestamp) {
 
 #ifndef NDEBUG
     // Timing information
-    printf(BLUE "[TIME]: %.4f ms for tracking\n" RESET, time_track);
-    printf(BLUE "[TIME]: %.4f ms for propagation\n" RESET, time_prop);
-    printf(BLUE "[TIME]: %.4f ms for MSCKF update (%d features)\n" RESET, time_msckf, (int)featsup_MSCKF.size());
+    LOGS(BLUE "[TIME]: %.4f ms for tracking\n" RESET, time_track);
+    LOGS(BLUE "[TIME]: %.4f ms for propagation\n" RESET, time_prop);
+    LOGS(BLUE "[TIME]: %.4f ms for MSCKF update (%d features)\n" RESET, time_msckf, (int)featsup_MSCKF.size());
     if(state->_options.max_slam_features > 0) {
-        printf(BLUE "[TIME]: %.4f ms for SLAM update (%d feats)\n" RESET, time_slam_update, (int)feats_slam_UPDATE.size());
-        printf(BLUE "[TIME]: %.4f ms for SLAM delayed init (%d feats)\n" RESET, time_slam_delay, (int)feats_slam_DELAYED.size());
+        LOGS(BLUE "[TIME]: %.4f ms for SLAM update (%d feats)\n" RESET, time_slam_update, (int)feats_slam_UPDATE.size());
+        LOGS(BLUE "[TIME]: %.4f ms for SLAM delayed init (%d feats)\n" RESET, time_slam_delay, (int)feats_slam_DELAYED.size());
     }
-    printf(BLUE "[TIME]: %.4f ms for marginalization (%d clones in state)\n" RESET, time_marg, (int)state->_clones_IMU.size());
-    printf(BLUE "[TIME]: %.4f ms for total\n" RESET, time_total);
+    LOGS(BLUE "[TIME]: %.4f ms for marginalization (%d clones in state)\n" RESET, time_marg, (int)state->_clones_IMU.size());
+    LOGS(BLUE "[TIME]: %.4f ms for total\n" RESET, time_total);
 #endif
 
     // Keep track of average
@@ -580,9 +584,9 @@ void VioManager::do_feature_propagate_update(double timestamp) {
 
 #ifndef NDEBUG
     // Average time breakdown between frontend and backend
-    printf(GREEN "[AVG-TIME]: %.4f ms for tracking\n" RESET, total_tracking_time / (double) total_images);
-    printf(GREEN "[AVG-TIME]: %.4f ms for filter\n" RESET, total_filter_time / (double) total_images);
-    printf(GREEN "[AVG-TIME]: %.4f ms for total\n" RESET, total_frame_time / (double) total_images);
+    LOGS(GREEN "[AVG-TIME]: %.4f ms for tracking\n" RESET, total_tracking_time / (double) total_images);
+    LOGS(GREEN "[AVG-TIME]: %.4f ms for filter\n" RESET, total_filter_time / (double) total_images);
+    LOGS(GREEN "[AVG-TIME]: %.4f ms for total\n" RESET, total_frame_time / (double) total_images);
 #endif
 
     // Finally if we are saving stats to file, lets save it to file

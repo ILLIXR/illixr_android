@@ -19,7 +19,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "UpdaterSLAM.h"
+#include <android/log.h>
 
+#define LOGS(...) ((void)__android_log_print(ANDROID_LOG_INFO, "updaterSLAM", __VA_ARGS__))
 
 
 using namespace ov_core;
@@ -224,9 +226,11 @@ void UpdaterSLAM::update(State *state, std::vector<Feature*>& feature_vec) {
 
 
     // Return if no features
-    if(feature_vec.empty())
+    if(feature_vec.empty()) {
+        LOGS("EMPTY");
         return;
-
+    }
+    LOGS("feature_vec size is %lu", feature_vec.size());
     // Start timing
     boost::posix_time::ptime rT0, rT1, rT2, rT3;//, rT4, rT5, rT6, rT7;
     rT0 =  boost::posix_time::microsec_clock::local_time();
@@ -268,6 +272,7 @@ void UpdaterSLAM::update(State *state, std::vector<Feature*>& feature_vec) {
         }
 
     }
+    LOGS("feature_vec size after cleanup is %lu", feature_vec.size());
     rT1 =  boost::posix_time::microsec_clock::local_time();
 
     // Calculate the max possible measurement size

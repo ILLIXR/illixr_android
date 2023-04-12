@@ -20,6 +20,8 @@
 #include <chrono>
 
 #define ILLIXR_INTEGRATION 1
+#define ANDROID_CAM 1
+#define ZED 1
 #define LOGS(...) ((void)__android_log_print(ANDROID_LOG_INFO, "slam2", __VA_ARGS__))
 
 using namespace ILLIXR;
@@ -41,6 +43,8 @@ VioManagerOptions create_params()
   // ZED calibration tool; fx, fy, cx, cy, k1, k2, p1, p2
   // https://docs.opencv.org/2.4/doc/tutorials/calib3d/camera_calibration/camera_calibration.html
   intrinsics_0 << 349.686, 349.686, 332.778, 192.423, -0.175708, 0.0284421, 0, 0;
+#elif ANDROID_CAM
+    intrinsics_0 <<443.10074428, 436.46334261, 511.55171113, 213.82281841, 0.5242382564278253, -1.3871678384288504, 0,0;
 #else
   // EuRoC
 	intrinsics_0 << 458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05;
@@ -52,6 +56,11 @@ VioManagerOptions create_params()
             -0.99993288, -0.00420947, -0.01079452, 0.0146056,
             0.00418937, -0.99998945, 0.00188393, -0.00113692,
             0.0, 0.0, 0.0, 1.0};
+#elif ANDROID_CAM
+    std::vector<double> matrix_TCtoI_0 = {1.0, 0, 0, -0.14240307,
+                                          0, 1.0, 0, -0.045229,
+                                          0, 0, 1.0, 0.07187221,
+                                          0.0, 0.0, 0.0, 1.0};
 #else
 	std::vector<double> matrix_TCtoI_0 = {0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
             0.999557249008, 0.0149672133247, 0.025715529948, -0.064676986768,
@@ -85,6 +94,8 @@ VioManagerOptions create_params()
 #ifdef ZED
   // ZED calibration tool; fx, fy, cx, cy, k1, k2, p1, p2
   intrinsics_1 << 350.01, 350.01, 343.729, 185.405, -0.174559, 0.0277521, 0, 0;
+#elif ANDROID_CAM
+    intrinsics_1 <<959.7108500223383, 958.2043029463723, 534.9459777106056, 724.9789679167809,  0.5891985645773625, -1.4239660996953498, 4.335816777863736, -4.151712962020906;
 #else
   // EuRoC
 	intrinsics_1 << 457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.55590700e-05;
@@ -96,6 +107,11 @@ VioManagerOptions create_params()
             -0.99993668, -0.00419281, -0.01044329, -0.04732387,
             0.00421252, -0.99998938, -0.00186674, -0.00098799,
             0.0, 0.0, 0.0, 1.0};
+#elif ANDROID_CAM
+    std::vector<double> matrix_TCtoI_1 = {0.99999067, 0.00281849, 0.00327385, 0.01981983,
+                                          0.00284178, -0.99997052, -0.00713377, -0.00464974,
+                                          0.00325365, 0.00714301, -0.9999692, -0.01094682,
+                                          0.0, 0.0, 0.0, 1.0};
 #else
 	std::vector<double> matrix_TCtoI_1 = {0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
             0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
@@ -134,11 +150,13 @@ VioManagerOptions create_params()
 #ifdef ZED
   // Hand tuned
   params.init_imu_thresh = 0.5;
+#elif ANDROID_CAM
+    params.init_imu_thresh = 0.5;
 #else
   // EuRoC
 	params.init_imu_thresh = 1.5;
 #endif
-	params.fast_threshold = 15;
+	params.fast_threshold = 20;
 	params.grid_x = 5;
 	params.grid_y = 3;
 #ifdef ZED
@@ -151,25 +169,25 @@ VioManagerOptions create_params()
 	params.msckf_options.chi2_multipler = 1;
 	params.knn_ratio = .7;
 
-//	params.state_options.imu_avg = true;
-//	params.state_options.do_fej = true;
-//	params.state_options.use_rk4_integration = true;
+	params.state_options.imu_avg = true;
+	params.state_options.do_fej = true;
+	params.state_options.use_rk4_integration = true;
 
-//	params.state_options.do_calib_camera_pose = true;
-//	params.state_options.do_calib_camera_intrinsics = true;
-//	params.state_options.do_calib_camera_timeoffset = true;
+	params.state_options.do_calib_camera_pose = true;
+	params.state_options.do_calib_camera_intrinsics = true;
+	params.state_options.do_calib_camera_timeoffset = true;
 
-    params.state_options.do_calib_camera_pose = false;
-    params.state_options.do_calib_camera_intrinsics = false;
-    params.state_options.do_calib_camera_timeoffset = false;
+//    params.state_options.do_calib_camera_pose = false;
+//    params.state_options.do_calib_camera_intrinsics = false;
+//    params.state_options.do_calib_camera_timeoffset = false;
 
 	params.dt_slam_delay = 3.0;
 	//params.state_options.max_slam_features = 50;
-    params.state_options.max_slam_features = 10;
+    params.state_options.max_slam_features = 20;
 //    params.state_options.max_slam_in_update = 25;
-    params.state_options.max_slam_in_update = 5;
+    params.state_options.max_slam_in_update = 10;
     //params.state_options.max_msckf_in_update = 999;
-    params.state_options.max_msckf_in_update = 20;
+    params.state_options.max_msckf_in_update = 50;
 
 #ifdef ZED
   // Pixel noise; ZED works with defaults values but these may better account for rolling shutter
@@ -183,6 +201,15 @@ VioManagerOptions create_params()
   params.imu_noises.sigma_ab = 0.00072014; // Accelerometer random walk
   params.imu_noises.sigma_w = 0.00024213;  // Gyroscope noise
   params.imu_noises.sigma_wb = 1.9393e-05; // Gyroscope random walk
+#elif ANDROID_CAM
+//	params.msckf_options.chi2_multipler = 100000;
+//	params.msckf_options.sigma_pix = 5;
+//	params.slam_options.chi2_multipler = 100000;
+//	params.slam_options.sigma_pix = 5;
+    params.imu_noises.sigma_a = 0.0008413706241709801;  // Accelerometer noise
+    params.imu_noises.sigma_ab = 0.00018303491436613277; // Accelerometer random walk
+    params.imu_noises.sigma_w = 0.00011348681439197019;  // Gyroscope noise
+    params.imu_noises.sigma_wb = 1.5495247232934592e-06; // Gyroscope random walk
 #else
 	params.slam_options.chi2_multipler = 1;
 	params.slam_options.sigma_pix = 1;
@@ -190,8 +217,9 @@ VioManagerOptions create_params()
 
 	params.use_aruco = false;
 
-	params.state_options.feat_rep_slam = LandmarkRepresentation::from_string("ANCHORED_FULL_INVERSE_DEPTH");
-  params.state_options.feat_rep_aruco = LandmarkRepresentation::from_string("ANCHORED_FULL_INVERSE_DEPTH");
+	//params.state_options.feat_rep_slam = LandmarkRepresentation::from_string("ANCHORED_MSCKF_INVERSE_DEPTH");
+	//params.state_options.feat_rep_slam = LandmarkRepresentation::from_string("ANCHORED_FULL_INVERSE_DEPTH");
+    //params.state_options.feat_rep_aruco = LandmarkRepresentation::from_string("ANCHORED_FULL_INVERSE_DEPTH");
 
 	return params;
 }
@@ -236,13 +264,16 @@ public:
 	void feed_imu_cam(switchboard::ptr<const imu_cam_type> datum, std::size_t iteration_no) {
 		// Ensures that slam doesnt start before valid IMU readings come in
 		if (datum == NULL) {
+			LOGS("DATUM IS NULL");
 			return;
 		}
 
+
 		// Feed the IMU measurement. There should always be IMU data in each call to feed_imu_cam
 		assert((datum->img0.has_value() && datum->img1.has_value()) || (!datum->img0.has_value() && !datum->img1.has_value()));
-
 		open_vins_estimator.feed_measurement_imu(duration2double(datum->time.time_since_epoch()), datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
+		LOGS("timestamp feed imu %f",duration2double(datum->time.time_since_epoch()));
+
 		// If there is not cam data this func call, break early
 		if (!datum->img0.has_value() && !datum->img1.has_value()) {
 			return;
@@ -269,7 +300,8 @@ public:
             open_vins_estimator.feed_measurement_monocular(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, 0);
         else
             open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
-//        open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
+		LOGS("timestamp feed monocular %f", duration2double(imu_cam_buffer->time.time_since_epoch()));
+		//        open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
 		// Get the pose returned from SLAM
 		auto stop = chrono::high_resolution_clock::now();
 		auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
@@ -314,11 +346,11 @@ public:
 				datum->time,
 				from_seconds(state->_calib_dt_CAMtoIMU->value()(0)),
 				imu_params{
-					.gyro_noise = 0.00016968,
-					.acc_noise = 0.002,
-					.gyro_walk = 1.9393e-05,
-					.acc_walk = 0.003,
-					.n_gravity = Eigen::Matrix<double,3,1>(0.0, 0.0, -9.81),
+                    .gyro_noise = manager_params.imu_noises.sigma_w,
+                    .acc_noise = manager_params.imu_noises.sigma_a,
+                    .gyro_walk = manager_params.imu_noises.sigma_wb,
+                    .acc_walk = manager_params.imu_noises.sigma_ab,
+//					.n_gravity = Eigen::Matrix<double,3,1>(0,0,-9.8),
 					.imu_integration_sigma = 1.0,
 					.nominal_rate = 200.0,
 				},

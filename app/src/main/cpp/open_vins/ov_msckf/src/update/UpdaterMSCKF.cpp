@@ -27,10 +27,6 @@
 using namespace ov_core;
 using namespace ov_msckf;
 
-
-
-
-
 void UpdaterMSCKF::update(State *state, std::vector<Feature*>& feature_vec) {
 
     // Return if no features
@@ -70,6 +66,7 @@ void UpdaterMSCKF::update(State *state, std::vector<Feature*>& feature_vec) {
         }
 
     }
+    LOGM("Size after cleanup %lu", feature_vec.size());
     rT1 =  boost::posix_time::microsec_clock::local_time();
 
     // 2. Create vector of cloned *CAMERA* poses at each of our clone timesteps
@@ -203,6 +200,7 @@ void UpdaterMSCKF::update(State *state, std::vector<Feature*>& feature_vec) {
         if(chi2 > _options.chi2_multipler*chi2_check) {
             (*it2)->to_delete = true;
             it2 = feature_vec.erase(it2);
+            LOGM("Returning here %f %d %f", chi2, _options.chi2_multipler, chi2_check);
             //cout << "featid = " << feat.featid << endl;
             //cout << "chi2 = " << chi2 << " > " << _options.chi2_multipler*chi2_check << endl;
             //cout << "res = " << endl << res.transpose() << endl;
@@ -242,6 +240,7 @@ void UpdaterMSCKF::update(State *state, std::vector<Feature*>& feature_vec) {
 
     // Return if we don't have anything and resize our matrices
     if(ct_meas < 1) {
+        LOGM("RETURN CT_MESS");
         return;
     }
     assert(ct_meas<=max_meas_size);

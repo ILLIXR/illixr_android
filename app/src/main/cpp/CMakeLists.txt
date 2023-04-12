@@ -125,6 +125,11 @@ add_library(offline_imu_cam
         offline_imu_cam/plugin.cpp
         )
 
+add_library(android_imu_cam
+        SHARED
+        android_imu_cam/plugin.cpp
+        )
+
 #opencv
 add_library( cv_core-lib SHARED IMPORTED)
 set_target_properties( cv_core-lib
@@ -300,6 +305,11 @@ target_include_directories(offline_imu_cam PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
+target_include_directories(android_imu_cam PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
 #target_include_directories(offline_imu PRIVATE
 #        ${OpenCV_LIBS}
 #        ${jnigraphics-lib}
@@ -402,6 +412,19 @@ target_link_libraries(offline_imu_cam
         cv_imgcodecs-lib
         )
 
+target_link_libraries(android_imu_cam
+        EGL
+        GLESv3
+        log
+        cv_core-lib
+        cv_imgproc-lib
+        cv_highgui-lib
+        cv_imgcodecs-lib
+        camera2ndk
+        mediandk
+        android
+        )
+
 #target_link_libraries(offline_cam
 #        EGL
 #        GLESv3
@@ -438,6 +461,7 @@ target_link_libraries(ov_core_lib
         cv_core-lib
         cv_imgproc-lib
         cv_tracking-lib
+        cv_imgcodecs-lib
         cv_video-lib
         cv_calib3d-lib
         cv_highgui-lib

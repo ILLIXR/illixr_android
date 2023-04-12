@@ -25,12 +25,19 @@
 #ifdef ILLIXR_INTEGRATION
 #include "common/cpu_timer.hpp"
 #endif /// ILLIXR_INTEGRATION
+#include <opencv2/opencv.hpp>
+#include <opencv2/core/mat.hpp>
+#include <android/log.h>
+
+#define LOGT(...) ((void)__android_log_print(ANDROID_LOG_INFO, "trackklt", __VA_ARGS__))
 
 using namespace ov_core;
 
 
 void TrackKLT::feed_monocular(double timestamp, cv::Mat &img, size_t cam_id) {
 
+    cv::imwrite(
+            "/sdcard/Android/data/com.example.native_activity/trackklt.png", img);
     // Start timing
     rT1 =  boost::posix_time::microsec_clock::local_time();
 
@@ -84,7 +91,7 @@ void TrackKLT::feed_monocular(double timestamp, cv::Mat &img, size_t cam_id) {
         img_pyramid_last[cam_id] = imgpyr;
         pts_last[cam_id].clear();
         ids_last[cam_id].clear();
-        printf(RED "[KLT-EXTRACTOR]: Failed to get enough points to do RANSAC, resetting.....\n" RESET);
+        LOGT(RED "[KLT-EXTRACTOR]: Failed to get enough points to do RANSAC, resetting.....\n" RESET);
         return;
     }
 
@@ -128,7 +135,7 @@ void TrackKLT::feed_monocular(double timestamp, cv::Mat &img, size_t cam_id) {
     //printf("[TIME-KLT]: %.4f seconds for pyramid\n",(rT2-rT1).total_microseconds() * 1e-6);
     //printf("[TIME-KLT]: %.4f seconds for detection\n",(rT3-rT2).total_microseconds() * 1e-6);
     //printf("[TIME-KLT]: %.4f seconds for temporal klt\n",(rT4-rT3).total_microseconds() * 1e-6);
-    //printf("[TIME-KLT]: %.4f seconds for feature DB update (%d features)\n",(rT5-rT4).total_microseconds() * 1e-6, (int)good_left.size());
+    LOGT("[TIME-KLT]: %.4f seconds for feature DB update (%d features)\n",(rT5-rT4).total_microseconds() * 1e-6, (int)good_left.size());
     //printf("[TIME-KLT]: %.4f seconds for total\n",(rT5-rT1).total_microseconds() * 1e-6);
 
 
@@ -393,7 +400,6 @@ void TrackKLT::perform_detection_monocular(const std::vector<cv::Mat> &img0pyr, 
 
     // First compute how many more features we need to extract from this image
     int num_featsneeded = num_features - (int)pts0.size();
-
     // If we don't need any features, just return
     if(num_featsneeded < 1)
         return;
@@ -425,6 +431,7 @@ void TrackKLT::perform_detection_monocular(const std::vector<cv::Mat> &img0pyr, 
         size_t temp = ++currid;
         ids0.push_back(temp);
     }
+    LOGT("size of ids0 %lu points0 %lu",ids0.size(), pts0.size());
 
 }
 
@@ -473,7 +480,6 @@ void TrackKLT::perform_detection_stereo(const std::vector<cv::Mat> &img0pyr, con
 
     // First compute how many more features we need to extract from this image
     int num_featsneeded_0 = num_features - (int)pts0.size();
-
     // LEFT: if we need features we should extract them in the current frame
     // LEFT: we will also try to track them from this frame over to the right frame
     // LEFT: in the case that we have two features that are the same, then we should merge them
