@@ -24,7 +24,10 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
             std::vector<char*> argv;
             for (const auto& arg : arguments)
                 argv.push_back((char*)arg.data());
-            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
+            //EuRoC
+            //setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
+            //Android
+            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/android_new", true);
             setenv("ILLIXR_DEMO_DATA", "/sdcard/Android/data/com.example.native_activity/demo_data", true);
             setenv("ILLIXR_OFFLOAD_ENABLE", "False", true);
             setenv("ILLIXR_ALIGNMENT_ENABLE", "False", true);

@@ -21,7 +21,7 @@
 
 #define ILLIXR_INTEGRATION 1
 #define ANDROID_CAM 1
-#define ZED 1
+//#define ZED 1
 #define LOGS(...) ((void)__android_log_print(ANDROID_LOG_INFO, "slam2", __VA_ARGS__))
 
 using namespace ILLIXR;
@@ -44,7 +44,7 @@ VioManagerOptions create_params()
   // https://docs.opencv.org/2.4/doc/tutorials/calib3d/camera_calibration/camera_calibration.html
   intrinsics_0 << 349.686, 349.686, 332.778, 192.423, -0.175708, 0.0284421, 0, 0;
 #elif ANDROID_CAM
-    intrinsics_0 <<443.10074428, 436.46334261, 511.55171113, 213.82281841, 0.5242382564278253, -1.3871678384288504, 0,0;
+    intrinsics_0 <<483.2087255, 484.10304, 372.136219, 242.353948, 0.040666, -0.053787, -2.796e-05,0.0079762;
 #else
   // EuRoC
 	intrinsics_0 << 458.654, 457.296, 367.215, 248.375, -0.28340811, 0.07395907, 0.00019359, 1.76187114e-05;
@@ -57,9 +57,9 @@ VioManagerOptions create_params()
             0.00418937, -0.99998945, 0.00188393, -0.00113692,
             0.0, 0.0, 0.0, 1.0};
 #elif ANDROID_CAM
-    std::vector<double> matrix_TCtoI_0 = {1.0, 0, 0, -0.14240307,
-                                          0, 1.0, 0, -0.045229,
-                                          0, 0, 1.0, 0.07187221,
+    std::vector<double> matrix_TCtoI_0 = {0, -1, 0, 0,
+                                          -1, 0, 0, 0,
+                                          0, 0, -1, 0,
                                           0.0, 0.0, 0.0, 1.0};
 #else
 	std::vector<double> matrix_TCtoI_0 = {0.0148655429818, -0.999880929698, 0.00414029679422, -0.0216401454975,
@@ -151,7 +151,7 @@ VioManagerOptions create_params()
   // Hand tuned
   params.init_imu_thresh = 0.5;
 #elif ANDROID_CAM
-    params.init_imu_thresh = 0.5;
+    params.init_imu_thresh = 0.0005;
 #else
   // EuRoC
 	params.init_imu_thresh = 1.5;
@@ -162,9 +162,10 @@ VioManagerOptions create_params()
 #ifdef ZED
   // Hand tuned
   params.num_pts = 200;
+#elif ANDROID_CAM
+    params.num_pts = 100;
 #else
   //params.num_pts = 150;
-  params.num_pts = 50;
 #endif
 	params.msckf_options.chi2_multipler = 1;
 	params.knn_ratio = .7;
@@ -173,13 +174,13 @@ VioManagerOptions create_params()
 	params.state_options.do_fej = true;
 	params.state_options.use_rk4_integration = true;
 
-	params.state_options.do_calib_camera_pose = true;
-	params.state_options.do_calib_camera_intrinsics = true;
-	params.state_options.do_calib_camera_timeoffset = true;
+//	params.state_options.do_calib_camera_pose = true;
+//	params.state_options.do_calib_camera_intrinsics = true;
+//	params.state_options.do_calib_camera_timeoffset = true;
 
-//    params.state_options.do_calib_camera_pose = false;
-//    params.state_options.do_calib_camera_intrinsics = false;
-//    params.state_options.do_calib_camera_timeoffset = false;
+    params.state_options.do_calib_camera_pose = false;
+    params.state_options.do_calib_camera_intrinsics = false;
+    params.state_options.do_calib_camera_timeoffset = false;
 
 	params.dt_slam_delay = 3.0;
 	//params.state_options.max_slam_features = 50;
@@ -187,7 +188,7 @@ VioManagerOptions create_params()
 //    params.state_options.max_slam_in_update = 25;
     params.state_options.max_slam_in_update = 10;
     //params.state_options.max_msckf_in_update = 999;
-    params.state_options.max_msckf_in_update = 50;
+    params.state_options.max_msckf_in_update = 100;
 
 #ifdef ZED
   // Pixel noise; ZED works with defaults values but these may better account for rolling shutter
@@ -206,10 +207,10 @@ VioManagerOptions create_params()
 //	params.msckf_options.sigma_pix = 5;
 //	params.slam_options.chi2_multipler = 100000;
 //	params.slam_options.sigma_pix = 5;
-    params.imu_noises.sigma_a = 0.0008413706241709801;  // Accelerometer noise
-    params.imu_noises.sigma_ab = 0.00018303491436613277; // Accelerometer random walk
-    params.imu_noises.sigma_w = 0.00011348681439197019;  // Gyroscope noise
-    params.imu_noises.sigma_wb = 1.5495247232934592e-06; // Gyroscope random walk
+    params.imu_noises.sigma_a = 16.0e-2;//0.0008413706241709801;  // Accelerometer noise
+    params.imu_noises.sigma_ab = 5.5e-4;//0.00018303491436613277; // Accelerometer random walk
+    params.imu_noises.sigma_w = 24.0e-3;//0.00011348681439197019;  // Gyroscope noise
+    params.imu_noises.sigma_wb = 2.0e-4;//1.5495247232934592e-06; // Gyroscope random walk
 #else
 	params.slam_options.chi2_multipler = 1;
 	params.slam_options.sigma_pix = 1;
@@ -350,7 +351,7 @@ public:
                     .acc_noise = manager_params.imu_noises.sigma_a,
                     .gyro_walk = manager_params.imu_noises.sigma_wb,
                     .acc_walk = manager_params.imu_noises.sigma_ab,
-//					.n_gravity = Eigen::Matrix<double,3,1>(0,0,-9.8),
+					.n_gravity = Eigen::Matrix<double,3,1>(0,0,-9.81),
 					.imu_integration_sigma = 1.0,
 					.nominal_rate = 200.0,
 				},

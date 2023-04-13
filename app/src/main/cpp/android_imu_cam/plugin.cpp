@@ -20,6 +20,7 @@
 #include <android/sensor.h>
 #include <Eigen/Core>
 #include <fstream>
+#include <filesystem>
 
 #define LOGA(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android_cam", __VA_ARGS__))
 #define POLL_RATE_USEC 5000
@@ -43,6 +44,7 @@ static bool img_ready = false;
 static std::mutex mtx;
 //static double current_ts = 0;
 std::ofstream myfile;
+std::ofstream camfile;
 bool once = false;
 int counter = 0;
 static std::deque<std::pair<Eigen::Vector3f, Eigen::Vector3f>> avg_filter;
@@ -56,7 +58,10 @@ public:
             , _m_imu_cam{sb->get_writer<imu_cam_type>("imu_cam")}{
         LOGA("IMU CAM CONSTRUCTOR");
         initCam();
+        //std::filesystem::create_directories("/sdcard/Android/data/com.example.native_activity/cam0/");
+//        remove("/sdcard/Android/data/com.example.native_activity/cam0/*.png");
         myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
+        camfile.open("/sdcard/Android/data/com.example.native_activity/data.csv");
         struct android_imu_struct *imu = new android_imu_struct();
         std::thread (android_run_thread, imu).detach();
     }
@@ -73,6 +78,8 @@ public:
         AImageReader_delete(imageReader);
         imageReader = nullptr;
         ACaptureRequest_free(request);
+        myfile.close();
+        camfile.close();
     }
 
     static std::pair<Eigen::Vector3f, Eigen::Vector3f> moving_average() {
@@ -100,26 +107,27 @@ public:
         while (ASensorEventQueue_getEvents(d->event_queue, &event, 1) > 0) {
             _m_lock.lock();
             switch (event.type) {
-                case ASENSOR_TYPE_GRAVITY: {
-                    grav[0] = -event.acceleration.z;
-                    grav[1] = -event.acceleration.x;
-                    grav[2] = event.acceleration.y;
-                    LOGA("Gravity sensor values %f %f %f", grav[0], grav[1], grav[2]);
-                    break;
-                }
+//                case ASENSOR_TYPE_GRAVITY: {
+//                    grav[0] = -event.acceleration.z;
+//                    grav[1] = -event.acceleration.x;
+//                    grav[2] = event.acceleration.y;
+//                    LOGA("Gravity sensor values %f %f %f", grav[0], grav[1], grav[2]);
+//                    break;
+//                }
 
                 case ASENSOR_TYPE_ACCELEROMETER: {
 //                    accel[0] = event.acceleration.y;
 //                    accel[1] = -event.acceleration.x;
 //                    accel[2] = event.acceleration.z;
 
-                    accel[0] = -event.acceleration.z;//  - grav[0];;
-                    accel[1] = -event.acceleration.x;// - grav[1];
-                    accel[2] = event.acceleration.y;// - grav[2] - 9.8;
+//matches zed
+//                    accel[0] = -event.acceleration.z;//  - grav[0];;
+//                    accel[1] = -event.acceleration.x;// - grav[1];
+//                    accel[2] = event.acceleration.y;// - grav[2] - 9.8;
 
-//                    accel[0] = event.acceleration.z;
-//                    accel[1] = -event.acceleration.x;
-//                    accel[2] = event.acceleration.y;
+                    accel[0] = event.acceleration.x;
+                    accel[1] = event.acceleration.y;
+                    accel[2] = event.acceleration.z;
 
 //                    accel[0] = 1;
 //                    accel[1] = 0;
@@ -131,14 +139,14 @@ public:
 //                    gyro[1] = event.data[0];
 //                    gyro[2] = event.data[2];
 
-                    gyro[0] = -event.data[2];
-                    gyro[1] = -event.data[0];
-                    gyro[2] = event.data[1];
-
-//                    gyro[0] = event.data[2];
+//matches zed
+//                    gyro[0] = -event.data[2];
 //                    gyro[1] = -event.data[0];
 //                    gyro[2] = event.data[1];
-                    ;
+
+                    gyro[0] = event.data[0];
+                    gyro[1] = event.data[1];
+                    gyro[2] = event.data[2];
 //                    gyro[0] = 0;
 //                    gyro[1] = 0;
 //                    gyro[2] = 0;
@@ -151,7 +159,7 @@ public:
 //                        avg_filter.pop_front();
 //                    }
                     //uint64_t time_s = std::chrono::system_clock::now().time_since_epoch().count();
-                    LOGA("IMU Values : accel %f %f %f %f %f %f", accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
+                    //LOGA("IMU Values : accel %f %f %f %f %f %f", accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
 
                 }
                 default: ;
@@ -462,7 +470,7 @@ public:
         Eigen::Vector3f cur_gyro = gyro;
         Eigen::Vector3f cur_accel = accel;
         counter++;
-        myfile << std::to_string((uint64_t)ts) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
+        myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
                   std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
         _m_lock.unlock();
 
@@ -472,10 +480,11 @@ public:
             mtx.lock();
             ir_left = std::make_optional<cv::Mat>(last_image);
             ir_right = std::make_optional<cv::Mat>(last_image);
-            uint64_t name = (uint64_t)ts;
-            bool check = cv::imwrite(
-                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
-            LOGA("ANDROID CAM CHECK %d", check);
+            uint64_t name = (uint64_t)ts*1000;
+//            bool check = cv::imwrite(
+//                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
+//            LOGA("ANDROID CAM CHECK %d", check);
+            camfile << std::to_string((uint64_t)ts*1000) << "," << std::to_string(name) + ".png" <<std::endl;
             mtx.unlock();
         }
 
