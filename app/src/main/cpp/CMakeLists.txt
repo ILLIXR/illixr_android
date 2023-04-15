@@ -36,7 +36,10 @@ include_directories(timewarp_gl)
 include_directories(GLFW/utils)
 include_directories(gldemo)
 include_directories(open_vins/ov_core)
-#include_directories(open_vins/ov_msckf)
+include_directories(open_vins/ov_core/src/utils)
+include_directories(open_vins/ov_msckf)
+include_directories(open_vins/ov_init)
+include_directories(open_vins/ov_msckf/src/utils)
 include_directories(rk4_integrator)
 include_directories(android_cam)
 include_directories(android_imu)
@@ -216,7 +219,9 @@ set_target_properties( boost_atomic-lib
 add_library(ov_core_lib
         SHARED
         open_vins/ov_core/src/dummy.cpp
-        open_vins/ov_core/src/init/InertialInitializer.cpp
+        open_vins/ov_init/src/init/InertialInitializer.cpp
+        open_vins/ov_init/src/static/StaticInitializer.cpp
+#        open_vins/ov_init/src/dynamic/DynamicInitializer.cpp
         open_vins/ov_core/src/sim/BsplineSE3.cpp
         open_vins/ov_core/src/track/TrackBase.cpp
         #open_vins/ov_core/src/track/TrackAruco.cpp
@@ -226,6 +231,8 @@ add_library(ov_core_lib
         open_vins/ov_core/src/types/Landmark.cpp
         open_vins/ov_core/src/feat/Feature.cpp
         open_vins/ov_core/src/feat/FeatureInitializer.cpp
+        open_vins/ov_core/src/feat/FeatureDatabase.cpp
+        open_vins/ov_core/src/utils/print.cpp
         )
 
 add_library(ov_msckf_lib
@@ -235,9 +242,11 @@ add_library(ov_msckf_lib
         open_vins/ov_msckf/src/state/StateHelper.cpp
         open_vins/ov_msckf/src/state/Propagator.cpp
         open_vins/ov_msckf/src/core/VioManager.cpp
+        open_vins/ov_msckf/src/core/VioManagerHelper.cpp
         open_vins/ov_msckf/src/update/UpdaterHelper.cpp
         open_vins/ov_msckf/src/update/UpdaterMSCKF.cpp
         open_vins/ov_msckf/src/update/UpdaterSLAM.cpp
+        open_vins/ov_msckf/src/update/UpdaterZeroVelocity.cpp
         )
 
 add_library(slam
