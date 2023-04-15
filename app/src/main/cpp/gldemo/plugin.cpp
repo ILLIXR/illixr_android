@@ -111,7 +111,7 @@ public:
         wait_vsync();
 
         cl->get_lock();
-        const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
+        [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
         assert(gl_result && "eglMakeCurrent should not fail");
 
         glUseProgram(demoShaderProgram);
