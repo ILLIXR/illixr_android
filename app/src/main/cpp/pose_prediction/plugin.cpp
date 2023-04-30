@@ -25,7 +25,6 @@ public:
             , _m_ground_truth_offset{sb->get_reader<switchboard::event_wrapper<Eigen::Vector3f>>("ground_truth_offset")}
             , _m_vsync_estimate{sb->get_reader<switchboard::event_wrapper<time_point>>("vsync_estimate")} {
         myfile.open ("/sdcard/Android/data/com.example.native_activity/pose_prediction.tum");
-
     }
 
     // No parameter get_fast_pose() should just predict to the next vsync
@@ -93,22 +92,22 @@ public:
             };
         }
 
-
-        if (first_time) {
-            pose_type first_pose = correct_pose(*slow_pose);
-            std::unique_lock lock{offset_mutex};
-            // check again, now that we have mutual exclusion
-            if (first_time) {
-                first_time = false;
-                offset     = first_pose.orientation.inverse();
-            }
-        }
-
-        return fast_pose_type{
-                correct_pose(*slow_pose),
-                _m_clock->now(),
-                future_timestamp,
-        };
+        //Return SLOW POSE
+//        if (first_time) {
+//            pose_type first_pose = correct_pose(*slow_pose);
+//            std::unique_lock lock{offset_mutex};
+//            // check again, now that we have mutual exclusion
+//            if (first_time) {
+//                first_time = false;
+//                offset     = first_pose.orientation.inverse();
+//            }
+//        }
+//
+//        return fast_pose_type{
+//                correct_pose(*slow_pose),
+//                _m_clock->now(),
+//                future_timestamp,
+//        };
 //        // slow_pose and imu_raw, do pose prediction
 
         double  dt = duration2double(future_timestamp - imu_raw->imu_time);

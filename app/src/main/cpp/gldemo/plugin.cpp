@@ -22,6 +22,9 @@
 #include <future>
 #include <iostream>
 #include <thread>
+#include <android/log.h>
+
+#define LOGG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "gldemo", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -107,6 +110,7 @@ public:
     }
 
     void _p_one_iteration() override {
+        auto start = std::chrono::high_resolution_clock::now();
         // Essentially, XRWaitFrame.
         wait_vsync();
 
@@ -212,6 +216,9 @@ public:
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
         assert(gl_result_1 && "glXMakeCurrent should not fail");
         cl->release_lock();
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        LOGG("duration: %f", duration2double(duration));
 #ifndef NDEBUG
         if (log_count > LOG_PERIOD) {
             log_count = 0;

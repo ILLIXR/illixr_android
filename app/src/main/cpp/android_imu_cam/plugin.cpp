@@ -105,6 +105,7 @@ public:
 
         ASensorEvent event;
         while (ASensorEventQueue_getEvents(d->event_queue, &event, 1) > 0) {
+            auto start = std::chrono::high_resolution_clock::now();
             _m_lock.lock();
             switch (event.type) {
 //                case ASENSOR_TYPE_GRAVITY: {
@@ -164,6 +165,9 @@ public:
                 }
                 default: ;
             }
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+            LOGA("duration: %f", duration2double(duration));
             _m_lock.unlock();
 
         }
@@ -186,7 +190,7 @@ public:
 
         d->accelerometer = ASensorManager_getDefaultSensor(d->sensor_manager, ASENSOR_TYPE_ACCELEROMETER);
         d->gyroscope = ASensorManager_getDefaultSensor(d->sensor_manager, ASENSOR_TYPE_GYROSCOPE);
-        d->gravity = ASensorManager_getDefaultSensor(d->sensor_manager, ASENSOR_TYPE_GRAVITY);
+//        d->gravity = ASensorManager_getDefaultSensor(d->sensor_manager, ASENSOR_TYPE_GRAVITY);
 
 
         ALooper *looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
@@ -203,10 +207,10 @@ public:
             ASensorEventQueue_enableSensor(d->event_queue, d->gyroscope);
             ASensorEventQueue_setEventRate(d->event_queue, d->gyroscope, poll_rate_usec);
         }
-        if (d->gravity != NULL) {
-            ASensorEventQueue_enableSensor(d->event_queue, d->gravity);
-            ASensorEventQueue_setEventRate(d->event_queue, d->gravity, poll_rate_usec);
-        }
+//        if (d->gravity != NULL) {
+//            ASensorEventQueue_enableSensor(d->event_queue, d->gravity);
+//            ASensorEventQueue_setEventRate(d->event_queue, d->gravity, poll_rate_usec);
+//        }
         int ret = 0;
         while (ret != ALOOPER_POLL_ERROR) {
             ret = ALooper_pollAll(0, NULL, NULL, NULL);
@@ -227,6 +231,8 @@ public:
             LOGA("IMage is null!");
             return;
         }
+        auto start = std::chrono::high_resolution_clock::now();
+
 
         // Try to process data without blocking the callback
         //std::thread processor([=](){
@@ -250,6 +256,9 @@ public:
             AImage_delete(image);
 //        });
 //        processor.detach();
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        LOGA("duration: %f", duration2double(duration));
     }
 
 
@@ -459,6 +468,7 @@ public:
         if (!_m_clock->is_started()) {
             return;
         }
+        auto start = std::chrono::high_resolution_clock::now();
 
         double ts = std::chrono::system_clock::now().time_since_epoch().count();//current_ts;
         ullong cam_time = static_cast<ullong>(ts * 1000);
@@ -495,6 +505,9 @@ public:
                             imu_cam_type{time_point{cam_time_point},
                                          cur_gyro.cast<float>(),
                                          cur_accel.cast<float>(), ir_left, ir_right}));
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        LOGA("duration: %f", duration2double(duration));
     }
 
 private:

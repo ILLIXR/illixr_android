@@ -4,9 +4,12 @@
 #include "common/switchboard.hpp"
 #include "common/threadloop.hpp"
 #include "data_loading.hpp"
+#include <android/log.h>
 
 #include <cassert>
 #include <ratio>
+
+#define LOGO(...) ((void)__android_log_print(ANDROID_LOG_INFO, "offline_imu_cam", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -51,6 +54,7 @@ protected:
     }
 
     virtual void _p_one_iteration() override {
+        auto start = std::chrono::high_resolution_clock::now();
         RAC_ERRNO_MSG("offline_imu_cam at start of _p_one_iteration");
         assert(_m_sensor_data_it != _m_sensor_data.end());
 #ifndef NDEBUG
@@ -90,6 +94,9 @@ protected:
                          (sensor_datum.imu0.value().linear_a).cast<float>(), cam0, cam1}));
 
         RAC_ERRNO_MSG("offline_imu_cam at bottom of iteration");
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        LOGO("duration: %f", duration2double(duration));
     }
 
 private:

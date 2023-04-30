@@ -15,7 +15,7 @@
 
 using namespace ILLIXR;
 
-constexpr duration IMU_SAMPLE_LIFETIME{std::chrono::seconds{5}};
+constexpr duration IMU_SAMPLE_LIFETIME{std::chrono::seconds{2}};
 
 #define LOGR(...) ((void)__android_log_print(ANDROID_LOG_INFO, "rk4", __VA_ARGS__))
 
@@ -37,8 +37,11 @@ public:
         _imu_vec.emplace_back(datum->time, datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
 
         clean_imu_vec(datum->time);
+        auto start = std::chrono::high_resolution_clock::now();
         propagate_imu_values(datum->time);
-
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        LOGR("duration: %f", duration2double(duration));
         RAC_ERRNO_MSG("rk4_integrator");
     }
 

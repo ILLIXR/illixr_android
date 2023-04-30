@@ -21,7 +21,7 @@
       android:hasCode="false"
       tools:ignore="HardcodedDebugMode">
 
-
+    <profileable android:shell="true"/>
     <!-- Our activity is the built-in NativeActivity framework class.
          This will take care of integrating with our NDK code. -->
     <activity android:name="android.app.NativeActivity"

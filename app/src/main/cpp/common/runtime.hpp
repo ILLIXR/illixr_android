@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <vector>
+#define ILLIXR_MONADO 1
 
 namespace ILLIXR {
 class plugin;

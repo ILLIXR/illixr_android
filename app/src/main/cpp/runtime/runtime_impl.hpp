@@ -15,6 +15,7 @@
 #include <cerrno>
 #include <chrono>
 #include <thread>
+#define ILLIXR_MONADO 1
 
 using namespace ILLIXR;
 

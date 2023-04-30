@@ -6,7 +6,7 @@
 #include <thread>
 #include <vector>
 #include "runtime/main.h"
-#define  ILLIXR_MONADO 0
+//#define  ILLIXR_MONADO 1
 using namespace ILLIXR;
 
 #define LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android-main", __VA_ARGS__))
@@ -25,9 +25,9 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
             for (const auto& arg : arguments)
                 argv.push_back((char*)arg.data());
             //EuRoC
-            //setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
+            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
             //Android
-            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/android_new", true);
+//            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/android_new", true);
             setenv("ILLIXR_DEMO_DATA", "/sdcard/Android/data/com.example.native_activity/demo_data", true);
             setenv("ILLIXR_OFFLOAD_ENABLE", "False", true);
             setenv("ILLIXR_ALIGNMENT_ENABLE", "False", true);

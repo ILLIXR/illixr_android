@@ -21,7 +21,7 @@
 
 #define EGL_EGLEXT_PROTOTYPES 1
 #define GL_GLEXT_PROTOTYPES
-//#define ILLIXR_MONADO 0
+#define ILLIXR_MONADO 1
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -915,6 +915,7 @@ public:
 
     virtual void _p_one_iteration() override {
         //cl->wait_monado();
+        auto start = std::chrono::high_resolution_clock::now();
 
         #ifdef ILLIXR_MONADO
             sem_wait(&cl->sem_monado);
@@ -1218,6 +1219,9 @@ public:
         #else
                 cl->release_lock();
         #endif
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        LOGT("duration: %f", duration2double(duration));
         //LOGT("Lock released ..");
         timewarp_gpu_logger.log(record{timewarp_gpu_record,
                                        {

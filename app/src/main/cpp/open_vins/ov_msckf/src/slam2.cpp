@@ -268,6 +268,7 @@ public:
 			LOGS("DATUM IS NULL");
 			return;
 		}
+		auto start2 = std::chrono::high_resolution_clock::now();
 
 
 		// Feed the IMU measurement. There should always be IMU data in each call to feed_imu_cam
@@ -277,6 +278,9 @@ public:
 
 		// If there is not cam data this func call, break early
 		if (!datum->img0.has_value() && !datum->img1.has_value()) {
+			auto stop2 = std::chrono::high_resolution_clock::now();
+			auto duration2 =  std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
+			LOGS("duration: %f", duration2double(duration2));
 			return;
 		} else if (imu_cam_buffer == NULL) {
 			imu_cam_buffer = datum;
@@ -371,6 +375,9 @@ public:
 		// const_cast<imu_cam_type*>(imu_cam_buffer)->img0.reset();
 		// const_cast<imu_cam_type*>(imu_cam_buffer)->img1.reset();
 		imu_cam_buffer = datum;
+		auto stop2 = std::chrono::high_resolution_clock::now();
+		auto duration2 =  std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
+		LOGS("duration: %f", duration2double(duration2));
 	}
 
 	virtual ~slam2() override {}
