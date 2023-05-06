@@ -2,6 +2,7 @@
 // can be found here: https://github.com/rpng/open_vins/blob/master/ov_msckf/src/state/Propagator.cpp
 
 #include "common/plugin.hpp"
+#include "common/log_service.hpp"
 
 #include "common/data_format.hpp"
 #include "common/plugin.hpp"
@@ -25,6 +26,7 @@ public:
     rk4_integrator(std::string name_, phonebook* pb_)
             : plugin{name_, pb_}
             , sb{pb->lookup_impl<switchboard>()}
+            , sl{pb->lookup_impl<log_service>()}
             , _m_imu_integrator_input{sb->get_reader<imu_integrator_input>("imu_integrator_input")}
             , _m_imu_raw{sb->get_writer<imu_raw_type>("imu_raw")} {
         LOGR("RK4 INTEGRATOR");
@@ -42,11 +44,13 @@ public:
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         LOGR("duration: %f", duration2double(duration));
+        sl->write_duration("rk4", duration2double(duration));
         RAC_ERRNO_MSG("rk4_integrator");
     }
 
 private:
     const std::shared_ptr<switchboard> sb;
+    const std::shared_ptr<log_service> sl;
 
     // IMU Data, Sequence Flag, and State Vars Needed
     switchboard::reader<imu_integrator_input> _m_imu_integrator_input;

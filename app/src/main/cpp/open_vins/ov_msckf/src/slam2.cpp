@@ -15,6 +15,7 @@
 #include "common/data_format.hpp"
 #include "common/phonebook.hpp"
 #include "common/relative_clock.hpp"
+#include "common/log_service.hpp"
 #include <android/log.h>
 #include <fstream>
 #include <chrono>
@@ -183,11 +184,11 @@ VioManagerOptions create_params()
     params.state_options.do_calib_camera_timeoffset = false;
 
 	params.dt_slam_delay = 3.0;
-	//params.state_options.max_slam_features = 50;
+//	params.state_options.max_slam_features = 50;
     params.state_options.max_slam_features = 20;
 //    params.state_options.max_slam_in_update = 25;
     params.state_options.max_slam_in_update = 10;
-    //params.state_options.max_msckf_in_update = 999;
+//    params.state_options.max_msckf_in_update = 999;
     params.state_options.max_msckf_in_update = 100;
 
 #ifdef ZED
@@ -235,6 +236,7 @@ public:
 	slam2(std::string name_, phonebook* pb_)
 		: plugin{name_, pb_}
 		, sb{pb->lookup_impl<switchboard>()}
+		, sl{pb->lookup_impl<log_service>()}
 		, _m_pose{sb->get_writer<pose_type>("slow_pose")}
 		, _m_imu_integrator_input{sb->get_writer<imu_integrator_input>("imu_integrator_input")}
 		, open_vins_estimator{manager_params}
@@ -281,7 +283,8 @@ public:
 			auto stop2 = std::chrono::high_resolution_clock::now();
 			auto duration2 =  std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
 			LOGS("duration: %f", duration2double(duration2));
-			return;
+            sl->write_duration("open_vins", duration2double(duration2));
+            return;
 		} else if (imu_cam_buffer == NULL) {
 			imu_cam_buffer = datum;
 			return;
@@ -378,12 +381,14 @@ public:
 		auto stop2 = std::chrono::high_resolution_clock::now();
 		auto duration2 =  std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
 		LOGS("duration: %f", duration2double(duration2));
+		sl->write_duration("open_vins", duration2double(duration2));
 	}
 
 	virtual ~slam2() override {}
 
 private:
 	const std::shared_ptr<switchboard> sb;
+	const std::shared_ptr<log_service> sl;
 	switchboard::writer<pose_type> _m_pose;
     switchboard::writer<imu_integrator_input> _m_imu_integrator_input;
 	State *state;

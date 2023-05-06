@@ -41,6 +41,7 @@ include_directories(rk4_integrator)
 include_directories(android_cam)
 include_directories(android_imu)
 include_directories(pose_prediction)
+include_directories(log_service)
 #include_directories(pose_lookup)
 #include_directories(ILLIXR_DATA)
 #set(CMAKE_C_COMPILER "clang-10")
@@ -77,6 +78,11 @@ add_library(gldemo
 add_library(common_lock
         SHARED
         common_lock/plugin.cpp
+        )
+
+add_library(log_service
+        SHARED
+        log_service/plugin.cpp
         )
 
 add_library(timewarp_gl
@@ -270,6 +276,11 @@ target_include_directories(common_lock PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
+target_include_directories(log_service PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
 target_include_directories(timewarp_gl PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
@@ -366,6 +377,12 @@ target_link_libraries(gldemo
         )
 
 target_link_libraries(common_lock
+        EGL
+        GLESv3
+        log
+        )
+
+target_link_libraries(log_service
         EGL
         GLESv3
         log

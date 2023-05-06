@@ -15,6 +15,7 @@
 #include "common/switchboard.hpp"
 #include "common/threadloop.hpp"
 #include "common/common_lock.hpp"
+#include "common/log_service.hpp"
 #include "shaders/basic_shader.hpp"
 #include "shaders/timewarp_shader.hpp"
 #include "utils/hmd.hpp"
@@ -79,6 +80,7 @@ public:
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
         , cl{pb->lookup_impl<common_lock>()}
+        , sl{pb->lookup_impl<log_service>()}
 //        , xwin{pb->lookup_impl<xlib_gl_extended_window>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , _m_eyebuffer{sb->get_reader<ILLIXR::rendered_frame>("eyebuffer")}
@@ -289,6 +291,7 @@ private:
     const std::shared_ptr<switchboard>             sb;
     const std::shared_ptr<pose_prediction>         pp;
     const std::shared_ptr<common_lock>             cl;
+    const std::shared_ptr<log_service>             sl;
 //    const std::shared_ptr<xlib_gl_extended_window> xwin;
     const std::shared_ptr<const RelativeClock>     _m_clock;
         // OpenGL objects
@@ -1222,6 +1225,7 @@ public:
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         LOGT("duration: %f", duration2double(duration));
+        sl->write_duration("timewarp", duration2double(duration));
         //LOGT("Lock released ..");
         timewarp_gpu_logger.log(record{timewarp_gpu_record,
                                        {

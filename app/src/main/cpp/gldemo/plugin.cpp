@@ -13,6 +13,7 @@
 #include "shaders/demo_shader.hpp"
 #include "common/common_lock.hpp"
 #include "common/math_util.hpp"
+#include "common/log_service.hpp"
 
 #include <EGL/egl.h>
 
@@ -42,6 +43,7 @@ public:
         : threadloop{name_, pb_}
         , xwin{pb->lookup_impl<xlib_gl_extended_window>()}
         , sb{pb->lookup_impl<switchboard>()}
+        , sl{pb->lookup_impl<log_service>()}
         , pp{pb->lookup_impl<pose_prediction>()}
         , cl{pb->lookup_impl<common_lock>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
@@ -219,6 +221,7 @@ public:
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         LOGG("duration: %f", duration2double(duration));
+        sl->write_duration("gldemo", duration2double(duration));
 #ifndef NDEBUG
         if (log_count > LOG_PERIOD) {
             log_count = 0;
@@ -236,6 +239,7 @@ public:
 private:
     const std::shared_ptr<const xlib_gl_extended_window>              xwin;
     const std::shared_ptr<switchboard>                                sb;
+    const std::shared_ptr<log_service>                                sl;
     const std::shared_ptr<pose_prediction>                            pp;
     const std::shared_ptr<common_lock>                                cl;
     const std::shared_ptr<const RelativeClock>                        _m_clock;

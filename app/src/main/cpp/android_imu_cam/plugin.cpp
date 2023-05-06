@@ -7,6 +7,7 @@
 #include "common/phonebook.hpp"
 #include "common/plugin.hpp"
 #include "common/threadloop.hpp"
+#include "common/log_service.hpp"
 #include <chrono>
 #include <thread>
 #include <mutex>
@@ -45,6 +46,8 @@ static std::mutex mtx;
 //static double current_ts = 0;
 std::ofstream myfile;
 std::ofstream camfile;
+static double cam_proc_time;
+static double imu_time;
 bool once = false;
 int counter = 0;
 static std::deque<std::pair<Eigen::Vector3f, Eigen::Vector3f>> avg_filter;
@@ -54,9 +57,12 @@ public:
     android_imu_cam(std::string name_, phonebook* pb_)
             : threadloop{name_, pb_}
             , sb{pb->lookup_impl<switchboard>()}
+            , sl{pb->lookup_impl<log_service>()}
             , _m_clock{pb->lookup_impl<RelativeClock>()}
             , _m_imu_cam{sb->get_writer<imu_cam_type>("imu_cam")}{
         LOGA("IMU CAM CONSTRUCTOR");
+        cam_proc_time = 0;
+        imu_time = 0;
         initCam();
         //std::filesystem::create_directories("/sdcard/Android/data/com.example.native_activity/cam0/");
 //        remove("/sdcard/Android/data/com.example.native_activity/cam0/*.png");
@@ -168,8 +174,8 @@ public:
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
             LOGA("duration: %f", duration2double(duration));
+            imu_time = imu_time + duration2double(duration);
             _m_lock.unlock();
-
         }
 
         return 1;
@@ -259,6 +265,7 @@ public:
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         LOGA("duration: %f", duration2double(duration));
+        cam_proc_time += duration2double(duration);
     }
 
 
@@ -476,12 +483,16 @@ public:
             _m_first_cam_time      = cam_time;
             _m_first_real_time_cam = _m_clock->now();
         }
+        double last_imu_time = 0;
+        double last_cam_time = 0;
         _m_lock.lock();
         Eigen::Vector3f cur_gyro = gyro;
         Eigen::Vector3f cur_accel = accel;
         counter++;
         myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
                   std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
+        last_imu_time = imu_time;
+        imu_time = 0;
         _m_lock.unlock();
 
         std::optional<cv::Mat>  ir_left = std::nullopt;
@@ -495,6 +506,8 @@ public:
 //                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
 //            LOGA("ANDROID CAM CHECK %d", check);
             camfile << std::to_string((uint64_t)ts*1000) << "," << std::to_string(name) + ".png" <<std::endl;
+            last_cam_time = cam_proc_time;
+            cam_proc_time = 0;
             mtx.unlock();
         }
 
@@ -508,10 +521,12 @@ public:
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         LOGA("duration: %f", duration2double(duration));
+        sl->write_duration("imu_cam", duration2double(duration) + last_imu_time + last_cam_time);
     }
 
 private:
     const std::shared_ptr<switchboard>         sb;
+    const std::shared_ptr<log_service>         sl;
     const std::shared_ptr<const RelativeClock> _m_clock;
     //switchboard::writer<cam_type>              _m_cam;
     switchboard::writer<imu_cam_type>              _m_imu_cam;
