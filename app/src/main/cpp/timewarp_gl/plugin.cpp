@@ -22,7 +22,7 @@
 
 #define EGL_EGLEXT_PROTOTYPES 1
 #define GL_GLEXT_PROTOTYPES
-#define ILLIXR_MONADO 1
+//#define ILLIXR_MONADO 1
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -918,13 +918,14 @@ public:
 
     virtual void _p_one_iteration() override {
         //cl->wait_monado();
-        auto start = std::chrono::high_resolution_clock::now();
 
         #ifdef ILLIXR_MONADO
             sem_wait(&cl->sem_monado);
         #else
             cl->get_lock();
         #endif
+        auto start = std::chrono::high_resolution_clock::now();
+
         //LOGT("ITERATION STARTED");
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(dpy, surface, surface, glc));
         assert(gl_result && "eglMakeCurrent should not fail");
@@ -1216,16 +1217,18 @@ public:
         //LOGT("egl context.");
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(dpy, NULL, NULL, nullptr));
         assert(gl_result_1 && "eglMakeCurrent should not fail");
-        //cl->release_lock();
+
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        LOGT("duration: %f", duration2double(duration));
+        sl->write_duration("timewarp", duration2double(duration));
+
         #ifdef ILLIXR_MONADO
                 sem_post(&cl->sem_illixr);
         #else
                 cl->release_lock();
         #endif
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        LOGT("duration: %f", duration2double(duration));
-        sl->write_duration("timewarp", duration2double(duration));
+
         //LOGT("Lock released ..");
         timewarp_gpu_logger.log(record{timewarp_gpu_record,
                                        {

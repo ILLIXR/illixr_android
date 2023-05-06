@@ -106,15 +106,15 @@ add_library(rk4_integrator
         rk4_integrator/plugin.cpp
         )
 
-#add_library(android_cam
-#        SHARED
-#        android_cam/plugin.cpp
-#        )
-#
-#add_library(android_imu
-#        SHARED
-#        android_imu/plugin.cpp
-#        )
+add_library(android_cam
+        SHARED
+        android_cam/plugin.cpp
+        )
+
+add_library(android_imu
+        SHARED
+        android_imu/plugin.cpp
+        )
 
 #add_library(offline_cam
 #        SHARED
@@ -126,15 +126,15 @@ add_library(rk4_integrator
 #        offline_imu/plugin.cpp
 #        )
 
-add_library(offline_imu_cam
-        SHARED
-        offline_imu_cam/plugin.cpp
-        )
-
-add_library(android_imu_cam
-        SHARED
-        android_imu_cam/plugin.cpp
-        )
+#add_library(offline_imu_cam
+#        SHARED
+#        offline_imu_cam/plugin.cpp
+#        )
+#
+#add_library(android_imu_cam
+#        SHARED
+#        android_imu_cam/plugin.cpp
+#        )
 
 #opencv
 add_library( cv_core-lib SHARED IMPORTED)
@@ -301,25 +301,25 @@ target_include_directories(rk4_integrator PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-#target_include_directories(android_cam PRIVATE
+target_include_directories(android_cam PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_include_directories(android_imu PRIVATE
+        ${OpenCV_LIBS}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+#
+#target_include_directories(offline_imu_cam PRIVATE
 #        ${OpenCV_LIBS}
 #        ${jnigraphics-lib}
 #        ${ANDROID_NDK}/sources/android/native_app_glue)
 #
-#target_include_directories(android_imu PRIVATE
+#target_include_directories(android_imu_cam PRIVATE
 #        ${OpenCV_LIBS}
 #        ${jnigraphics-lib}
 #        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-target_include_directories(offline_imu_cam PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-target_include_directories(android_imu_cam PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
 
 #target_include_directories(offline_imu PRIVATE
 #        ${OpenCV_LIBS}
@@ -419,17 +419,40 @@ target_link_libraries(rk4_integrator
 #        log
 #        )
 
-target_link_libraries(offline_imu_cam
-        EGL
-        GLESv3
-        log
-        cv_core-lib
-        cv_imgproc-lib
-        cv_highgui-lib
-        cv_imgcodecs-lib
-        )
+#target_link_libraries(offline_imu_cam
+#        EGL
+#        GLESv3
+#        log
+#        cv_core-lib
+#        cv_imgproc-lib
+#        cv_highgui-lib
+#        cv_imgcodecs-lib
+#        )
+#
+#target_link_libraries(android_imu_cam
+#        EGL
+#        GLESv3
+#        log
+#        cv_core-lib
+#        cv_imgproc-lib
+#        cv_highgui-lib
+#        cv_imgcodecs-lib
+#        camera2ndk
+#        mediandk
+#        android
+#        )
 
-target_link_libraries(android_imu_cam
+#target_link_libraries(offline_cam
+#        EGL
+#        GLESv3
+#        log
+#        cv_core-lib
+#        cv_imgproc-lib
+#        cv_highgui-lib
+#        cv_imgcodecs-lib
+#        )
+
+target_link_libraries(android_cam
         EGL
         GLESv3
         log
@@ -442,35 +465,12 @@ target_link_libraries(android_imu_cam
         android
         )
 
-#target_link_libraries(offline_cam
-#        EGL
-#        GLESv3
-#        log
-#        cv_core-lib
-#        cv_imgproc-lib
-#        cv_highgui-lib
-#        cv_imgcodecs-lib
-#        )
-
-#target_link_libraries(android_cam
-#        EGL
-#        GLESv3
-#        log
-#        cv_core-lib
-#        cv_imgproc-lib
-#        cv_highgui-lib
-#        cv_imgcodecs-lib
-#        camera2ndk
-#        mediandk
-#        android
-#        )
-#
-#target_link_libraries(android_imu
-#        EGL
-#        GLESv3
-#        log
-#        android
-#        )
+target_link_libraries(android_imu
+        EGL
+        GLESv3
+        log
+        android
+        )
 
 target_link_libraries(ov_core_lib
         EGL

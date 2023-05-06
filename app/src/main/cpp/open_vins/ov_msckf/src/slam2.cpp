@@ -28,7 +28,7 @@
 using namespace ILLIXR;
 using namespace ov_msckf;
 
-std::ofstream myfile;
+//std::ofstream myfile;
 int ind = 0;
 // Comment in if using ZED instead of offline_imu_cam
 // TODO: Pull from config YAML file
@@ -232,17 +232,17 @@ duration from_seconds(double seconds) {
 
 class slam2 : public plugin {
 public:
-	/* Provide handles to slam2 */
 	slam2(std::string name_, phonebook* pb_)
-		: plugin{name_, pb_}
-		, sb{pb->lookup_impl<switchboard>()}
-		, sl{pb->lookup_impl<log_service>()}
-		, _m_pose{sb->get_writer<pose_type>("slow_pose")}
-		, _m_imu_integrator_input{sb->get_writer<imu_integrator_input>("imu_integrator_input")}
-		, open_vins_estimator{manager_params}
-		, imu_cam_buffer{nullptr}
+			: plugin{name_, pb_}
+			, sb{pb->lookup_impl<switchboard>()}
+			, sl{pb->lookup_impl<log_service>()}
+			, _m_rtc{pb->lookup_impl<RelativeClock>()}
+			, _m_pose{sb->get_writer<pose_type>("slow_pose")}
+			, _m_imu_integrator_input{sb->get_writer<imu_integrator_input>("imu_integrator_input")}
+			, _m_cam{sb->get_buffered_reader<cam_type>("cam")}
+			, open_vins_estimator{manager_params}
 	{
-		myfile.open ("/sdcard/Android/data/com.example.native_activity/pose.tum");
+//		myfile.open ("/sdcard/Android/data/com.example.native_activity/pose.tum");
 
         // Disabling OpenCV threading is faster on x86 desktop but slower on
         // jetson. Keeping this here for manual disabling.
@@ -254,39 +254,42 @@ public:
 
 	}
 
-
 	virtual void start() override {
 		plugin::start();
-		sb->schedule<imu_cam_type>(id, "imu_cam", [&](switchboard::ptr<const imu_cam_type> datum, std::size_t iteration_no) {
+		sb->schedule<imu_type>(id, "imu", [&](switchboard::ptr<const imu_type> datum, std::size_t iteration_no) {
 			this->feed_imu_cam(datum, iteration_no);
 		});
-		LOGS("SLAM STARTED");
 	}
 
 
-	void feed_imu_cam(switchboard::ptr<const imu_cam_type> datum, std::size_t iteration_no) {
+	void feed_imu_cam(switchboard::ptr<const imu_type> datum, std::size_t iteration_no) {
 		// Ensures that slam doesnt start before valid IMU readings come in
-		if (datum == NULL) {
-			LOGS("DATUM IS NULL");
+		if (datum == nullptr) {
 			return;
 		}
 		auto start2 = std::chrono::high_resolution_clock::now();
 
 
 		// Feed the IMU measurement. There should always be IMU data in each call to feed_imu_cam
-		assert((datum->img0.has_value() && datum->img1.has_value()) || (!datum->img0.has_value() && !datum->img1.has_value()));
-		open_vins_estimator.feed_measurement_imu(duration2double(datum->time.time_since_epoch()), datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
-		LOGS("timestamp feed imu %f",duration2double(datum->time.time_since_epoch()));
+		open_vins_estimator.feed_measurement_imu(duration2double(datum->time.time_since_epoch()), datum->angular_v, datum->linear_a);		LOGS("timestamp feed imu %f",duration2double(datum->time.time_since_epoch()));
 
+		switchboard::ptr<const cam_type> cam;
+		// Buffered Async:
+		cam = _m_cam.size() == 0 ? nullptr : _m_cam.dequeue();
 		// If there is not cam data this func call, break early
-		if (!datum->img0.has_value() && !datum->img1.has_value()) {
+		if (!cam) {
 			auto stop2 = std::chrono::high_resolution_clock::now();
 			auto duration2 =  std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
 			LOGS("duration: %f", duration2double(duration2));
-            sl->write_duration("open_vins", duration2double(duration2));
-            return;
-		} else if (imu_cam_buffer == NULL) {
-			imu_cam_buffer = datum;
+			sl->write_duration("open_vins", duration2double(duration2));
+			return;
+		}
+		if (!cam_buffer) {
+			auto stop2 = std::chrono::high_resolution_clock::now();
+			auto duration2 =  std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
+			LOGS("duration: %f", duration2double(duration2));
+			sl->write_duration("open_vins", duration2double(duration2));
+			cam_buffer = cam;
 			return;
 		}
 
@@ -299,24 +302,16 @@ public:
 //#warning "No OpenCV metrics available. Please recompile OpenCV from git clone --branch 3.4.6-instrumented https://github.com/ILLIXR/opencv/. (see install_deps.sh)"
 #endif
 
-		cv::Mat img0{imu_cam_buffer->img0.value()};
-		cv::Mat img1{imu_cam_buffer->img1.value()};
-        auto start = chrono::high_resolution_clock::now();
+		cv::Mat img0{cam_buffer->img0};
+		cv::Mat img1{cam_buffer->img1};
 
         //open_vins_estimator.feed_measurement_monocular(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, 0,);
         if(manager_params.state_options.num_cameras == 1)
-            open_vins_estimator.feed_measurement_monocular(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, 0);
+            open_vins_estimator.feed_measurement_monocular(duration2double(cam_buffer->time.time_since_epoch()), img0, 0);
         else
-            open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
-		LOGS("timestamp feed monocular %f", duration2double(imu_cam_buffer->time.time_since_epoch()));
-		//        open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
+			open_vins_estimator.feed_measurement_stereo(duration2double(cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
 		// Get the pose returned from SLAM
-		auto stop = chrono::high_resolution_clock::now();
-		auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
-		LOGS( "slow pose published : %lld microseconds", duration.count());
 		state = open_vins_estimator.get_state();
-
-
 		Eigen::Vector4d quat = state->_imu->quat();
 		Eigen::Vector3d vel = state->_imu->vel();
 		Eigen::Vector3d pose = state->_imu->pos();
@@ -324,7 +319,6 @@ public:
 		Eigen::Vector3f swapped_pos = Eigen::Vector3f{float(pose(0)), float(pose(1)), float(pose(2))};
 		Eigen::Quaternionf swapped_rot = Eigen::Quaternionf{float(quat(3)), float(quat(0)), float(quat(1)), float(quat(2))};
 		Eigen::Quaterniond swapped_rot2 = Eigen::Quaterniond{(quat(3)), (quat(0)), (quat(1)), (quat(2))};
-
        	assert(isfinite(swapped_rot.w()));
         assert(isfinite(swapped_rot.x()));
         assert(isfinite(swapped_rot.y()));
@@ -334,26 +328,15 @@ public:
         assert(isfinite(swapped_pos[2]));
 
 		if (open_vins_estimator.initialized()) {
-			LOGS("Slam2 initialized");
-			if (isUninitialized) {
-				isUninitialized = false;
-			}
-
 			_m_pose.put(_m_pose.allocate(
-				imu_cam_buffer->time,
-				swapped_pos,
-				swapped_rot
+					cam_buffer->time,
+					swapped_pos,
+					swapped_rot
 			));
-
-			LOGS("Slow pose is: x y z %f %f %f quat w x y z %f %f %f %f", swapped_pos.x(), swapped_pos.y(), swapped_pos.z(),
-				 swapped_rot.w(), swapped_rot.x(), swapped_rot.y(), swapped_rot.z());
-			myfile << to_string(duration2double(imu_cam_buffer->time.time_since_epoch())) + " " + to_string(swapped_pos.x()) + " " + to_string(swapped_pos.y()) + " " + to_string(swapped_pos.z())
-			+ " " + to_string(swapped_rot.x()) + " " + to_string(swapped_rot.y()) + " " + to_string(swapped_rot.z()) + " " + to_string(swapped_rot.w()) + "\n";
-			ind = ind + 1;
 			_m_imu_integrator_input.put(_m_imu_integrator_input.allocate(
-				datum->time,
-				from_seconds(state->_calib_dt_CAMtoIMU->value()(0)),
-				imu_params{
+					cam_buffer->time,
+					from_seconds(state->_calib_dt_CAMtoIMU->value()(0)),
+					imu_params{
                     .gyro_noise = manager_params.imu_noises.sigma_w,
                     .acc_noise = manager_params.imu_noises.sigma_a,
                     .gyro_walk = manager_params.imu_noises.sigma_wb,
@@ -362,22 +345,14 @@ public:
 					.imu_integration_sigma = 1.0,
 					.nominal_rate = 200.0,
 				},
-				state->_imu->bias_a(),
-				state->_imu->bias_g(),
-				pose,
-				vel,
-				swapped_rot2
+					state->_imu->bias_a(),
+					state->_imu->bias_g(),
+					pose,
+					vel,
+					swapped_rot2
 			));
 		}
-
-		// I know, a priori, nobody other plugins subscribe to this topic
-		// Therefore, I can const the cast away, and delete stuff
-		// This fixes a memory leak.
-		// -- Sam at time t1
-		// Turns out, this is no longer correct. debbugview uses it
-		// const_cast<imu_cam_type*>(imu_cam_buffer)->img0.reset();
-		// const_cast<imu_cam_type*>(imu_cam_buffer)->img1.reset();
-		imu_cam_buffer = datum;
+		cam_buffer = cam;
 		auto stop2 = std::chrono::high_resolution_clock::now();
 		auto duration2 =  std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
 		LOGS("duration: %f", duration2double(duration2));
@@ -389,15 +364,17 @@ public:
 private:
 	const std::shared_ptr<switchboard> sb;
 	const std::shared_ptr<log_service> sl;
+
+	std::shared_ptr<RelativeClock> _m_rtc;
 	switchboard::writer<pose_type> _m_pose;
-    switchboard::writer<imu_integrator_input> _m_imu_integrator_input;
+	switchboard::writer<imu_integrator_input> _m_imu_integrator_input;
 	State *state;
+
+	switchboard::ptr<const cam_type> cam_buffer;
+	switchboard::buffered_reader<cam_type> _m_cam;
 
 	VioManagerOptions manager_params = create_params();
 	VioManager open_vins_estimator;
-
-	switchboard::ptr<const imu_cam_type> imu_cam_buffer;
-	bool isUninitialized = true;
 };
 
 PLUGIN_MAIN(slam2)
