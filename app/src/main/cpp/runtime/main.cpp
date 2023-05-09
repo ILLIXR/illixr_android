@@ -5,7 +5,7 @@
 
 #include <csignal>
 #include <unistd.h> /// Not portable
-#define ILLIXR_MONADO 1
+//#define ILLIXR_MONADO 1
 
 constexpr std::chrono::seconds          ILLIXR_RUN_DURATION_DEFAULT{60};
 [[maybe_unused]] constexpr unsigned int ILLIXR_PRE_SLEEP_DURATION{10};

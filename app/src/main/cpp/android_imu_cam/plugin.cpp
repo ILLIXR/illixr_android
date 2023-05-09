@@ -44,8 +44,8 @@ static cv::Mat last_image;
 static bool img_ready = false;
 static std::mutex mtx;
 //static double current_ts = 0;
-std::ofstream myfile;
-std::ofstream camfile;
+//std::ofstream myfile;
+//std::ofstream camfile;
 static double cam_proc_time;
 static double imu_time;
 bool once = false;
@@ -66,8 +66,8 @@ public:
         initCam();
         //std::filesystem::create_directories("/sdcard/Android/data/com.example.native_activity/cam0/");
 //        remove("/sdcard/Android/data/com.example.native_activity/cam0/*.png");
-        myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
-        camfile.open("/sdcard/Android/data/com.example.native_activity/data.csv");
+//        myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
+//        camfile.open("/sdcard/Android/data/com.example.native_activity/data.csv");
         struct android_imu_struct *imu = new android_imu_struct();
         std::thread (android_run_thread, imu).detach();
     }
@@ -84,21 +84,8 @@ public:
         AImageReader_delete(imageReader);
         imageReader = nullptr;
         ACaptureRequest_free(request);
-        myfile.close();
-        camfile.close();
-    }
-
-    static std::pair<Eigen::Vector3f, Eigen::Vector3f> moving_average() {
-        std::pair<Eigen::Vector3f, Eigen::Vector3f> avg;
-        if(avg_filter.size() == 0)
-            return avg;
-        for(int i = 0; i < avg_filter.size() ; ++i) {
-            avg.first += avg_filter[i].first;
-            avg.second += avg_filter[i].second;
-        }
-        avg.first = avg.first/avg_filter.size();
-        avg.second = avg.second/avg_filter.size();
-        return avg;
+//        myfile.close();
+//        camfile.close();
     }
 
     static int
@@ -256,10 +243,11 @@ public:
             }
             cv::Mat rawData( IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC1, (uint8_t *)data);
             mtx.lock();
-            last_image = rawData;
+            last_image = rawData.clone();
             mtx.unlock();
             img_ready = true;
             AImage_delete(image);
+            delete[] data;
 //        });
 //        processor.detach();
         auto stop = std::chrono::high_resolution_clock::now();
@@ -489,8 +477,8 @@ public:
         Eigen::Vector3f cur_gyro = gyro;
         Eigen::Vector3f cur_accel = accel;
         counter++;
-        myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
-                  std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
+//        myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
+//                  std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
         last_imu_time = imu_time;
         imu_time = 0;
         _m_lock.unlock();
@@ -501,11 +489,11 @@ public:
             mtx.lock();
             ir_left = std::make_optional<cv::Mat>(last_image);
             ir_right = std::make_optional<cv::Mat>(last_image);
-            uint64_t name = (uint64_t)ts*1000;
+//            uint64_t name = (uint64_t)ts*1000;
 //            bool check = cv::imwrite(
 //                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
 //            LOGA("ANDROID CAM CHECK %d", check);
-            camfile << std::to_string((uint64_t)ts*1000) << "," << std::to_string(name) + ".png" <<std::endl;
+//            camfile << std::to_string((uint64_t)ts*1000) << "," << std::to_string(name) + ".png" <<std::endl;
             last_cam_time = cam_proc_time;
             cam_proc_time = 0;
             mtx.unlock();
