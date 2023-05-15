@@ -55,6 +55,15 @@ private:
     // IMU Data, Sequence Flag, and State Vars Needed
     switchboard::reader<imu_integrator_input> _m_imu_integrator_input;
 
+    Eigen::Quaternion<double> last_quat;
+    Eigen::Matrix<double, 3, 1> last_pos = {0,0,0};
+    Eigen::Matrix<double, 3, 1> last_vel;
+    Eigen::Matrix<double, 3, 1> last_w_hat;
+    Eigen::Matrix<double, 3, 1> last_a_hat;
+    Eigen::Matrix<double, 3, 1> last_w_hat2;
+    Eigen::Matrix<double, 3, 1> last_a_hat2;
+    bool first_input = true;
+
     // IMU Biases
     switchboard::writer<imu_raw_type> _m_imu_raw;
     std::vector<imu_type>             _imu_vec;
@@ -79,10 +88,34 @@ private:
 
     // Timestamp we are propagating the biases to (new IMU reading time)
     void propagate_imu_values(time_point real_time) {
-        auto input_values = _m_imu_integrator_input.get_ro_nullable();
-        if (input_values == nullptr) {
+        auto input_values_ = _m_imu_integrator_input.get_ro_nullable();
+        imu_integrator_input* input_values;
+        if (input_values_ == nullptr) {
             return;
         }
+        if(first_input) {
+            input_values = new imu_integrator_input(input_values_->last_cam_integration_time,
+                                                    input_values_->t_offset,
+                                                    input_values_->params,
+                                                    input_values_->biasAcc,
+                                                    input_values_->biasGyro,
+                                                    input_values_->position,
+                                                    input_values_->velocity,
+                                                    input_values_->quat);
+            first_input = false;
+
+        } else {
+            input_values = new imu_integrator_input(input_values_->last_cam_integration_time,
+                                                    input_values_->t_offset,
+                                                    input_values_->params,
+                                                    input_values_->biasAcc,
+                                                    input_values_->biasGyro,
+                                                    last_pos,
+                                                    last_vel,
+                                                    last_quat);
+
+        }
+
 
         if (!has_last_offset) {
             /// TODO: Should be set and tested at the end of this function to avoid staleness from VIO.
@@ -142,6 +175,14 @@ private:
                 curr_vel  = new_vel;
             }
         }
+
+        last_quat = curr_quat;
+        last_pos = curr_pos;
+        last_vel = curr_vel;
+        last_w_hat = w_hat;
+        last_a_hat = a_hat;
+        last_w_hat2 = w_hat2;
+        last_a_hat2 = a_hat2;
 
         _m_imu_raw.put(_m_imu_raw.allocate(w_hat, a_hat, w_hat2, a_hat2, curr_pos, curr_vel,
                                            Eigen::Quaterniond{curr_quat(3), curr_quat(0), curr_quat(1), curr_quat(2)},

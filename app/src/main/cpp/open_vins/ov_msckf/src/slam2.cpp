@@ -279,7 +279,7 @@ public:
 
 		// Feed the IMU measurement. There should always be IMU data in each call to feed_imu_cam
 		assert((datum->img0.has_value() && datum->img1.has_value()) || (!datum->img0.has_value() && !datum->img1.has_value()));
-		open_vins_estimator.feed_measurement_imu(duration2double(datum->time.time_since_epoch()), datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
+//		open_vins_estimator.feed_measurement_imu(duration2double(datum->time.time_since_epoch()), datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
 		LOGS("timestamp feed imu %f",duration2double(datum->time.time_since_epoch()));
 
 		// If there is not cam data this func call, break early
@@ -308,10 +308,10 @@ public:
         auto start = chrono::high_resolution_clock::now();
 
         //open_vins_estimator.feed_measurement_monocular(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, 0,);
-        if(manager_params.state_options.num_cameras == 1)
-            open_vins_estimator.feed_measurement_monocular(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, 0);
-        else
-            open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
+//        if(manager_params.state_options.num_cameras == 1)
+//            open_vins_estimator.feed_measurement_monocular(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, 0);
+//        else
+//            open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
 		LOGS("timestamp feed monocular %f", duration2double(imu_cam_buffer->time.time_since_epoch()));
 		//        open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
 		// Get the pose returned from SLAM
@@ -323,7 +323,7 @@ public:
 
 		Eigen::Vector4d quat = state->_imu->quat();
 		Eigen::Vector3d vel = state->_imu->vel();
-		Eigen::Vector3d pose = state->_imu->pos();
+		Eigen::Vector3d pose = {0.0, 0.0, 0.0};//state->_imu->pos();
 
 		Eigen::Vector3f swapped_pos = Eigen::Vector3f{float(pose(0)), float(pose(1)), float(pose(2))};
 		Eigen::Quaternionf swapped_rot = Eigen::Quaternionf{float(quat(3)), float(quat(0)), float(quat(1)), float(quat(2))};
@@ -337,7 +337,8 @@ public:
         assert(isfinite(swapped_pos[1]));
         assert(isfinite(swapped_pos[2]));
 
-		if (open_vins_estimator.initialized()) {
+//		if (open_vins_estimator.initialized())
+        {
 			LOGS("Slam2 initialized");
 			if (isUninitialized) {
 				isUninitialized = false;
