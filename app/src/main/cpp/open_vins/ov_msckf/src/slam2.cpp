@@ -96,7 +96,7 @@ VioManagerOptions create_params()
   // ZED calibration tool; fx, fy, cx, cy, k1, k2, p1, p2
   intrinsics_1 << 350.01, 350.01, 343.729, 185.405, -0.174559, 0.0277521, 0, 0;
 #elif ANDROID_CAM
-    intrinsics_1 <<959.7108500223383, 958.2043029463723, 534.9459777106056, 724.9789679167809,  0.5891985645773625, -1.4239660996953498, 4.335816777863736, -4.151712962020906;
+	intrinsics_1 <<483.2087255, 484.10304, 372.136219, 242.353948, 0.040666, -0.053787, -2.796e-05,0.0079762;
 #else
   // EuRoC
 	intrinsics_1 << 457.587, 456.134, 379.999, 255.238, -0.28368365, 0.07451284, -0.00010473, -3.55590700e-05;
@@ -109,10 +109,10 @@ VioManagerOptions create_params()
             0.00421252, -0.99998938, -0.00186674, -0.00098799,
             0.0, 0.0, 0.0, 1.0};
 #elif ANDROID_CAM
-    std::vector<double> matrix_TCtoI_1 = {0.99999067, 0.00281849, 0.00327385, 0.01981983,
-                                          0.00284178, -0.99997052, -0.00713377, -0.00464974,
-                                          0.00325365, 0.00714301, -0.9999692, -0.01094682,
-                                          0.0, 0.0, 0.0, 1.0};
+	std::vector<double> matrix_TCtoI_1 = {0, -1, 0, 0,
+										  -1, 0, 0, 0,
+										  0, 0, -1, 0,
+										  0.0, 0.0, 0.0, 1.0};
 #else
 	std::vector<double> matrix_TCtoI_1 = {0.0125552670891, -0.999755099723, 0.0182237714554, -0.0198435579556,
             0.999598781151, 0.0130119051815, 0.0251588363115, 0.0453689425024,
@@ -165,6 +165,8 @@ VioManagerOptions create_params()
   params.num_pts = 200;
 #elif ANDROID_CAM
     params.num_pts = 100;
+//	params.num_pts = 150;
+
 #else
   //params.num_pts = 150;
 #endif
@@ -184,11 +186,13 @@ VioManagerOptions create_params()
     params.state_options.do_calib_camera_timeoffset = false;
 
 	params.dt_slam_delay = 3.0;
+//
 //	params.state_options.max_slam_features = 50;
-    params.state_options.max_slam_features = 20;
 //    params.state_options.max_slam_in_update = 25;
-    params.state_options.max_slam_in_update = 10;
 //    params.state_options.max_msckf_in_update = 999;
+
+    params.state_options.max_slam_features = 20;
+    params.state_options.max_slam_in_update = 10;
     params.state_options.max_msckf_in_update = 100;
 
 #ifdef ZED

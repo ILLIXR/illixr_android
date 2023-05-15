@@ -499,11 +499,13 @@ public:
             mtx.unlock();
         }
 
-        time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
+       // time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
+
+        time_point curr_time =_m_clock->now();
         //LOGA("TIME = %lf and cam_time %llu",duration2double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
 //        _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
         _m_imu_cam.put(_m_imu_cam.allocate<imu_cam_type>(
-                            imu_cam_type{time_point{cam_time_point},
+                            imu_cam_type{time_point{curr_time},
                                          cur_gyro.cast<float>(),
                                          cur_accel.cast<float>(), ir_left, ir_right}));
         auto stop = std::chrono::high_resolution_clock::now();
@@ -517,7 +519,7 @@ private:
     const std::shared_ptr<log_service>         sl;
     const std::shared_ptr<const RelativeClock> _m_clock;
     //switchboard::writer<cam_type>              _m_cam;
-    switchboard::writer<imu_cam_type>              _m_imu_cam;
+    switchboard::writer<imu_cam_type>           _m_imu_cam;
 
     std::optional<ullong>     _m_first_cam_time;
     std::optional<time_point> _m_first_real_time_cam;

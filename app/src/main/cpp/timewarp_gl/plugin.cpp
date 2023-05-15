@@ -1161,7 +1161,9 @@ public:
         // Now that we have the most recent swap time, we can publish the new estimate.
         _m_vsync_estimate.put(_m_vsync_estimate.allocate<switchboard::event_wrapper<time_point>>(GetNextSwapTimeEstimate()));
 
-        std::chrono::nanoseconds imu_to_display     = time_last_swap - latest_pose.pose.sensor_time;
+        std::chrono::nanoseconds imu_to_display     = time_last_swap.time_since_epoch() - latest_pose.pose.sensor_time.time_since_epoch();
+        auto duration_mtp =  std::chrono::duration_cast<std::chrono::microseconds>(time_last_swap.time_since_epoch() - latest_pose.pose.sensor_time.time_since_epoch());
+        sl->write_duration("mtp", duration2double(duration_mtp));
         std::chrono::nanoseconds predict_to_display = time_last_swap - latest_pose.predict_computed_time;
         std::chrono::nanoseconds render_to_display  = time_last_swap - most_recent_frame->render_time;
         //LOGT("mtp logger ..");
