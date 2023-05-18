@@ -29,7 +29,6 @@
 //#include <GLES3/gl3ext.h>
 //#include <GLES3/gl32.h>
 
-
 //In an initialization routine
 
 //#define GL_GLEXT_PROTOTYPES

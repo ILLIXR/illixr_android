@@ -21,7 +21,7 @@
 #include <chrono>
 
 #define ILLIXR_INTEGRATION 1
-#define ANDROID_CAM 1
+//#define ANDROID_CAM 1
 //#define ZED 1
 #define LOGS(...) ((void)__android_log_print(ANDROID_LOG_INFO, "slam2", __VA_ARGS__))
 
@@ -168,7 +168,7 @@ VioManagerOptions create_params()
 //	params.num_pts = 150;
 
 #else
-  //params.num_pts = 150;
+  params.num_pts = 150;
 #endif
 	params.msckf_options.chi2_multipler = 1;
 	params.knn_ratio = .7;

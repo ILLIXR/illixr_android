@@ -28,9 +28,17 @@ public:
         lock.unlock();
     }
 
+    void write_duration_filename(std::string plugin_name, double duration, std::string filename) {
+        lock.lock();
+        log_file << plugin_name << " " << std::to_string(duration) <<std::endl;
+        lock.unlock();
+    }
+
+
 private:
     const std::shared_ptr<switchboard>                               sb;
     std::mutex lock;
+    std::vector<std::ofstream> files;
 };
 
 class log_service_plugin : public plugin {
