@@ -15,7 +15,7 @@
 #include "common/data_format.hpp"
 #include "common/phonebook.hpp"
 #include "common/relative_clock.hpp"
-#include "common/log_service.hpp"
+//#include "common/log_service.hpp"
 #include <android/log.h>
 #include <fstream>
 #include <chrono>
@@ -240,13 +240,13 @@ public:
 	slam2(std::string name_, phonebook* pb_)
 		: plugin{name_, pb_}
 		, sb{pb->lookup_impl<switchboard>()}
-		, sl{pb->lookup_impl<log_service>()}
+//		, sl{pb->lookup_impl<log_service>()}
 		, _m_pose{sb->get_writer<pose_type>("slow_pose")}
 		, _m_imu_integrator_input{sb->get_writer<imu_integrator_input>("imu_integrator_input")}
 		, open_vins_estimator{manager_params}
 		, imu_cam_buffer{nullptr}
 	{
-		myfile.open ("/sdcard/Android/data/com.example.native_activity/pose.tum");
+//		myfile.open ("/sdcard/Android/data/com.example.native_activity/pose.tum");
 
         // Disabling OpenCV threading is faster on x86 desktop but slower on
         // jetson. Keeping this here for manual disabling.
@@ -281,13 +281,13 @@ public:
 		assert((datum->img0.has_value() && datum->img1.has_value()) || (!datum->img0.has_value() && !datum->img1.has_value()));
 //		open_vins_estimator.feed_measurement_imu(duration2double(datum->time.time_since_epoch()), datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
 		LOGS("timestamp feed imu %f",duration2double(datum->time.time_since_epoch()));
-
+		LOGS("NO IMU");
 		// If there is not cam data this func call, break early
 		if (!datum->img0.has_value() && !datum->img1.has_value()) {
 			auto stop2 = std::chrono::high_resolution_clock::now();
 			auto duration2 =  std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
 			LOGS("duration: %f", duration2double(duration2));
-            sl->write_duration("open_vins", duration2double(duration2));
+//            sl->write_duration("open_vins", duration2double(duration2));
             return;
 		} else if (imu_cam_buffer == NULL) {
 			imu_cam_buffer = datum;
@@ -312,7 +312,9 @@ public:
 //            open_vins_estimator.feed_measurement_monocular(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, 0);
 //        else
 //            open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
-		LOGS("timestamp feed monocular %f", duration2double(imu_cam_buffer->time.time_since_epoch()));
+    LOGS("NO OPEN VINS CAMERA INPUT FED");
+
+	LOGS("timestamp feed monocular %f", duration2double(imu_cam_buffer->time.time_since_epoch()));
 		//        open_vins_estimator.feed_measurement_stereo(duration2double(imu_cam_buffer->time.time_since_epoch()), img0, img1, 0, 1);
 		// Get the pose returned from SLAM
 		auto stop = chrono::high_resolution_clock::now();
@@ -386,14 +388,14 @@ public:
 		auto stop2 = std::chrono::high_resolution_clock::now();
 		auto duration2 =  std::chrono::duration_cast<std::chrono::microseconds>(stop2 - start2);
 		LOGS("duration: %f", duration2double(duration2));
-		sl->write_duration("open_vins", duration2double(duration2));
+//		sl->write_duration("open_vins", duration2double(duration2));
 	}
 
 	virtual ~slam2() override {}
 
 private:
 	const std::shared_ptr<switchboard> sb;
-	const std::shared_ptr<log_service> sl;
+//	const std::shared_ptr<log_service> sl;
 	switchboard::writer<pose_type> _m_pose;
     switchboard::writer<imu_integrator_input> _m_imu_integrator_input;
 	State *state;

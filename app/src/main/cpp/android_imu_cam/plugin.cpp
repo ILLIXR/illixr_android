@@ -7,7 +7,7 @@
 #include "common/phonebook.hpp"
 #include "common/plugin.hpp"
 #include "common/threadloop.hpp"
-#include "common/log_service.hpp"
+//#include "common/log_service.hpp"
 #include <chrono>
 #include <thread>
 #include <mutex>
@@ -57,7 +57,7 @@ public:
     android_imu_cam(std::string name_, phonebook* pb_)
             : threadloop{name_, pb_}
             , sb{pb->lookup_impl<switchboard>()}
-            , sl{pb->lookup_impl<log_service>()}
+//            , sl{pb->lookup_impl<log_service>()}
             , _m_clock{pb->lookup_impl<RelativeClock>()}
             , _m_imu_cam{sb->get_writer<imu_cam_type>("imu_cam")}{
         LOGA("IMU CAM CONSTRUCTOR");
@@ -511,12 +511,12 @@ public:
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         LOGA("duration: %f", duration2double(duration));
-        sl->write_duration("imu_cam", duration2double(duration) + last_imu_time + last_cam_time);
+//        sl->write_duration("imu_cam", duration2double(duration) + last_imu_time + last_cam_time);
     }
 
 private:
     const std::shared_ptr<switchboard>         sb;
-    const std::shared_ptr<log_service>         sl;
+//    const std::shared_ptr<log_service>         sl;
     const std::shared_ptr<const RelativeClock> _m_clock;
     //switchboard::writer<cam_type>              _m_cam;
     switchboard::writer<imu_cam_type>           _m_imu_cam;
