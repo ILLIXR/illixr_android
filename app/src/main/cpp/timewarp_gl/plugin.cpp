@@ -15,14 +15,14 @@
 #include "common/switchboard.hpp"
 #include "common/threadloop.hpp"
 #include "common/common_lock.hpp"
-#include "common/log_service.hpp"
+//#include "common/log_service.hpp"
 #include "shaders/basic_shader.hpp"
 #include "shaders/timewarp_shader.hpp"
 #include "utils/hmd.hpp"
 
 #define EGL_EGLEXT_PROTOTYPES 1
 #define GL_GLEXT_PROTOTYPES
-//#define ILLIXR_MONADO 1
+#define ILLIXR_MONADO 1
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -79,7 +79,7 @@ public:
         , sb{pb->lookup_impl<switchboard>()}
         , pp{pb->lookup_impl<pose_prediction>()}
         , cl{pb->lookup_impl<common_lock>()}
-        , sl{pb->lookup_impl<log_service>()}
+//        , sl{pb->lookup_impl<log_service>()}
 //        , xwin{pb->lookup_impl<xlib_gl_extended_window>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , _m_eyebuffer{sb->get_reader<ILLIXR::rendered_frame>("eyebuffer")}
@@ -290,7 +290,7 @@ private:
     const std::shared_ptr<switchboard>             sb;
     const std::shared_ptr<pose_prediction>         pp;
     const std::shared_ptr<common_lock>             cl;
-    const std::shared_ptr<log_service>             sl;
+//    const std::shared_ptr<log_service>             sl;
 //    const std::shared_ptr<xlib_gl_extended_window> xwin;
     const std::shared_ptr<const RelativeClock>     _m_clock;
         // OpenGL objects
@@ -1161,8 +1161,8 @@ public:
         _m_vsync_estimate.put(_m_vsync_estimate.allocate<switchboard::event_wrapper<time_point>>(GetNextSwapTimeEstimate()));
 
         std::chrono::nanoseconds imu_to_display     = time_last_swap.time_since_epoch() - latest_pose.pose.sensor_time.time_since_epoch();
-        auto duration_mtp =  std::chrono::duration_cast<std::chrono::microseconds>(time_last_swap.time_since_epoch() - latest_pose.pose.sensor_time.time_since_epoch());
-        sl->write_duration("mtp", duration2double(duration_mtp));
+//        auto duration_mtp =  std::chrono::duration_cast<std::chrono::microseconds>(time_last_swap.time_since_epoch() - latest_pose.pose.sensor_time.time_since_epoch());
+//        sl->write_duration("mtp", duration2double(duration_mtp));
         std::chrono::nanoseconds predict_to_display = time_last_swap - latest_pose.predict_computed_time;
         std::chrono::nanoseconds render_to_display  = time_last_swap - most_recent_frame->render_time;
         //LOGT("mtp logger ..");
@@ -1226,7 +1226,7 @@ public:
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         LOGT("duration: %f", duration2double(duration));
-        sl->write_duration("timewarp", duration2double(duration));
+//        sl->write_duration("timewarp", duration2double(duration));
         //LOGT("Lock released ..");
         timewarp_gpu_logger.log(record{timewarp_gpu_record,
                                        {

@@ -26,9 +26,15 @@ set(ILLIXR_INTEGRATION 1)
 include_directories(~/opencv/android_build/out/sdk/native/jni/include)
 include_directories(~/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni/include)
 #include_directories(SYSTEM /home/madhuparna/opencv/include)
+set(BOOST_ROOT /home/madhuparna/boost-android/arm64/include)
+set(EIGEN_DIR /home/madhuparna/Downloads/eigen-3.4.0)
+#find_package(Boost)
+#find_package(Boost)
+#include_directories(${Boost_INCLUDE_DIRS})
+
 include_directories(GLFW)
 include_directories(Eigen)
-include_directories(boost)
+include_directories(/home/madhuparna/AndroidStudioProjects/illixr-native-activity/app/src/main/cpp/boost)
 include_directories(/home/madhuparna/Android/Sdk/ndk/21.4.7075529/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/boost/thread/detail/thread.hpp)
 include_directories(common)
 include_directories(runtime)
@@ -258,46 +264,64 @@ add_library(slam
 
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(runtime PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(gldemo PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(common_lock PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(log_service PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(timewarp_gl PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(pose_lookup PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(pose_prediction PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(rk4_integrator PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
@@ -313,11 +337,15 @@ target_include_directories(rk4_integrator PRIVATE
 
 target_include_directories(offline_imu_cam PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(android_imu_cam PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
@@ -333,18 +361,26 @@ target_include_directories(android_imu_cam PRIVATE
 
 target_include_directories(ov_core_lib PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
+        ${BOOST_ROOT}
         ${ANDROID_NDK}/sources/android/native_app_glue
         )
 
 target_include_directories(ov_msckf_lib PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
+        ${BOOST_ROOT}
         open_vins/ov_core
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(slam PRIVATE
         ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
@@ -498,6 +534,7 @@ target_link_libraries(ov_msckf_lib
         EGL
         GLESv3
         log
+        ${BOOST_ROOT}
         ov_core_lib
         cv_core-lib
         cv_imgproc-lib
