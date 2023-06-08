@@ -68,7 +68,7 @@ public:
 //        remove("/sdcard/Android/data/com.example.native_activity/cam0/*.png");
 //        myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
 //        camfile.open("/sdcard/Android/data/com.example.native_activity/data.csv");
-        struct android_imu_struct *imu = new android_imu_struct();
+        imu = new android_imu_struct();
         std::thread (android_run_thread, imu).detach();
     }
 
@@ -188,8 +188,7 @@ public:
 
         ALooper *looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
 
-        d->event_queue = ASensorManager_createEventQueue(d->sensor_manager, looper, ALOOPER_POLL_CALLBACK,
-                                                         android_sensor_callback, (void *)d);
+        d->event_queue = ASensorManager_createEventQueue(d->sensor_manager, looper, 3, NULL, NULL);
 
         // Start sensors in case this was not done already.
         if (d->accelerometer != NULL) {
@@ -204,10 +203,10 @@ public:
 //            ASensorEventQueue_enableSensor(d->event_queue, d->gravity);
 //            ASensorEventQueue_setEventRate(d->event_queue, d->gravity, poll_rate_usec);
 //        }
-        int ret = 0;
-        while (ret != ALOOPER_POLL_ERROR) {
-            ret = ALooper_pollAll(0, NULL, NULL, NULL);
-        }
+//        int ret = 0;
+//        while (ret != ALOOPER_POLL_ERROR) {
+//            ret = ALooper_pollAll(0, NULL, NULL, NULL);
+//        }
         //myfile.close();
 
         return NULL;
@@ -465,6 +464,24 @@ public:
         }
         auto start = std::chrono::high_resolution_clock::now();
 
+        ALooper_pollOnce(0, NULL, NULL, NULL);
+        ASensorEvent event;
+        while (ASensorEventQueue_getEvents(imu->event_queue, &event, 1) >
+               0) {
+            switch (event.type) {
+                case ASENSOR_TYPE_ACCELEROMETER:
+                    accel[0] = event.acceleration.x;
+                    accel[1] = event.acceleration.y;
+                    accel[2] = event.acceleration.z;
+                    break;
+                case ASENSOR_TYPE_GYROSCOPE:
+                    gyro[0] = event.data[0];
+                    gyro[1] = event.data[1];
+                    gyro[2] = event.data[2];
+                    break;
+            }
+        }
+
         double ts = std::chrono::system_clock::now().time_since_epoch().count();//current_ts;
         ullong cam_time = static_cast<ullong>(ts * 1000);
         if (!_m_first_cam_time) {
@@ -499,13 +516,13 @@ public:
             mtx.unlock();
         }
 
-       // time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
+        time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
 
-        time_point curr_time =_m_clock->now();
+//        time_point curr_time =_m_clock->now();
         //LOGA("TIME = %lf and cam_time %llu",duration2double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
 //        _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
         _m_imu_cam.put(_m_imu_cam.allocate<imu_cam_type>(
-                            imu_cam_type{time_point{curr_time},
+                            imu_cam_type{time_point{cam_time_point},
                                          cur_gyro.cast<float>(),
                                          cur_accel.cast<float>(), ir_left, ir_right}));
         auto stop = std::chrono::high_resolution_clock::now();
@@ -535,6 +552,7 @@ private:
     ACameraCaptureSession* captureSession = nullptr;
     static const int IMAGE_WIDTH = 752;
     static const int IMAGE_HEIGHT = 480;
+    struct android_imu_struct *imu;
 };
 
 PLUGIN_MAIN(android_imu_cam);

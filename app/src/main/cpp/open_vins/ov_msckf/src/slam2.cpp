@@ -131,7 +131,7 @@ VioManagerOptions create_params()
 	extrinsics_1.block(0, 0, 4, 1) = rot_2_quat(T_CtoI_1.block(0, 0, 3, 3).transpose());
 	extrinsics_1.block(4, 0, 3, 1) = -T_CtoI_1.block(0, 0, 3, 3).transpose() * T_CtoI_1.block(0, 3, 3, 1);
 
-    params.state_options.num_cameras = 1;
+    params.state_options.num_cameras = 2;
     params.use_stereo = false;
     if(params.state_options.num_cameras == 2) {
         params.camera_fisheye.insert({1, false});
@@ -164,8 +164,8 @@ VioManagerOptions create_params()
   // Hand tuned
   params.num_pts = 200;
 #elif ANDROID_CAM
-    params.num_pts = 100;
-//	params.num_pts = 150;
+//    params.num_pts = 100;
+	params.num_pts = 150;
 
 #else
   params.num_pts = 150;
@@ -177,23 +177,23 @@ VioManagerOptions create_params()
 	params.state_options.do_fej = true;
 	params.state_options.use_rk4_integration = true;
 
-//	params.state_options.do_calib_camera_pose = true;
-//	params.state_options.do_calib_camera_intrinsics = true;
-//	params.state_options.do_calib_camera_timeoffset = true;
+	params.state_options.do_calib_camera_pose = true;
+	params.state_options.do_calib_camera_intrinsics = true;
+	params.state_options.do_calib_camera_timeoffset = true;
 
-    params.state_options.do_calib_camera_pose = false;
-    params.state_options.do_calib_camera_intrinsics = false;
-    params.state_options.do_calib_camera_timeoffset = false;
+//    params.state_options.do_calib_camera_pose = false;
+//    params.state_options.do_calib_camera_intrinsics = false;
+//    params.state_options.do_calib_camera_timeoffset = false;
 
 	params.dt_slam_delay = 3.0;
 //
-//	params.state_options.max_slam_features = 50;
-//    params.state_options.max_slam_in_update = 25;
-//    params.state_options.max_msckf_in_update = 999;
+	params.state_options.max_slam_features = 50;
+    params.state_options.max_slam_in_update = 25;
+    params.state_options.max_msckf_in_update = 999;
 
-    params.state_options.max_slam_features = 20;
-    params.state_options.max_slam_in_update = 10;
-    params.state_options.max_msckf_in_update = 100;
+//    params.state_options.max_slam_features = 20;
+//    params.state_options.max_slam_in_update = 10;
+//    params.state_options.max_msckf_in_update = 100;
 
 #ifdef ZED
   // Pixel noise; ZED works with defaults values but these may better account for rolling shutter
