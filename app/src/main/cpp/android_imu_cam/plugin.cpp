@@ -68,7 +68,7 @@ public:
 //        remove("/sdcard/Android/data/com.example.native_activity/cam0/*.png");
 //        myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
 //        camfile.open("/sdcard/Android/data/com.example.native_activity/data.csv");
-        struct android_imu_struct *imu = new android_imu_struct();
+        imu = new android_imu_struct();
         std::thread (android_run_thread, imu).detach();
     }
 
@@ -188,8 +188,7 @@ public:
 
         ALooper *looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
 
-        d->event_queue = ASensorManager_createEventQueue(d->sensor_manager, looper, ALOOPER_POLL_CALLBACK,
-                                                         android_sensor_callback, (void *)d);
+        d->event_queue = ASensorManager_createEventQueue(d->sensor_manager, looper, 3, NULL, NULL);
 
         // Start sensors in case this was not done already.
         if (d->accelerometer != NULL) {
@@ -200,21 +199,40 @@ public:
             ASensorEventQueue_enableSensor(d->event_queue, d->gyroscope);
             ASensorEventQueue_setEventRate(d->event_queue, d->gyroscope, poll_rate_usec);
         }
-//        if (d->gravity != NULL) {
-//            ASensorEventQueue_enableSensor(d->event_queue, d->gravity);
-//            ASensorEventQueue_setEventRate(d->event_queue, d->gravity, poll_rate_usec);
-//        }
+
         int ret = 0;
-        while (ret != ALOOPER_POLL_ERROR) {
-            ret = ALooper_pollAll(0, NULL, NULL, NULL);
+        while(ret != ALOOPER_POLL_ERROR) {
+            ret = ALooper_pollOnce(0, NULL, NULL, NULL);
+            ASensorEvent event;
+            while (ASensorEventQueue_getEvents(d->event_queue, &event, 1) >
+                   0) {
+                switch (event.type) {
+                    case ASENSOR_TYPE_ACCELEROMETER:
+                        accel[0] = event.acceleration.x;
+                        accel[1] = event.acceleration.y;
+                        accel[2] = event.acceleration.z;
+                        break;
+                    case ASENSOR_TYPE_GYROSCOPE:
+                        gyro[0] = event.data[0];
+                        gyro[1] = event.data[1];
+                        gyro[2] = event.data[2];
+                        break;
+                }
+            }
+            sleep(5);
         }
+
+//        int ret = 0;
+//        while (ret != ALOOPER_POLL_ERROR) {
+//            ret = ALooper_pollAll(0, NULL, NULL, NULL);
+//        }
         //myfile.close();
 
         return NULL;
     }
 
     //Reference: https://github.com/sixo/native-camera/tree/93b05aec6d05604a314dc822b6b09a4cbc3d5104
-     static void imageCallback(void* context, AImageReader* reader)
+    static void imageCallback(void* context, AImageReader* reader)
     {
         AImage *image = nullptr;
         AImageReader_acquireNextImage(reader, &image);
@@ -229,25 +247,25 @@ public:
 
         // Try to process data without blocking the callback
         //std::thread processor([=](){
-            uint8_t *rPixel;
-            int32_t rLen;
-            int32_t yPixelStride, yRowStride;
-            AImage_getPlanePixelStride(image, 0, &yPixelStride);
-            AImage_getPlaneRowStride(image, 0, &yRowStride);
-            AImage_getPlaneData(image, 0, &rPixel, &rLen);
-            uint8_t * data = new uint8_t[rLen];
+        uint8_t *rPixel;
+        int32_t rLen;
+        int32_t yPixelStride, yRowStride;
+        AImage_getPlanePixelStride(image, 0, &yPixelStride);
+        AImage_getPlaneRowStride(image, 0, &yRowStride);
+        AImage_getPlaneData(image, 0, &rPixel, &rLen);
+        uint8_t * data = new uint8_t[rLen];
 
-            if (yPixelStride == 1) {
-                for (int y = 0; y < IMAGE_HEIGHT; y++)
-                    memcpy(data + y*IMAGE_WIDTH, rPixel + y*yRowStride, IMAGE_WIDTH);
-            }
-            cv::Mat rawData( IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC1, (uint8_t *)data);
-            mtx.lock();
-            last_image = rawData.clone();
-            mtx.unlock();
-            img_ready = true;
-            AImage_delete(image);
-            delete[] data;
+        if (yPixelStride == 1) {
+            for (int y = 0; y < IMAGE_HEIGHT; y++)
+                memcpy(data + y*IMAGE_WIDTH, rPixel + y*yRowStride, IMAGE_WIDTH);
+        }
+        cv::Mat rawData( IMAGE_HEIGHT, IMAGE_WIDTH, CV_8UC1, (uint8_t *)data);
+        mtx.lock();
+        last_image = rawData.clone();
+        mtx.unlock();
+        img_ready = true;
+        AImage_delete(image);
+        delete[] data;
 //        });
 //        processor.detach();
         auto stop = std::chrono::high_resolution_clock::now();
@@ -261,7 +279,7 @@ public:
     {
         AImageReader* reader = nullptr;
         media_status_t status =
-        AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888 , 10, &reader);
+                AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888 , 10, &reader);
 
         if (status != AMEDIA_OK)
         {
@@ -326,17 +344,17 @@ public:
     };
 
     static void onCaptureFailed(void* context, ACameraCaptureSession* session,
-                         ACaptureRequest* request, ACameraCaptureFailure* failure)
+                                ACaptureRequest* request, ACameraCaptureFailure* failure)
     {
         LOGA("onCaptureFailed ");
     }
 
     static void onCaptureSequenceCompleted(void* context, ACameraCaptureSession* session,
-                                    int sequenceId, int64_t frameNumber)
+                                           int sequenceId, int64_t frameNumber)
     {}
 
     static void onCaptureSequenceAborted(void* context, ACameraCaptureSession* session,
-                                  int sequenceId)
+                                         int sequenceId)
     {}
 
     static void onCaptureCompleted (
@@ -465,6 +483,8 @@ public:
         }
         auto start = std::chrono::high_resolution_clock::now();
 
+
+
         double ts = std::chrono::system_clock::now().time_since_epoch().count();//current_ts;
         ullong cam_time = static_cast<ullong>(ts * 1000);
         if (!_m_first_cam_time) {
@@ -499,15 +519,15 @@ public:
             mtx.unlock();
         }
 
-       // time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
+        time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
 
-        time_point curr_time =_m_clock->now();
+//        time_point curr_time =_m_clock->now();
         //LOGA("TIME = %lf and cam_time %llu",duration2double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
 //        _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
         _m_imu_cam.put(_m_imu_cam.allocate<imu_cam_type>(
-                            imu_cam_type{time_point{curr_time},
-                                         cur_gyro.cast<float>(),
-                                         cur_accel.cast<float>(), ir_left, ir_right}));
+                imu_cam_type{time_point{cam_time_point},
+                             cur_gyro.cast<float>(),
+                             cur_accel.cast<float>(), ir_left, ir_right}));
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         LOGA("duration: %f", duration2double(duration));
@@ -535,6 +555,7 @@ private:
     ACameraCaptureSession* captureSession = nullptr;
     static const int IMAGE_WIDTH = 752;
     static const int IMAGE_HEIGHT = 480;
+    struct android_imu_struct *imu;
 };
 
 PLUGIN_MAIN(android_imu_cam);
