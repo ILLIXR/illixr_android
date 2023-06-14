@@ -206,6 +206,7 @@ public:
             ASensorEvent event;
             while (ASensorEventQueue_getEvents(d->event_queue, &event, 1) >
                    0) {
+                _m_lock.lock();
                 switch (event.type) {
                     case ASENSOR_TYPE_ACCELEROMETER:
                         accel[0] = event.acceleration.x;
@@ -218,6 +219,7 @@ public:
                         gyro[2] = event.data[2];
                         break;
                 }
+                _m_lock.unlock();
             }
             sleep(5);
         }
