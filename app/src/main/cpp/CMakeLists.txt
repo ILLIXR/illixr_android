@@ -23,19 +23,19 @@ set(ILLIXR_INTEGRATION 1)
 #find_package(OpenCV REQUIRED)
 #set(CMAKE_BUILD_TYPE "Release")
 # eclares and names the project.
-include_directories(~/opencv/android_build/out/sdk/native/jni/include)
-include_directories(~/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni/include)
+include_directories(/Users/madhuparnabhowmik/out/sdk/native/jni/include)
+include_directories(/Users/madhuparnabhowmik/OpenCV-android-sdk/sdk/native/jni/include)
 #include_directories(SYSTEM /home/madhuparna/opencv/include)
-set(BOOST_ROOT /home/madhuparna/boost-android/arm64/include)
-set(EIGEN_DIR /home/madhuparna/Downloads/eigen-3.4.0)
+set(BOOST_ROOT /Users/madhuparnabhowmik/boost-libs/arm64/include)
+set(EIGEN_DIR /Users/madhuparnabhowmik/eigen-3.4.0)
 #find_package(Boost)
 #find_package(Boost)
 #include_directories(${Boost_INCLUDE_DIRS})
 
 include_directories(GLFW)
 include_directories(Eigen)
-include_directories(/home/madhuparna/AndroidStudioProjects/illixr-native-activity/app/src/main/cpp/boost)
-include_directories(/home/madhuparna/Android/Sdk/ndk/21.4.7075529/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/boost/thread/detail/thread.hpp)
+#include_directories(/home/madhuparna/AndroidStudioProjects/illixr-native-activity/app/src/main/cpp/boost)
+#include_directories(/home/madhuparna/Android/Sdk/ndk/21.4.7075529/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/boost/thread/detail/thread.hpp)
 include_directories(common)
 include_directories(runtime)
 include_directories(timewarp_gl)
@@ -146,84 +146,84 @@ add_library(android_imu_cam
 add_library( cv_core-lib SHARED IMPORTED)
 set_target_properties( cv_core-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_core.so )
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_core.so )
 
 add_library( cv_imgproc-lib SHARED IMPORTED)
 set_target_properties( cv_imgproc-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_imgproc.so )
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_imgproc.so )
 
 add_library( cv_imgcodecs-lib SHARED IMPORTED)
 set_target_properties( cv_imgcodecs-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_imgcodecs.so )
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_imgcodecs.so )
 
 add_library( cv_tracking-lib SHARED IMPORTED)
 set_target_properties( cv_tracking-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_tracking.so )
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_tracking.so )
 
 add_library( cv_video-lib SHARED IMPORTED)
 set_target_properties( cv_video-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_video.so)
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_video.so)
 
 add_library( cv_calib3d-lib SHARED IMPORTED)
 set_target_properties( cv_calib3d-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_calib3d.so)
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_calib3d.so)
 
 
 add_library( cv_highgui-lib SHARED IMPORTED)
 set_target_properties( cv_highgui-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_highgui.so)
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_highgui.so)
 
 add_library( cv_features2d-lib SHARED IMPORTED)
 set_target_properties( cv_features2d-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_features2d.so)
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_features2d.so)
 
 add_library( cv_aruco-lib SHARED IMPORTED)
 set_target_properties( cv_aruco-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_aruco.so)
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_aruco.so)
 
 add_library( cv_dnn-lib SHARED IMPORTED)
 set_target_properties( cv_dnn-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_dnn.so)
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_dnn.so)
 
 add_library( cv_flann-lib SHARED IMPORTED)
 set_target_properties( cv_flann-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_flann.so)
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_flann.so)
 
 add_library( cv_objdetect-lib SHARED IMPORTED)
 set_target_properties( cv_objdetect-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/opencv/android_build/lib/arm64-v8a/libopencv_objdetect.so)
+        /Users/madhuparnabhowmik/arm64-v8a/libopencv_objdetect.so)
 
 #Boost
 add_library( boost_chrono-lib SHARED IMPORTED)
 set_target_properties( boost_chrono-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/boost-android/arm64/lib/libboost_chrono.so)
+        /Users/madhuparnabhowmik/boost-libs/arm64/include/libboost_chrono.so)
 
 add_library( boost_thread-lib SHARED IMPORTED)
 set_target_properties( boost_thread-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/boost-android/arm64/lib/libboost_thread.so)
+        /Users/madhuparnabhowmik/boost-libs/arm64/include/libboost_thread.so)
 
 add_library( boost_filesystem-lib SHARED IMPORTED)
 set_target_properties( boost_filesystem-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/boost-android/arm64/lib/libboost_filesystem.so)
+        /Users/madhuparnabhowmik/boost-libs/arm64/include/libboost_filesystem.so)
 
 add_library( boost_atomic-lib SHARED IMPORTED)
 set_target_properties( boost_atomic-lib
         PROPERTIES IMPORTED_LOCATION
-        /home/madhuparna/boost-android/arm64/lib/libboost_atomic.so)
+        /Users/madhuparnabhowmik/boost-libs/arm64/include/libboost_atomic.so)
 
 add_library(ov_core_lib
         SHARED
@@ -364,14 +364,12 @@ target_include_directories(ov_core_lib PRIVATE
         ${EIGEN_DIR}
         ${BOOST_ROOT}
         ${jnigraphics-lib}
-        ${BOOST_ROOT}
         ${ANDROID_NDK}/sources/android/native_app_glue
         )
 
 target_include_directories(ov_msckf_lib PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${BOOST_ROOT}
         open_vins/ov_core
@@ -523,6 +521,7 @@ target_link_libraries(ov_core_lib
         cv_dnn-lib
         cv_flann-lib
         cv_objdetect-lib
+        ${BOOST_ROOT}
         boost_chrono-lib
         boost_thread-lib
         boost_filesystem-lib
@@ -540,6 +539,10 @@ target_link_libraries(ov_msckf_lib
         cv_imgproc-lib
         cv_tracking-lib
         cv_calib3d-lib
+        boost_chrono-lib
+        boost_thread-lib
+        boost_filesystem-lib
+        boost_atomic-lib
         android
         )
 
@@ -552,6 +555,7 @@ target_link_libraries(slam
         cv_core-lib
         cv_imgproc-lib
         cv_tracking-lib
+        ${BOOST_ROOT}
         boost_chrono-lib
         boost_thread-lib
         boost_filesystem-lib

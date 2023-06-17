@@ -5,16 +5,16 @@ plugins {
 android {
     signingConfigs {
         debug {
-            storeFile file('/home/madhuparna/Desktop/illixr_key.jks')
-            storePassword 'illixr96'
+            storeFile file('/Users/madhuparnabhowmik/illixr_key')
+            storePassword 'illixr_key'
             keyAlias 'key0'
-            keyPassword 'illixr96'
+            keyPassword 'illixr_key'
         }
         release {
-            storeFile file('/home/madhuparna/Desktop/illixr_key.jks')
-            storePassword 'illixr96'
+            storeFile file('/Users/madhuparnabhowmik/illixr_key')
+            storePassword 'illixr_key'
             keyAlias 'key0'
-            keyPassword 'illixr96'
+            keyPassword 'illixr_key'
         }
     }
     compileSdkVersion 32
@@ -46,7 +46,7 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'),
                     'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.debug
         }
     }
     externalNativeBuild {
