@@ -24,7 +24,7 @@
 #include <filesystem>
 
 #define LOGA(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android_cam", __VA_ARGS__))
-#define POLL_RATE_USEC 5000
+#define POLL_RATE_USEC 1000
 
 using namespace ILLIXR;
 
@@ -44,8 +44,9 @@ static cv::Mat last_image;
 static bool img_ready = false;
 static std::mutex mtx;
 //static double current_ts = 0;
-//std::ofstream myfile;
-//std::ofstream camfile;
+std::ofstream myfile;
+std::ofstream camfile;
+ullong imu_ts = 0;
 static double cam_proc_time;
 static double imu_time;
 bool once = false;
@@ -66,8 +67,8 @@ public:
         initCam();
         //std::filesystem::create_directories("/sdcard/Android/data/com.example.native_activity/cam0/");
 //        remove("/sdcard/Android/data/com.example.native_activity/cam0/*.png");
-//        myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
-//        camfile.open("/sdcard/Android/data/com.example.native_activity/data.csv");
+        myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
+        camfile.open("/sdcard/Android/data/com.example.native_activity/data.csv");
         imu = new android_imu_struct();
         std::thread (android_run_thread, imu).detach();
     }
@@ -84,8 +85,8 @@ public:
         AImageReader_delete(imageReader);
         imageReader = nullptr;
         ACaptureRequest_free(request);
-//        myfile.close();
-//        camfile.close();
+        myfile.close();
+        camfile.close();
     }
 
     static int
@@ -171,7 +172,7 @@ public:
     static void *
     android_run_thread(void *ptr)
     {
-        //myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
+//        myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
         struct android_imu_struct *d = (struct android_imu_struct *)ptr;
         const int32_t poll_rate_usec = POLL_RATE_USEC;
 
@@ -221,16 +222,17 @@ public:
                         LOGA("GYRO ...");
                         break;
                 }
+                imu_ts = event.timestamp;
                 _m_lock.unlock();
             }
-            sleep(5);
+            sleep(1);
         }
 
 //        int ret = 0;
 //        while (ret != ALOOPER_POLL_ERROR) {
 //            ret = ALooper_pollAll(0, NULL, NULL, NULL);
 //        }
-        //myfile.close();
+//        myfile.close();
 
         return NULL;
     }
@@ -485,25 +487,27 @@ public:
         if (!_m_clock->is_started()) {
             return;
         }
+        if(imu_ts == 0)
+            return;
         auto start = std::chrono::high_resolution_clock::now();
 
 
 
         double ts = std::chrono::system_clock::now().time_since_epoch().count();//current_ts;
         ullong cam_time = static_cast<ullong>(ts * 1000);
-        if (!_m_first_cam_time) {
-            _m_first_cam_time      = cam_time;
-            _m_first_real_time_cam = _m_clock->now();
+        if (!_m_first_imu_time) {
+            _m_first_imu_time      = cam_time;//imu_ts;
+            _m_first_real_time_imu = _m_clock->now();
         }
-        double last_imu_time = 0;
+        ullong last_imu_time = 0;
         double last_cam_time = 0;
         _m_lock.lock();
         Eigen::Vector3f cur_gyro = gyro;
         Eigen::Vector3f cur_accel = accel;
         counter++;
-//        myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
-//                  std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
-        last_imu_time = imu_time;
+        myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
+                  std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
+        last_imu_time = imu_ts;
         imu_time = 0;
         _m_lock.unlock();
 
@@ -513,17 +517,17 @@ public:
             mtx.lock();
             ir_left = std::make_optional<cv::Mat>(last_image);
             ir_right = std::make_optional<cv::Mat>(last_image);
-//            uint64_t name = (uint64_t)ts*1000;
-//            bool check = cv::imwrite(
-//                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
-//            LOGA("ANDROID CAM CHECK %d", check);
-//            camfile << std::to_string((uint64_t)ts*1000) << "," << std::to_string(name) + ".png" <<std::endl;
+            uint64_t name = (uint64_t)ts*1000;
+            bool check = cv::imwrite(
+                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
+            LOGA("ANDROID CAM CHECK %d", check);
+            camfile << std::to_string((uint64_t)ts*1000) << "," << std::to_string(name) + ".png" <<std::endl;
             last_cam_time = cam_proc_time;
             cam_proc_time = 0;
             mtx.unlock();
         }
 
-        time_point cam_time_point{*_m_first_real_time_cam + std::chrono::nanoseconds(cam_time - *_m_first_cam_time)};
+        time_point cam_time_point{*_m_first_real_time_imu + std::chrono::nanoseconds(last_imu_time - *_m_first_imu_time)};
 
 //        time_point curr_time =_m_clock->now();
         //LOGA("TIME = %lf and cam_time %llu",duration2double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
@@ -545,8 +549,8 @@ private:
     //switchboard::writer<cam_type>              _m_cam;
     switchboard::writer<imu_cam_type>           _m_imu_cam;
 
-    std::optional<ullong>     _m_first_cam_time;
-    std::optional<time_point> _m_first_real_time_cam;
+    std::optional<ullong>     _m_first_imu_time;
+    std::optional<time_point> _m_first_real_time_imu;
 
     ACameraManager* cameraManager = nullptr;
     ACameraDevice* cameraDevice = nullptr;
