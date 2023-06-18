@@ -205,7 +205,7 @@ public:
         while(ret != ALOOPER_POLL_ERROR) {
             ret = ALooper_pollOnce(0, NULL, NULL, NULL);
             ASensorEvent event;
-            while (ASensorEventQueue_getEvents(d->event_queue, &event, 1) >
+            while (ASensorEventQueue_getEvents(d->event_queue, &event, 2) >
                    0) {
                 _m_lock.lock();
                 switch (event.type) {
@@ -225,7 +225,7 @@ public:
                 imu_ts = event.timestamp;
                 _m_lock.unlock();
             }
-            sleep(1);
+            std::this_thread::sleep_for(std::chrono::milliseconds{5});
         }
 
 //        int ret = 0;
@@ -527,13 +527,13 @@ public:
             mtx.unlock();
         }
 
-        time_point cam_time_point{*_m_first_real_time_imu + std::chrono::nanoseconds(last_imu_time - *_m_first_imu_time)};
+//        time_point cam_time_point{*_m_first_real_time_imu + std::chrono::nanoseconds(last_imu_time - *_m_first_imu_time)};
 
-//        time_point curr_time =_m_clock->now();
+        time_point curr_time =_m_clock->now();
         //LOGA("TIME = %lf and cam_time %llu",duration2double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
 //        _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
         _m_imu_cam.put(_m_imu_cam.allocate<imu_cam_type>(
-                imu_cam_type{time_point{cam_time_point},
+                imu_cam_type{time_point{curr_time},
                              cur_gyro.cast<float>(),
                              cur_accel.cast<float>(), ir_left, ir_right}));
         auto stop = std::chrono::high_resolution_clock::now();
