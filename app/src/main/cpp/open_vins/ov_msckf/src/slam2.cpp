@@ -223,9 +223,9 @@ VioManagerOptions create_params()
 
 	params.use_aruco = false;
 
-	//params.state_options.feat_rep_slam = LandmarkRepresentation::from_string("ANCHORED_MSCKF_INVERSE_DEPTH");
-	//params.state_options.feat_rep_slam = LandmarkRepresentation::from_string("ANCHORED_FULL_INVERSE_DEPTH");
-    //params.state_options.feat_rep_aruco = LandmarkRepresentation::from_string("ANCHORED_FULL_INVERSE_DEPTH");
+//	params.state_options.feat_rep_slam = LandmarkRepresentation::from_string("ANCHORED_MSCKF_INVERSE_DEPTH");
+//	params.state_options.feat_rep_slam = LandmarkRepresentation::from_string("ANCHORED_FULL_INVERSE_DEPTH");
+//    params.state_options.feat_rep_aruco = LandmarkRepresentation::from_string("ANCHORED_FULL_INVERSE_DEPTH");
 
 	return params;
 }
