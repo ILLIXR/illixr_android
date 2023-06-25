@@ -225,7 +225,7 @@ public:
                 imu_ts = event.timestamp;
                 _m_lock.unlock();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds{3});
+            std::this_thread::sleep_for(std::chrono::milliseconds{1});
         }
 
 //        int ret = 0;
@@ -505,8 +505,8 @@ public:
         Eigen::Vector3f cur_gyro = gyro;
         Eigen::Vector3f cur_accel = accel;
         counter++;
-        myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
-                  std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
+//        myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
+//                  std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
         last_imu_time = imu_ts;
         imu_time = 0;
         _m_lock.unlock();
@@ -517,11 +517,11 @@ public:
             mtx.lock();
             ir_left = std::make_optional<cv::Mat>(last_image);
             ir_right = std::make_optional<cv::Mat>(last_image);
-            uint64_t name = (uint64_t)ts*1000;
-            bool check = cv::imwrite(
-                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
-            LOGA("ANDROID CAM CHECK %d", check);
-            camfile << std::to_string((uint64_t)ts*1000) << "," << std::to_string(name) + ".png" <<std::endl;
+//            uint64_t name = (uint64_t)ts*1000;
+//            bool check = cv::imwrite(
+//                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
+//            LOGA("ANDROID CAM CHECK %d", check);
+//            camfile << std::to_string((uint64_t)ts*1000) << "," << std::to_string(name) + ".png" <<std::endl;
             last_cam_time = cam_proc_time;
             cam_proc_time = 0;
             mtx.unlock();
