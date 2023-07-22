@@ -18,14 +18,14 @@ cmake_minimum_required(VERSION 3.18.0)
 
 # OpenCV
 set(OpenCV_STATIC ON)
-set(OpenCV_DIR ~/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni)
-include_directories(~/Downloads/opencv-4.5.5-android-sdk/OpenCV-android-sdk/sdk/native/jni/include)
+set(OpenCV_DIR /Users/madhuparnabhowmik/OpenCV-android-sdk/sdk/native/jni)
+include_directories(/Users/madhuparnabhowmik/OpenCV-android-sdk/sdk/native/jni/include)
 
 #Boost
-set(BOOST_ROOT /home/madhuparna/boost-android/arm64/include)
+set(BOOST_ROOT /Users/madhuparnabhowmik/boost-libs/arm64/include)
 
 #Eigen
-set(EIGEN_LIB /home/madhuparna/Downloads/eigen-3.4.0)
+set(EIGEN_LIB /Users/madhuparnabhowmik/eigen-3.4.0)
 
 set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
 add_library(native_app_glue STATIC
