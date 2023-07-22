@@ -42,7 +42,7 @@ This repository still needs reviews from ILLIXR developers. It is only meant to 
 
 ### Setup Eigen
 
-1. Download Latest release of EIgen from [here](https://eigen.tuxfamily.org/index.php?title=Main_Page).
+1. Download Latest release of Eigen from [here](https://eigen.tuxfamily.org/index.php?title=Main_Page).
 
 2. Change Line 28 in `app/src/main/cpp/CMakeLists.txt` with the installed Eigen directory path.
 
