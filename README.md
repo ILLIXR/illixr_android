@@ -30,9 +30,14 @@ This repository still needs reviews from ILLIXR developers. It is only meant to 
 
 ### Setup OpenCV
 
-1. Download OpenCV 4.5.5 from [here](https://opencv.org/releases/). Click on the Android option. Download and extract the zip file.
+1. Download compiled OpenCV libs for arm64 from [here](https://drive.google.com/file/d/1num-InuN1ti2WoRF7fFrb8d-XviG8zBe/view?usp=sharing). For other architectures build them following this [guide](https://mdeore.medium.com/latest-android-ndk-to-build-opencv-ccecd11efa82). Make sure that you build the required modules (see CMakeLists).
 
-2. Change Line 21 and 22 in `app/src/main/cpp/CMakeLists.txt` with the OpenCV folder path.
+2. Change Line 21 and 22 in `app/src/main/cpp/CMakeLists.txt` to the path to the extracted folder.
+
+[//]: # (3. Download OpenCV 4.5.5 from [here]&#40;https://opencv.org/releases/&#41;. Click on the Android option. Download and extract the zip file.)
+
+[//]: # ()
+[//]: # (4. Change Line 22 in `app/src/main/cpp/CMakeLists.txt` with the OpenCV folder path.)
 
 ### Setup Boost
 
@@ -45,6 +50,14 @@ This repository still needs reviews from ILLIXR developers. It is only meant to 
 1. Download Latest release of Eigen from [here](https://eigen.tuxfamily.org/index.php?title=Main_Page).
 
 2. Change Line 28 in `app/src/main/cpp/CMakeLists.txt` with the installed Eigen directory path.
+
+### Install OpenVINS
+
+1. `git clone https://github.com/ILLIXR/open_vins.git`
+
+2. `git switch android_open_vins`
+
+3. Copy OpenVINS to the `app/src/main/cpp` folder.
 
 ### Install Application Data
 
