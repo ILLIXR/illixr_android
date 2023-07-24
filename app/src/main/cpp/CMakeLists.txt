@@ -326,3 +326,62 @@ target_link_libraries(slam
         cv_imgproc-lib
         cv_tracking-lib
         )
+# Pose Prediction
+add_library(pose_prediction
+        SHARED
+        pose_prediction/plugin.cpp
+        )
+
+target_include_directories(pose_prediction PRIVATE
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_link_libraries(pose_prediction
+        EGL
+        GLESv3
+        log
+        )
+
+# Rk4 Integrator
+add_library(rk4_integrator
+        SHARED
+        rk4_integrator/plugin.cpp
+        )
+
+target_include_directories(rk4_integrator PRIVATE
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_link_libraries(rk4_integrator
+        EGL
+        GLESv3
+        log
+        )
+
+# Offline IMU Cam
+
+add_library(offline_imu_cam
+        SHARED
+        offline_imu_cam/plugin.cpp
+        )
+
+target_include_directories(offline_imu_cam PRIVATE
+        ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_link_libraries(offline_imu_cam
+        EGL
+        GLESv3
+        log
+        cv_core-lib
+        cv_imgproc-lib
+        cv_highgui-lib
+        cv_imgcodecs-lib
+        )
