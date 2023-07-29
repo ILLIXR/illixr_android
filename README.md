@@ -4,7 +4,7 @@
 
 ### Disclaimer
 
-This repository still needs reviews from ILLIXR developers. It is only meant to be used for reviewing code for Android. Currently, it only contains code to run ILLIXR with GlDemo + pose_lookup (Ground Truth Pose from EuRoC Dataset). The instructions are only tested on Ubuntu 20 and Android Debug build (Release build requires signing the apk, those instructions will be added later).
+This repository still needs reviews from ILLIXR developers. It is only meant to be used for reviewing code for Android. Currently, it only contains code to run ILLIXR with GlDemo. The instructions are only tested on Ubuntu 20.
 
 ### Android Studio Setup
 
@@ -76,6 +76,28 @@ mav0 contains the groun truth pose form EuRoC dataset required for Pose_lookup a
 
 1. The application needs permissino to read and write files. Go to setting in the Android phone, search for native-activity. In the application details go to the permissions section. It will show all the permission that are denied to the application. Click on them to allow the app these permissions. This step may look different based on the specific phone model.
 
-### Run the app
+### App Configuration
 
-Now we have everything we need to run GlDemo on an Android Phone. Hit the run button, it should open the application and you can see the GlDemo scene.
+1. The user can select which plugins they want to run. To change the list of plugins edit "arguments" in `cpp/main.cpp`. Make sure you have built the plugin and provided the correct shared object name. If the .so is not found it will lead to a runtime error.
+
+2. Common configurations:
+
+   a. GlDemo with Pose Lookup: `std::vector<std::string> arguments = { "", "libpose_lookup.so", "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};`
+
+   b. GlDemo with OpenVINS and EuROC dataset: `std::vector<std::string> arguments = { "", "libslam.so", "liboffline_imu_cam.so", "librk4_integrator.so", "libpose_prediction.so", "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};`
+
+   c. GlDemo with OpenVINS and Android Cam/IMU: `std::vector<std::string> arguments = { "", "libslam.so", "libandroid_imu_cam.so", "librk4_integrator.so", "libpose_prediction.so", "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};`
+
+3. OpenVINS params:
+
+   OpenVINS needs the intrinsics of the Camera/IMU. These parameters will differ based on if you are using a dataset like EuROC or using the device's Camera/IMU. Currently, the default configuration is EuROC, so to use an Android phone's Camera/IMU we need to use enable it.
+
+   Uncomment `#define ANDROID_CAM 1` to use a smartphone's intrinsics. Currently, we have kept general values applicable to most Android phones based on [this](https://github.com/OSUPCVLab/mobile-ar-sensor-logger/wiki#configure-imu-parameters). However, you can calibrate your device using [Kalibr](https://github.com/ethz-asl/kalibr) and update these device specific values.
+
+4. Build Variant:
+
+   The debug build of the application is very inefficient and most likely tracking won't work on most phones with the debug build. For release build we need to sign the APK, follow instructions [here](https://developer.android.com/studio/publish/app-signing) to create a signing configuration. Select APK option and not the App Bundle option.
+
+   After you have created the signing config for release, to change the build variant navigate to ***Build -> Select Build Variants*** then on the left-hand side panel, change ***Active Build Variant*** to ***release***.
+
+5. Now we have everything we need to run GlDemo on an Android Phone. Hit the run button, it should open the application and you can see the GlDemo scene. ***Note that tracking with OpenVINS will only work with release build***.
