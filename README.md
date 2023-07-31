@@ -74,7 +74,9 @@ mav0 contains the groun truth pose form EuRoC dataset required for Pose_lookup a
 
 ### Provide App permissions
 
-1. The application needs permissino to read and write files. Go to setting in the Android phone, search for native-activity. In the application details go to the permissions section. It will show all the permission that are denied to the application. Click on them to allow the app these permissions. This step may look different based on the specific phone model.
+1. The application needs permission to read and write files. Go to setting in the Android phone, search for native-activity. In the application details go to the permissions section. It will show all the permission that are denied to the application. Click on them to allow the app these permissions. This step may look different based on the specific phone model.
+
+2. If you are using the Android IMU CAM plugin, you will also need to enable the Camera permission for the application to work.
 
 ### App Configuration
 
@@ -100,4 +102,4 @@ mav0 contains the groun truth pose form EuRoC dataset required for Pose_lookup a
 
    After you have created the signing config for release, to change the build variant navigate to ***Build -> Select Build Variants*** then on the left-hand side panel, change ***Active Build Variant*** to ***release***.
 
-5. Now we have everything we need to run GlDemo on an Android Phone. Hit the run button, it should open the application and you can see the GlDemo scene. ***Note that tracking with OpenVINS will only work with release build***.
+5. Now we have everything we need to run GlDemo on an Android Phone. Hit the run button, it should open the application and you can see the GlDemo scene. ***Note that tracking with OpenVINS will only work with release build***. Also, make sure to uncomment ANDROID_CAM in OpenVINS plugin for using the Android IMU Cam plugin for online tracking.

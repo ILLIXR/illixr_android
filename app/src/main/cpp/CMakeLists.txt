@@ -130,6 +130,7 @@ set_target_properties( boost_atomic-lib
         PROPERTIES IMPORTED_LOCATION
         ${BOOST_ROOT}/libboost_atomic.so)
 
+# Runtime plugin
 add_library(native-activity
         SHARED
         main.cpp
@@ -148,7 +149,7 @@ target_link_libraries(native-activity
         GLESv3
         log)
 
-#For Monado
+# For Monado
 #add_library(runtime
 #        SHARED
 #        runtime/plugin.cpp)
@@ -159,7 +160,7 @@ target_link_libraries(native-activity
 #        log)
 
 
-#GlDemo
+# GlDemo
 add_library(gldemo
         SHARED
         gldemo/plugin.cpp)
@@ -173,7 +174,7 @@ target_link_libraries(gldemo
         GLESv3
         log)
 
-#Common Lock
+# Common Lock
 add_library(common_lock
         SHARED
         common_lock/plugin.cpp)
@@ -185,7 +186,7 @@ target_include_directories(common_lock PRIVATE
 target_link_libraries(common_lock
         log)
 
-#Log Service
+# Log Service
 add_library(log_service
         SHARED
         log_service/plugin.cpp)
@@ -197,7 +198,7 @@ target_include_directories(log_service PRIVATE
 target_link_libraries(log_service
         log)
 
-#Timewarp GL
+# Timewarp GL
 add_library(timewarp_gl
         SHARED
         timewarp_gl/plugin.cpp
@@ -213,7 +214,7 @@ target_link_libraries(timewarp_gl
         log
         android)
 
-#Pose Lookup
+# Pose Lookup
 add_library(pose_lookup
         SHARED
         pose_lookup/plugin.cpp)
@@ -227,7 +228,7 @@ target_link_libraries(pose_lookup
         GLESv3
         log)
 
-#OpenVINS
+# OpenVINS
 add_library(ov_core_lib
         SHARED
         open_vins/ov_core/src/dummy.cpp
@@ -239,8 +240,7 @@ add_library(ov_core_lib
         open_vins/ov_core/src/track/TrackSIM.cpp
         open_vins/ov_core/src/types/Landmark.cpp
         open_vins/ov_core/src/feat/Feature.cpp
-        open_vins/ov_core/src/feat/FeatureInitializer.cpp
-        )
+        open_vins/ov_core/src/feat/FeatureInitializer.cpp)
 
 add_library(ov_msckf_lib
         SHARED
@@ -250,21 +250,18 @@ add_library(ov_msckf_lib
         open_vins/ov_msckf/src/core/VioManager.cpp
         open_vins/ov_msckf/src/update/UpdaterHelper.cpp
         open_vins/ov_msckf/src/update/UpdaterMSCKF.cpp
-        open_vins/ov_msckf/src/update/UpdaterSLAM.cpp
-        )
+        open_vins/ov_msckf/src/update/UpdaterSLAM.cpp)
 
 add_library(slam
         SHARED
-        open_vins/ov_msckf/src/slam2.cpp
-        )
+        open_vins/ov_msckf/src/slam2.cpp)
 
 
 target_include_directories(ov_core_lib PRIVATE
         ${EIGEN_DIR}
         ${BOOST_ROOT}
         ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue
-        )
+        ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(ov_msckf_lib PRIVATE
         ${EIGEN_DIR}
@@ -313,8 +310,7 @@ target_link_libraries(ov_msckf_lib
         boost_thread-lib
         boost_filesystem-lib
         boost_atomic-lib
-        android
-        )
+        android)
 
 target_link_libraries(slam
         EGL
@@ -324,13 +320,12 @@ target_link_libraries(slam
         ov_msckf_lib
         cv_core-lib
         cv_imgproc-lib
-        cv_tracking-lib
-        )
+        cv_tracking-lib)
+
 # Pose Prediction
 add_library(pose_prediction
         SHARED
-        pose_prediction/plugin.cpp
-        )
+        pose_prediction/plugin.cpp)
 
 target_include_directories(pose_prediction PRIVATE
         ${EIGEN_DIR}
@@ -341,14 +336,12 @@ target_include_directories(pose_prediction PRIVATE
 target_link_libraries(pose_prediction
         EGL
         GLESv3
-        log
-        )
+        log)
 
 # Rk4 Integrator
 add_library(rk4_integrator
         SHARED
-        rk4_integrator/plugin.cpp
-        )
+        rk4_integrator/plugin.cpp)
 
 target_include_directories(rk4_integrator PRIVATE
         ${EIGEN_DIR}
@@ -359,15 +352,13 @@ target_include_directories(rk4_integrator PRIVATE
 target_link_libraries(rk4_integrator
         EGL
         GLESv3
-        log
-        )
+        log)
 
 # Offline IMU Cam
 
 add_library(offline_imu_cam
         SHARED
-        offline_imu_cam/plugin.cpp
-        )
+        offline_imu_cam/plugin.cpp)
 
 target_include_directories(offline_imu_cam PRIVATE
         ${OpenCV_LIBS}
@@ -383,5 +374,29 @@ target_link_libraries(offline_imu_cam
         cv_core-lib
         cv_imgproc-lib
         cv_highgui-lib
+        cv_imgcodecs-lib)
+
+# Android IMU Cam
+
+add_library(android_imu_cam
+        SHARED
+        android_imu_cam/plugin.cpp)
+
+target_include_directories(android_imu_cam PRIVATE
+        ${OpenCV_LIBS}
+        ${EIGEN_DIR}
+        ${BOOST_ROOT}
+        ${jnigraphics-lib}
+        ${ANDROID_NDK}/sources/android/native_app_glue)
+
+target_link_libraries(android_imu_cam
+        EGL
+        GLESv3
+        log
+        cv_core-lib
+        cv_imgproc-lib
+        cv_highgui-lib
         cv_imgcodecs-lib
-        )
+        camera2ndk
+        mediandk
+        android)
