@@ -16,17 +16,18 @@
 
 cmake_minimum_required(VERSION 3.22.1)
 
+set(Boost_USE_STATIC_LIBS ON)
 # build native_app_glue as a static lib
 set(OpenCV_STATIC ON)
 set(OpenCV_DIR $ENV{OPENCV_ANDROID}/sdk/native/jni)
 set(ILLIXR_INTEGRATION 1)
 #find_package(OpenCV REQUIRED)
+find_package(Boost 1.72 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic)
 #set(CMAKE_BUILD_TYPE "Release")
 # eclares and names the project.
 include_directories(/Users/madhuparnabhowmik/out/sdk/native/jni/include)
 include_directories(/Users/madhuparnabhowmik/OpenCV-android-sdk/sdk/native/jni/include)
 #include_directories(SYSTEM /home/madhuparna/opencv/include)
-set(BOOST_ROOT /Users/madhuparnabhowmik/boost-libs/arm64/include)
 set(EIGEN_DIR /Users/madhuparnabhowmik/eigen-3.4.0)
 #find_package(Boost)
 #find_package(Boost)
@@ -203,28 +204,6 @@ add_library( cv_objdetect-lib SHARED IMPORTED)
 set_target_properties( cv_objdetect-lib
         PROPERTIES IMPORTED_LOCATION
         /Users/madhuparnabhowmik/arm64-v8a/libopencv_objdetect.so)
-
-#Boost
-add_library( boost_chrono-lib SHARED IMPORTED)
-set_target_properties( boost_chrono-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/boost-libs/arm64/include/libboost_chrono.so)
-
-add_library( boost_thread-lib SHARED IMPORTED)
-set_target_properties( boost_thread-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/boost-libs/arm64/include/libboost_thread.so)
-
-add_library( boost_filesystem-lib SHARED IMPORTED)
-set_target_properties( boost_filesystem-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/boost-libs/arm64/include/libboost_filesystem.so)
-
-add_library( boost_atomic-lib SHARED IMPORTED)
-set_target_properties( boost_atomic-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/boost-libs/arm64/include/libboost_atomic.so)
-
 add_library(ov_core_lib
         SHARED
         open_vins/ov_core/src/dummy.cpp
@@ -265,63 +244,54 @@ add_library(slam
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(runtime PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(gldemo PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(common_lock PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(log_service PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(timewarp_gl PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(pose_lookup PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(pose_prediction PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(rk4_integrator PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
@@ -338,14 +308,12 @@ target_include_directories(rk4_integrator PRIVATE
 target_include_directories(offline_imu_cam PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(android_imu_cam PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
@@ -362,7 +330,6 @@ target_include_directories(android_imu_cam PRIVATE
 target_include_directories(ov_core_lib PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue
         )
@@ -371,14 +338,12 @@ target_include_directories(ov_msckf_lib PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
         ${jnigraphics-lib}
-        ${BOOST_ROOT}
         open_vins/ov_core
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(slam PRIVATE
         ${OpenCV_LIBS}
         ${EIGEN_DIR}
-        ${BOOST_ROOT}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
@@ -521,11 +486,10 @@ target_link_libraries(ov_core_lib
         cv_dnn-lib
         cv_flann-lib
         cv_objdetect-lib
-        ${BOOST_ROOT}
-        boost_chrono-lib
-        boost_thread-lib
-        boost_filesystem-lib
-        boost_atomic-lib
+        Boost::chrono
+        Boost::thread
+        Boost::filesystem
+        Boost::atomic
         android
         log)
 
@@ -539,10 +503,10 @@ target_link_libraries(ov_msckf_lib
         cv_imgproc-lib
         cv_tracking-lib
         cv_calib3d-lib
-        boost_chrono-lib
-        boost_thread-lib
-        boost_filesystem-lib
-        boost_atomic-lib
+        Boost::chrono
+        Boost::thread
+        Boost::filesystem
+        Boost::atomic
         android
         )
 
@@ -555,10 +519,10 @@ target_link_libraries(slam
         cv_core-lib
         cv_imgproc-lib
         cv_tracking-lib
-        ${BOOST_ROOT}
-        boost_chrono-lib
-        boost_thread-lib
-        boost_filesystem-lib
+        Boost::chrono
+        Boost::thread
+        Boost::filesystem
+        Boost::atomic
         boost_atomic-lib
         )
 
