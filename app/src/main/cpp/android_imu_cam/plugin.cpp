@@ -380,7 +380,7 @@ public:
     };
 
 
-    std::string getBackFacingCamId(ACameraManager *cameraManager)
+    std::string getBackFacingCamId()
     {
         ACameraIdList *cameraIds = nullptr;
         ACameraManager_getCameraIdList(cameraManager, &cameraIds);
@@ -458,7 +458,7 @@ public:
     void initCam() {
         LOGA("INIT CAM");
         cameraManager = ACameraManager_create();
-        auto id = getBackFacingCamId(cameraManager);
+        auto id = getBackFacingCamId();
         ACameraManager_openCamera(cameraManager, id.c_str(), &cameraDeviceCallbacks, &cameraDevice);
 
         ACameraDevice_createCaptureRequest(cameraDevice, TEMPLATE_PREVIEW, &request);
@@ -499,15 +499,15 @@ public:
             _m_first_imu_time      = cam_time;//imu_ts;
             _m_first_real_time_imu = _m_clock->now();
         }
-        ullong last_imu_time = 0;
-        double last_cam_time = 0;
+        //ullong last_imu_time = 0;
+        //double last_cam_time = 0;
         _m_lock.lock();
         Eigen::Vector3f cur_gyro = gyro;
         Eigen::Vector3f cur_accel = accel;
         counter++;
 //        myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
 //                  std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
-        last_imu_time = imu_ts;
+        //last_imu_time = imu_ts;
         imu_time = 0;
         _m_lock.unlock();
 
@@ -522,7 +522,7 @@ public:
 //                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
 //            LOGA("ANDROID CAM CHECK %d", check);
 //            camfile << std::to_string((uint64_t)ts*1000) << "," << std::to_string(name) + ".png" <<std::endl;
-            last_cam_time = cam_proc_time;
+            //last_cam_time = cam_proc_time;
             cam_proc_time = 0;
             mtx.unlock();
         }
