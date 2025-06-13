@@ -15,19 +15,24 @@
 #
 
 cmake_minimum_required(VERSION 3.22.1)
-
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
 set(Boost_USE_STATIC_LIBS ON)
 # build native_app_glue as a static lib
-set(OpenCV_STATIC ON)
-set(OpenCV_DIR $ENV{OPENCV_ANDROID}/sdk/native/jni)
+#set(BOOST_ROOT_DIR /home/friedel/Downloads/ndk_21_boost_1.72.0/libs/arm64-v8a/cmake)
+#set(OpenCV_LIBRARY_DIR /home/friedel/Downloads/OpenCV-android-sdk/sdk/native/staticlibs/arm64-v8a)
 set(ILLIXR_INTEGRATION 1)
-#find_package(OpenCV REQUIRED)
+#set(OpenCV_CONFIG_SUBDIR arm64-v8a)
+#set(CMAKE_MODULE_PATH "${BOOST_ROOT_DIR};${CMAKE_MODULE_PATH}")
+#set(Boost_VERBOSE ON)
+#set(Boost_DEBUG ON)
+find_package(OpenCV 4.5.5 REQUIRED CONFIG COMPONENTS opencv_java)
+#set(CMAKE_FIND_DEBUG_MODE TRUE)
 find_package(Boost 1.72 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic)
+include_directories(${OpenCV_INCLUDE_DIRS})
 #set(CMAKE_BUILD_TYPE "Release")
-# eclares and names the project.
+#include_directories(/Users/madhuparnabhowmik/out/sdk/native/jni/include)
 find_package(Eigen3 REQUIRED)
-include_directories(/Users/madhuparnabhowmik/OpenCV-android-sdk/sdk/native/jni/include)
-#include_directories(SYSTEM /home/madhuparna/opencv/include)
 
 include_directories(GLFW)
 #include_directories(/home/madhuparna/AndroidStudioProjects/illixr-native-activity/app/src/main/cpp/boost)
@@ -138,67 +143,6 @@ add_library(android_imu_cam
         android_imu_cam/plugin.cpp
         )
 
-#opencv
-add_library( cv_core-lib SHARED IMPORTED)
-set_target_properties( cv_core-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_core.so )
-
-add_library( cv_imgproc-lib SHARED IMPORTED)
-set_target_properties( cv_imgproc-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_imgproc.so )
-
-add_library( cv_imgcodecs-lib SHARED IMPORTED)
-set_target_properties( cv_imgcodecs-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_imgcodecs.so )
-
-add_library( cv_tracking-lib SHARED IMPORTED)
-set_target_properties( cv_tracking-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_tracking.so )
-
-add_library( cv_video-lib SHARED IMPORTED)
-set_target_properties( cv_video-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_video.so)
-
-add_library( cv_calib3d-lib SHARED IMPORTED)
-set_target_properties( cv_calib3d-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_calib3d.so)
-
-
-add_library( cv_highgui-lib SHARED IMPORTED)
-set_target_properties( cv_highgui-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_highgui.so)
-
-add_library( cv_features2d-lib SHARED IMPORTED)
-set_target_properties( cv_features2d-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_features2d.so)
-
-add_library( cv_aruco-lib SHARED IMPORTED)
-set_target_properties( cv_aruco-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_aruco.so)
-
-add_library( cv_dnn-lib SHARED IMPORTED)
-set_target_properties( cv_dnn-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_dnn.so)
-
-add_library( cv_flann-lib SHARED IMPORTED)
-set_target_properties( cv_flann-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_flann.so)
-
-add_library( cv_objdetect-lib SHARED IMPORTED)
-set_target_properties( cv_objdetect-lib
-        PROPERTIES IMPORTED_LOCATION
-        /Users/madhuparnabhowmik/arm64-v8a/libopencv_objdetect.so)
 add_library(ov_core_lib
         SHARED
         open_vins/ov_core/src/dummy.cpp
@@ -412,21 +356,21 @@ target_link_libraries(offline_imu_cam
         EGL
         GLESv3
         log
-        cv_core-lib
-        cv_imgproc-lib
-        cv_highgui-lib
-        cv_imgcodecs-lib
+        opencv_core
+        opencv_imgproc
+        opencv_highgui
+        opencv_imgcodecs
         Eigen3::Eigen
-        )
+)
 
 target_link_libraries(android_imu_cam
         EGL
         GLESv3
         log
-        cv_core-lib
-        cv_imgproc-lib
-        cv_highgui-lib
-        cv_imgcodecs-lib
+        opencv_core
+        opencv_imgproc
+        opencv_highgui
+        opencv_imgcodecs
         camera2ndk
         mediandk
         android
@@ -437,20 +381,20 @@ target_link_libraries(android_imu_cam
 #        EGL
 #        GLESv3
 #        log
-#        cv_core-lib
-#        cv_imgproc-lib
-#        cv_highgui-lib
-#        cv_imgcodecs-lib
+#        opencv_core
+#        opencv_imgproc
+#        opencv_highgui
+#        opencv_imgcodecs
 #        )
 
 #target_link_libraries(android_cam
 #        EGL
 #        GLESv3
 #        log
-#        cv_core-lib
-#        cv_imgproc-lib
-#        cv_highgui-lib
-#        cv_imgcodecs-lib
+#        opencv_core
+#        opencv_imgproc
+#        opencv_highgui
+#        opencv_imgcodecs
 #        camera2ndk
 #        mediandk
 #        android
@@ -466,18 +410,18 @@ target_link_libraries(android_imu_cam
 target_link_libraries(ov_core_lib
         EGL
         GLESv3
-        cv_core-lib
-        cv_imgproc-lib
-        cv_tracking-lib
-        cv_imgcodecs-lib
-        cv_video-lib
-        cv_calib3d-lib
-        cv_highgui-lib
-        cv_features2d-lib
-        cv_aruco-lib
-        cv_dnn-lib
-        cv_flann-lib
-        cv_objdetect-lib
+        opencv_core
+        opencv_imgproc
+        opencv_tracking
+        opencv_imgcodecs
+        opencv_video
+        opencv_calib3d
+        opencv_highgui
+        opencv_features2d
+        opencv_aruco
+        opencv_dnn
+        opencv_flann
+        opencv_objdetect
         Boost::chrono
         Boost::thread
         Boost::filesystem
@@ -490,19 +434,18 @@ target_link_libraries(ov_msckf_lib
         EGL
         GLESv3
         log
-        ${BOOST_ROOT}
         ov_core_lib
-        cv_core-lib
-        cv_imgproc-lib
-        cv_tracking-lib
-        cv_calib3d-lib
+        opencv_core
+        opencv_imgproc
+        opencv_tracking
+        opencv_calib3d
         Boost::chrono
         Boost::thread
         Boost::filesystem
         Boost::atomic
         android
         Eigen3::Eigen
-        )
+)
 
 target_link_libraries(slam
         EGL
@@ -510,9 +453,9 @@ target_link_libraries(slam
         log
         ov_core_lib
         ov_msckf_lib
-        cv_core-lib
-        cv_imgproc-lib
-        cv_tracking-lib
+        opencv_core
+        opencv_imgproc
+        opencv_tracking
         Boost::chrono
         Boost::thread
         Boost::filesystem
