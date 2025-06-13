@@ -5,16 +5,16 @@ plugins {
 android {
     signingConfigs {
         debug {
-            storeFile file('/Users/madhuparnabhowmik/illixr_key')
-            storePassword 'illixr_key'
-            keyAlias 'key0'
-            keyPassword 'illixr_key'
+            storeFile file('/home/friedel/illixr.keystore')
+            storePassword 'illixr'
+            keyAlias 'illixr'
+            keyPassword 'illixr'
         }
         release {
-            storeFile file('/Users/madhuparnabhowmik/illixr_key')
-            storePassword 'illixr_key'
-            keyAlias 'key0'
-            keyPassword 'illixr_key'
+            storeFile file('/home/friedel/illixr.keystore')
+            storePassword 'illixr'
+            keyAlias 'illixr'
+            keyPassword 'illixr'
         }
     }
     compileSdkVersion 33
