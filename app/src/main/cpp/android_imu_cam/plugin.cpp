@@ -405,8 +405,10 @@ public:
                     lensInfo.data.u8[0]);
 
             ACameraMetadata_const_entry pose_reference = {0};
-            ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_POSE_REFERENCE, &pose_reference);
+            auto res = ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_POSE_REFERENCE, &pose_reference);
 
+            if(res != ACAMERA_OK)
+                continue;
             auto pose_ref = static_cast<acamera_metadata_enum_acamera_lens_pose_reference>(
                     pose_reference.data.u8[0]);
 
