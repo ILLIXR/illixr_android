@@ -58,13 +58,15 @@ void android_main(struct android_app* state) {
         // If not animating, we will block forever waiting for events.
         // If animating, we loop until all events are read, then continue
         // to draw the next frame of animation.
-        while ((ident=ALooper_pollAll(0, nullptr, &events,
-                                      (void**)&source)) >= 0) {
-
-            // Process this event.
-            if (source != nullptr) {
-                source->process(state, source);
+        do {
+            ident = ALooper_pollOnce(0, nullptr, &events,
+                                     (void**)&source);
+            if (ident >= 0) {
+                // Process this event.
+                if (source != nullptr) {
+                    source->process(state, source);
+                }
             }
-        }
+        } while (ident >= 0);
     }
 }
