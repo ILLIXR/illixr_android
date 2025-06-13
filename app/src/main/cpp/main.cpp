@@ -11,6 +11,12 @@ using namespace ILLIXR;
 
 #define LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android-main", __VA_ARGS__))
 
+extern "C" {
+    // called from Java after permission is granted
+    JNIEXPORT void JNICALL Java_com_example_ILLIXR_ILLIXRNativeActivity_nativeOnPermissionGranted(JNIEnv* env, jobject activity) {
+
+    }
+}
 static void handle_cmd(struct android_app* app, int32_t cmd) {
     switch(cmd) {
         case APP_CMD_INIT_WINDOW:
