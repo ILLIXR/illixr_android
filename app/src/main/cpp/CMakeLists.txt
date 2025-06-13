@@ -18,6 +18,7 @@ cmake_minimum_required(VERSION 3.22.1)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
 set(Boost_USE_STATIC_LIBS ON)
+project(illixr_android)
 # build native_app_glue as a static lib
 #set(BOOST_ROOT_DIR /home/friedel/Downloads/ndk_21_boost_1.72.0/libs/arm64-v8a/cmake)
 #set(OpenCV_LIBRARY_DIR /home/friedel/Downloads/OpenCV-android-sdk/sdk/native/staticlibs/arm64-v8a)
