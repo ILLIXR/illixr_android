@@ -71,48 +71,48 @@ add_library(native-activity
         SHARED
         main.cpp
         runtime/plugin.cpp
-        )
+)
 
 add_library(runtime
         SHARED
         runtime/plugin.cpp
-        )
+)
 
 add_library(gldemo
         SHARED
         gldemo/plugin.cpp
-        )
+)
 
 add_library(common_lock
         SHARED
         common_lock/plugin.cpp
-        )
+)
 
 add_library(log_service
         SHARED
         log_service/plugin.cpp
-        )
+)
 
 add_library(timewarp_gl
         SHARED
         timewarp_gl/plugin.cpp
         GLFW/utils/hmd.cpp
-        )
+)
 
 add_library(pose_lookup
         SHARED
         pose_lookup/plugin.cpp
-        )
+)
 
 add_library(pose_prediction
         SHARED
         pose_prediction/plugin.cpp
-        )
+)
 
 add_library(rk4_integrator
         SHARED
         rk4_integrator/plugin.cpp
-        )
+)
 
 #add_library(android_cam
 #        SHARED
@@ -137,12 +137,12 @@ add_library(rk4_integrator
 add_library(offline_imu_cam
         SHARED
         offline_imu_cam/plugin.cpp
-        )
+)
 
 add_library(android_imu_cam
         SHARED
         android_imu_cam/plugin.cpp
-        )
+)
 
 add_library(ov_core_lib
         SHARED
@@ -157,7 +157,7 @@ add_library(ov_core_lib
         open_vins/ov_core/src/types/Landmark.cpp
         open_vins/ov_core/src/feat/Feature.cpp
         open_vins/ov_core/src/feat/FeatureInitializer.cpp
-        )
+)
 
 add_library(ov_msckf_lib
         SHARED
@@ -169,12 +169,12 @@ add_library(ov_msckf_lib
         open_vins/ov_msckf/src/update/UpdaterHelper.cpp
         open_vins/ov_msckf/src/update/UpdaterMSCKF.cpp
         open_vins/ov_msckf/src/update/UpdaterSLAM.cpp
-        )
+)
 
 add_library(slam
         SHARED
         open_vins/ov_msckf/src/slam2.cpp
-        )
+)
 
 #add_library(faux_pose
 #        SHARED
@@ -376,7 +376,7 @@ target_link_libraries(android_imu_cam
         mediandk
         android
         Eigen3::Eigen
-        )
+)
 
 #target_link_libraries(offline_cam
 #        EGL
@@ -462,7 +462,7 @@ target_link_libraries(slam
         Boost::filesystem
         Boost::atomic
         Eigen3::Eigen
-        )
+)
 
 #target_link_libraries(faux_pose
 #    EGL
