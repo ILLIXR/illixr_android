@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-cmake_minimum_required(VERSION 3.18.0)
+cmake_minimum_required(VERSION 3.22.1)
 
 # build native_app_glue as a static lib
 set(OpenCV_STATIC ON)
