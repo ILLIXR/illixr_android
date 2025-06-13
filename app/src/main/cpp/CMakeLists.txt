@@ -25,16 +25,11 @@ set(ILLIXR_INTEGRATION 1)
 find_package(Boost 1.72 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic)
 #set(CMAKE_BUILD_TYPE "Release")
 # eclares and names the project.
-include_directories(/Users/madhuparnabhowmik/out/sdk/native/jni/include)
+find_package(Eigen3 REQUIRED)
 include_directories(/Users/madhuparnabhowmik/OpenCV-android-sdk/sdk/native/jni/include)
 #include_directories(SYSTEM /home/madhuparna/opencv/include)
-set(EIGEN_DIR /Users/madhuparnabhowmik/eigen-3.4.0)
-#find_package(Boost)
-#find_package(Boost)
-#include_directories(${Boost_INCLUDE_DIRS})
 
 include_directories(GLFW)
-include_directories(Eigen)
 #include_directories(/home/madhuparna/AndroidStudioProjects/illixr-native-activity/app/src/main/cpp/boost)
 #include_directories(/home/madhuparna/Android/Sdk/ndk/21.4.7075529/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/boost/thread/detail/thread.hpp)
 include_directories(common)
@@ -243,55 +238,46 @@ add_library(slam
 
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(runtime PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(gldemo PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(common_lock PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(log_service PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(timewarp_gl PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(pose_lookup PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(pose_prediction PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(rk4_integrator PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
@@ -307,13 +293,11 @@ target_include_directories(rk4_integrator PRIVATE
 
 target_include_directories(offline_imu_cam PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(android_imu_cam PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
@@ -329,21 +313,18 @@ target_include_directories(android_imu_cam PRIVATE
 
 target_include_directories(ov_core_lib PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue
-        )
+)
 
 target_include_directories(ov_msckf_lib PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         open_vins/ov_core
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_include_directories(slam PRIVATE
         ${OpenCV_LIBS}
-        ${EIGEN_DIR}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
@@ -361,56 +342,65 @@ target_link_libraries(native-activity
         EGL
         GLESv3
         log
-        )
+        Eigen3::Eigen
+)
 
 target_link_libraries(runtime
         EGL
         GLESv3
         log
-        )
+        Eigen3::Eigen
+)
 
 target_link_libraries(gldemo
         EGL
         GLESv3
         log
-        )
+        Eigen3::Eigen
+)
 
 target_link_libraries(common_lock
         EGL
         GLESv3
         log
-        )
+        Eigen3::Eigen
+)
 
 target_link_libraries(log_service
         EGL
         GLESv3
         log
-        )
+        Eigen3::Eigen
+)
 
 target_link_libraries(timewarp_gl
         EGL
         GLESv3
         log
         android
-        )
+        Eigen3::Eigen
+)
 
 target_link_libraries(pose_lookup
         EGL
         GLESv3
         log
-        )
+        Eigen3::Eigen
+)
 
 target_link_libraries(pose_prediction
         EGL
         GLESv3
         log
-        )
+        Eigen3::Eigen
+)
 
 target_link_libraries(rk4_integrator
         EGL
         GLESv3
         log
-        )
+        Eigen3::Eigen
+)
 
 #target_link_libraries(offline_imu
 #        EGL
@@ -426,6 +416,7 @@ target_link_libraries(offline_imu_cam
         cv_imgproc-lib
         cv_highgui-lib
         cv_imgcodecs-lib
+        Eigen3::Eigen
         )
 
 target_link_libraries(android_imu_cam
@@ -439,6 +430,7 @@ target_link_libraries(android_imu_cam
         camera2ndk
         mediandk
         android
+        Eigen3::Eigen
         )
 
 #target_link_libraries(offline_cam
@@ -491,6 +483,7 @@ target_link_libraries(ov_core_lib
         Boost::filesystem
         Boost::atomic
         android
+        Eigen3::Eigen
         log)
 
 target_link_libraries(ov_msckf_lib
@@ -508,6 +501,7 @@ target_link_libraries(ov_msckf_lib
         Boost::filesystem
         Boost::atomic
         android
+        Eigen3::Eigen
         )
 
 target_link_libraries(slam
@@ -523,7 +517,7 @@ target_link_libraries(slam
         Boost::thread
         Boost::filesystem
         Boost::atomic
-        boost_atomic-lib
+        Eigen3::Eigen
         )
 
 #target_link_libraries(faux_pose
