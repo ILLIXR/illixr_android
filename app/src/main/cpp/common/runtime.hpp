@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <vector>
+//#define ILLIXR_MONADO 1
 
 namespace ILLIXR {
 class plugin;
@@ -30,7 +31,7 @@ public:
     virtual ~runtime() = default;
 };
 
-#ifdef ILLIXR_MONADO_MAINLINE
+#ifdef ILLIXR_MONADO
 extern "C" runtime* runtime_factory();
 #else
 extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window);

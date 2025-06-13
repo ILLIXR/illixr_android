@@ -31,11 +31,11 @@ public:
      * this use-case.
      */
     virtual void start() {
-        record_logger_->log(record{__plugin_start_header,
-                                   {
-                                       {id},
-                                       {name},
-                                   }});
+//        record_logger_->log(record{__plugin_start_header,
+//                                   {
+//                                       {id},
+//                                       {name},
+//                                   }});
     }
 
     /**

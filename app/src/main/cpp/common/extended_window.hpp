@@ -5,7 +5,6 @@
 #include <cerrno>
 #include <cassert>
 #include <EGL/egl.h>
-#include <EGL/eglext.h>
 #include <GLES3/gl32.h>
 #include <GLES3/gl3ext.h>
 #include <GLES3/gl3platform.h>
@@ -103,6 +102,79 @@ namespace ILLIXR {
 
             eglQuerySurface(display, surface, EGL_WIDTH, &w);
             eglQuerySurface(display, surface, EGL_HEIGHT, &h);
+        }
+
+        xlib_gl_extended_window(int _width, int _height, EGLContext egl_context) {
+            width = _width;
+            height = _height;
+            display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+            EGLint major_version, minor_version;
+            eglInitialize(display, &major_version, &minor_version);
+            LOGI("EGL Initialized with major version : %d minor version: %d", major_version, minor_version);
+
+            const EGLint attribs[] = {
+                    //EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+                    EGL_RENDERABLE_TYPE,EGL_OPENGL_ES2_BIT,
+                    EGL_BLUE_SIZE, 8,
+                    EGL_GREEN_SIZE, 8,
+                    EGL_RED_SIZE, 8,
+                    EGL_ALPHA_SIZE, 0,
+                    // EGL_DEPTH_SIZE, 24,
+                    EGL_NONE
+            };
+
+            //EGLint w, h;
+            EGLint format;
+            EGLint numConfigs;
+            EGLConfig config = nullptr;
+            eglChooseConfig(display, attribs, &config, 1, &numConfigs);
+            std::unique_ptr < EGLConfig[] > supportedConfigs(new EGLConfig[numConfigs]);
+            assert(supportedConfigs);
+            eglChooseConfig(display, attribs, supportedConfigs.get(), numConfigs, &numConfigs);
+            assert(numConfigs);
+            auto i = 0;
+            for (; i < numConfigs; i++) {
+                auto &cfg = supportedConfigs[i];
+                EGLint r, g, b, d;
+                if (eglGetConfigAttrib(display, cfg, EGL_RED_SIZE, &r) &&
+                    eglGetConfigAttrib(display, cfg, EGL_GREEN_SIZE, &g) &&
+                    eglGetConfigAttrib(display, cfg, EGL_BLUE_SIZE, &b) &&
+                    eglGetConfigAttrib(display, cfg, EGL_DEPTH_SIZE, &d) &&
+                    r == 8 && g == 8 && b == 8 && d == 24) {
+
+                    config = supportedConfigs[i];
+                    break;
+                }
+            }
+            if (i == numConfigs) {
+                config = supportedConfigs[0];
+            }
+
+            if (config == nullptr) {
+                return;
+            }
+            eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
+//            if (window != nullptr) {
+//                LOGI("window is not nullptr");
+//            }
+//            else{
+//                LOGI("window is nullptr");
+//            }
+//            try {
+//                surface = eglCreateWindowSurface(display, config, my_window, nullptr);
+//            }
+//            catch (const std::exception& e) {
+//                return;
+//            }
+            surface = EGL_NO_SURFACE;
+            EGLint ctxattrb[] = {
+                    EGL_CONTEXT_CLIENT_VERSION, 2,
+                    EGL_NONE
+            };
+            context = eglCreateContext(display, config, egl_context, ctxattrb);
+
+//            eglQuerySurface(display, surface, EGL_WIDTH, &w);
+//            eglQuerySurface(display, surface, EGL_HEIGHT, &h);
         }
 
         ~xlib_gl_extended_window() {

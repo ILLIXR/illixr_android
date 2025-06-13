@@ -5,6 +5,7 @@
 
 #include <csignal>
 #include <unistd.h> /// Not portable
+//#define ILLIXR_MONADO 1
 
 constexpr std::chrono::seconds          ILLIXR_RUN_DURATION_DEFAULT{60};
 [[maybe_unused]] constexpr unsigned int ILLIXR_PRE_SLEEP_DURATION{10};
@@ -67,7 +68,7 @@ private:
 };
 
 int runtime_main(int argc, char* const* argv, ANativeWindow* window) {
-#ifdef ILLIXR_MONADO_MAINLINE
+#ifdef ILLIXR_MONADO
     r = ILLIXR::runtime_factory();
 #else
     r = ILLIXR::runtime_factory(EGL_NO_CONTEXT, window);

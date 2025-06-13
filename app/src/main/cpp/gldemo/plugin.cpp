@@ -13,6 +13,7 @@
 #include "shaders/demo_shader.hpp"
 #include "common/common_lock.hpp"
 #include "common/math_util.hpp"
+#include "common/log_service.hpp"
 
 #include <EGL/egl.h>
 
@@ -22,6 +23,9 @@
 #include <future>
 #include <iostream>
 #include <thread>
+#include <android/log.h>
+
+#define LOGG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "gldemo", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -39,10 +43,12 @@ public:
         : threadloop{name_, pb_}
         , xwin{pb->lookup_impl<xlib_gl_extended_window>()}
         , sb{pb->lookup_impl<switchboard>()}
+        , sl{pb->lookup_impl<log_service>()}
         , pp{pb->lookup_impl<pose_prediction>()}
         , cl{pb->lookup_impl<common_lock>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
         , _m_vsync{sb->get_reader<switchboard::event_wrapper<time_point>>("vsync_estimate")}
+        , _m_image_handle{sb->get_writer<image_handle>("image_handle")}
         , _m_eyebuffer{sb->get_writer<ILLIXR::rendered_frame>("eyebuffer")} { }
 
     // Essentially, a crude equivalent of XRWaitFrame.
@@ -106,11 +112,12 @@ public:
     }
 
     void _p_one_iteration() override {
+        auto start = std::chrono::high_resolution_clock::now();
         // Essentially, XRWaitFrame.
         wait_vsync();
 
         cl->get_lock();
-        const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
+        [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin->display, xwin->surface, xwin->surface, xwin->context));
         assert(gl_result && "eglMakeCurrent should not fail");
 
         glUseProgram(demoShaderProgram);
@@ -188,15 +195,22 @@ public:
         lastTime = _m_clock->now();
 
         /// Publish our submitted frame handle to Switchboard!
+//        _m_eyebuffer.put(_m_eyebuffer.allocate<rendered_frame>(rendered_frame{
+//            // Somehow, C++ won't let me construct this object if I remove the `rendered_frame{` and `}`.
+//            // `allocate<rendered_frame>(...)` _should_ forward the arguments to rendered_frame's constructor, but I guess
+//            // not.
+//            std::array<GLuint, 2>{eyeTextures[0], eyeTextures[1]},
+//            std::array<GLuint, 2>{which_buffer, which_buffer},
+//            fast_pose,
+//            fast_pose.predict_computed_time, lastTime}
+//            ));
+
         _m_eyebuffer.put(_m_eyebuffer.allocate<rendered_frame>(rendered_frame{
-            // Somehow, C++ won't let me construct this object if I remove the `rendered_frame{` and `}`.
-            // `allocate<rendered_frame>(...)` _should_ forward the arguments to rendered_frame's constructor, but I guess
-            // not.
-            std::array<GLuint, 2>{eyeTextures[0], eyeTextures[1]},
-            std::array<GLuint, 2>{which_buffer, which_buffer},
-            fast_pose,
-            fast_pose.predict_computed_time, lastTime}
-            ));
+                // Somehow, C++ won't let me construct this object if I remove the `rendered_frame{` and `}`.
+                // `allocate<rendered_frame>(...)` _should_ forward the arguments to rendered_frame's constructor, but I guess
+                // not.
+                std::array<GLuint, 2>{0, 0}, std::array<GLuint, 2>{which_buffer, which_buffer}, fast_pose,
+                fast_pose.predict_computed_time, lastTime}));
 
         which_buffer = !which_buffer;
 
@@ -204,6 +218,10 @@ public:
         [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin->display, NULL, NULL, nullptr));
         assert(gl_result_1 && "glXMakeCurrent should not fail");
         cl->release_lock();
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        LOGG("duration: %f", duration2double(duration));
+        sl->write_duration("gldemo", duration2double(duration));
 #ifndef NDEBUG
         if (log_count > LOG_PERIOD) {
             log_count = 0;
@@ -221,6 +239,7 @@ public:
 private:
     const std::shared_ptr<const xlib_gl_extended_window>              xwin;
     const std::shared_ptr<switchboard>                                sb;
+    const std::shared_ptr<log_service>                                sl;
     const std::shared_ptr<pose_prediction>                            pp;
     const std::shared_ptr<common_lock>                                cl;
     const std::shared_ptr<const RelativeClock>                        _m_clock;
@@ -230,6 +249,7 @@ private:
     // We're not "writing" the actual buffer data,
     // we're just atomically writing the handle to the
     // correct eye/framebuffer in the "swapchain".
+    switchboard::writer<image_handle>   _m_image_handle;
     switchboard::writer<rendered_frame> _m_eyebuffer;
 
     GLuint eyeTextures[2];
@@ -321,8 +341,9 @@ public:
 
         // Create two shared eye textures, one for each eye
         createSharedEyebuffer(&(eyeTextures[0]));
+        _m_image_handle.put(_m_image_handle.allocate<image_handle>(image_handle{eyeTextures[0], 1, swapchain_usage::LEFT_SWAPCHAIN}));
         createSharedEyebuffer(&(eyeTextures[1]));
-
+        _m_image_handle.put(_m_image_handle.allocate<image_handle>(image_handle{eyeTextures[1], 1, swapchain_usage::RIGHT_SWAPCHAIN}));
         // Initialize FBO and depth targets, attaching to the frame handle
         createFBO(&(eyeTextures[0]), &eyeTextureFBO, &eyeTextureDepthTarget);
 

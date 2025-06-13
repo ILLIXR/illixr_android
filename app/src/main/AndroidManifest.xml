@@ -6,10 +6,12 @@
           android:versionCode="1"
           android:versionName="1.0">
 
-<!--  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>-->
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
 <!--  <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>-->
-
+  <uses-permission android:name="android.permission.CAMERA"/>
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+  <uses-permission android:name="android.permission.RECORD_VIDEO" />
   <!-- This .apk has no Java code itself, so set hasCode to false. -->
   <application
       android:allowBackup="false"
@@ -19,7 +21,7 @@
       android:hasCode="false"
       tools:ignore="HardcodedDebugMode">
 
-
+    <profileable android:shell="true"/>
     <!-- Our activity is the built-in NativeActivity framework class.
          This will take care of integrating with our NDK code. -->
     <activity android:name="android.app.NativeActivity"

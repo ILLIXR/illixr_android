@@ -3,13 +3,30 @@ plugins {
 }
 
 android {
+    signingConfigs {
+        debug {
+            storeFile file('/Users/madhuparnabhowmik/illixr_key')
+            storePassword 'illixr_key'
+            keyAlias 'key0'
+            keyPassword 'illixr_key'
+        }
+        release {
+            storeFile file('/Users/madhuparnabhowmik/illixr_key')
+            storePassword 'illixr_key'
+            keyAlias 'key0'
+            keyPassword 'illixr_key'
+        }
+    }
     compileSdkVersion 32
-    ndkVersion '22.1.7171670'
+    ndkVersion '21.4.7075529'
 
     defaultConfig {
         applicationId = 'com.example.native_activity'
-        minSdkVersion 18
+        minSdk 28
         targetSdkVersion 32
+        ndk {
+            abiFilters  "arm64-v8a"
+        }
         externalNativeBuild {
             cmake {
                 cppFlags '-std=c++17'
@@ -19,9 +36,17 @@ android {
 
     buildTypes {
         release {
+//            debuggable true
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'),
                     'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'),
+                    'proguard-rules.pro'
+            signingConfig signingConfigs.debug
         }
     }
     externalNativeBuild {

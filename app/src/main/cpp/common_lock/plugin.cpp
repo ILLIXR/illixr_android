@@ -11,11 +11,11 @@
 class common_lock_impl : public common_lock {
 public:
     common_lock_impl(const phonebook* const pb)
-            : sb{pb->lookup_impl<switchboard>()}
-            , _m_slow_pose{sb->get_reader<pose_type>("slow_pose")}
-            , _m_imu_raw{sb->get_reader<imu_raw_type>("imu_raw")}
-            , _m_true_pose{sb->get_reader<pose_type>("true_pose")}
-            , _m_ground_truth_offset{sb->get_reader<switchboard::event_wrapper<Eigen::Vector3f>>("ground_truth_offset")}{ }
+            : sb{pb->lookup_impl<switchboard>()}{
+        int ret1 = sem_init(&sem_monado, pshared, value);
+        int ret2 = sem_init(&sem_illixr, pshared, value);
+        LOGI("Semaphore initialized ret1 = %d ret2 = %d", ret1, ret2);
+    }
 
     void get_lock() {
         lock.lock();
@@ -25,13 +25,25 @@ public:
         lock.unlock();
     }
 
+    void wait_illixr() {
+
+        illixr_monado = 1;
+        while(illixr_monado)
+            ;
+        return;
+    }
+
+    void wait_monado() {
+        illixr_monado = 0;
+        while(!illixr_monado)
+            ;
+        return;
+    }
+
 private:
     mutable std::atomic<bool>                                        first_time{true};
     const std::shared_ptr<switchboard>                               sb;
-    switchboard::reader<pose_type>                                   _m_slow_pose;
-    switchboard::reader<imu_raw_type>                                _m_imu_raw;
-    switchboard::reader<pose_type>                                   _m_true_pose;
-    switchboard::reader<switchboard::event_wrapper<Eigen::Vector3f>> _m_ground_truth_offset;
+    bool illixr_monado = 0;
 };
 
 class common_lock_plugin : public plugin {
