@@ -117,12 +117,21 @@ public:
 
         // predictor_imu_time is the most recent IMU sample that was used to compute the prediction.
         auto predictor_imu_time = predictor_result.second;
-        pose_type predicted_pose =
-                correct_pose({predictor_imu_time,
-                              Eigen::Vector3f{static_cast<float>(state_plus(4)), static_cast<float>(state_plus(5)),
-                                              static_cast<float>(state_plus(6))},
-                              Eigen::Quaternionf{static_cast<float>(state_plus(3)), static_cast<float>(state_plus(0)),
-                                                 static_cast<float>(state_plus(1)), static_cast<float>(state_plus(2))}});
+        
+        pose_type predicted_pose = correct_pose({
+            predictor_imu_time,
+            Eigen::Vector3f{
+                static_cast<float>(state_plus(4)),
+                static_cast<float>(state_plus(5)),
+                static_cast<float>(state_plus(6))
+            },
+            Eigen::Quaternionf{
+                static_cast<float>(state_plus(3)),
+                static_cast<float>(state_plus(0)),
+                static_cast<float>(state_plus(1)),
+                static_cast<float>(state_plus(2))
+            }
+        });
 
         // Make the first valid fast pose be straight ahead.
         if (first_time) {
@@ -142,7 +151,10 @@ public:
         //       - the prediction target (the time that was requested for this pose.)
 
         return fast_pose_type{
-                .pose = predicted_pose, .predict_computed_time = _m_clock->now(), .predict_target_time = future_timestamp};
+            .pose = predicted_pose,
+            .predict_computed_time = _m_clock->now(),
+            .predict_target_time = future_timestamp
+        };
     }
 
     virtual void set_offset(const Eigen::Quaternionf& raw_o_times_offset) override {
@@ -360,7 +372,9 @@ private:
      */
     static const inline Eigen::Matrix<double, 3, 3> skew_x(const Eigen::Matrix<double, 3, 1>& w) {
         Eigen::Matrix<double, 3, 3> w_x;
-        w_x << 0, -w(2), w(1), w(2), 0, -w(0), -w(1), w(0), 0;
+        w_x << 0, -w(2), w(1),
+                w(2), 0, -w(0),
+                -w(1), w(0), 0;
         return w_x;
     }
 
@@ -377,7 +391,8 @@ private:
      */
     static const inline Eigen::Matrix<double, 3, 3> quat_2_Rot(const Eigen::Matrix<double, 4, 1>& q) {
         Eigen::Matrix<double, 3, 3> q_x = skew_x(q.block(0, 0, 3, 1));
-        Eigen::MatrixXd             Rot = (2 * std::pow(q(3, 0), 2) - 1) * Eigen::MatrixXd::Identity(3, 3) - 2 * q(3, 0) * q_x +
+        Eigen::MatrixXd Rot = (2 * std::pow(q(3, 0), 2) - 1) * Eigen::MatrixXd::Identity(3, 3)
+                              - 2 * q(3, 0) * q_x +
                                           2 * q.block(0, 0, 3, 1) * (q.block(0, 0, 3, 1).transpose());
         return Rot;
     }

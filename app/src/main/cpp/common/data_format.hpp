@@ -32,14 +32,17 @@ namespace ILLIXR {
         Eigen::Vector3f        linear_a;
         std::optional<cv::Mat> img0;
         std::optional<cv::Mat> img1;
-
-        imu_cam_type(time_point time_, Eigen::Vector3f angular_v_, Eigen::Vector3f linear_a_, std::optional<cv::Mat> img0_,
+		imu_cam_type(time_point time_,
+					 Eigen::Vector3f angular_v_,
+					 Eigen::Vector3f linear_a_,
+					 std::optional<cv::Mat> img0_,
                      std::optional<cv::Mat> img1_)
                 : time{time_}
                 , angular_v{angular_v_}
                 , linear_a{linear_a_}
                 , img0{img0_}
-                , img1{img1_} { }
+			, img1{img1_}
+		{ }
     };
 
     struct cam_type : switchboard::event {
@@ -69,10 +72,16 @@ namespace ILLIXR {
         Eigen::Matrix<double, 3, 1> wm;
         Eigen::Matrix<double, 3, 1> am;
 
-        imu_type(time_point timestamp_, Eigen::Matrix<double, 3, 1> wm_, Eigen::Matrix<double, 3, 1> am_)
+
+		imu_type(
+				time_point timestamp_,
+				Eigen::Matrix<double, 3, 1> wm_,
+				Eigen::Matrix<double, 3, 1> am_
+				)
                 : timestamp{timestamp_}
                 , wm{wm_}
-                , am{am_} { }
+			, am{am_}
+		{ }
     };
 
 
@@ -82,10 +91,14 @@ namespace ILLIXR {
         std::optional<cv::Mat>      depth;
 
     public:
-        rgb_depth_type(time_point _time, std::optional<cv::Mat> _rgb, std::optional<cv::Mat> _depth)
+		rgb_depth_type(time_point _time,
+					   std::optional<cv::Mat> _rgb,
+					   std::optional<cv::Mat> _depth
+					   )
                 : time{_time}
                 , rgb{_rgb}
-                , depth{_depth} { }
+			, depth{_depth}
+		{ }
     };
 
 // Values needed to initialize the IMU integrator
@@ -110,10 +123,16 @@ namespace ILLIXR {
         Eigen::Matrix<double, 3, 1> position;
         Eigen::Matrix<double, 3, 1> velocity;
         Eigen::Quaterniond          quat;
-
-        imu_integrator_input(time_point last_cam_integration_time_, duration t_offset_, imu_params params_,
-                             Eigen::Vector3d biasAcc_, Eigen::Vector3d biasGyro_, Eigen::Matrix<double, 3, 1> position_,
-                             Eigen::Matrix<double, 3, 1> velocity_, Eigen::Quaterniond quat_)
+		imu_integrator_input(
+							 time_point last_cam_integration_time_,
+							 duration t_offset_,
+							 imu_params params_,
+							 Eigen::Vector3d biasAcc_,
+							 Eigen::Vector3d biasGyro_,
+							 Eigen::Matrix<double,3,1> position_,
+							 Eigen::Matrix<double,3,1> velocity_,
+							 Eigen::Quaterniond quat_
+							 )
                 : last_cam_integration_time{last_cam_integration_time_}
                 , t_offset{t_offset_}
                 , params{params_}
@@ -121,7 +140,8 @@ namespace ILLIXR {
                 , biasGyro{biasGyro_}
                 , position{position_}
                 , velocity{velocity_}
-                , quat{quat_} { }
+			, quat{quat_}
+		{ }
     };
 
 // Output of the IMU integrator to be used by pose prediction
@@ -137,10 +157,14 @@ namespace ILLIXR {
         Eigen::Matrix<double, 3, 1> vel;
         Eigen::Quaterniond          quat;
         time_point                  imu_time;
-
-        imu_raw_type(Eigen::Matrix<double, 3, 1> w_hat_, Eigen::Matrix<double, 3, 1> a_hat_, Eigen::Matrix<double, 3, 1> w_hat2_,
-                     Eigen::Matrix<double, 3, 1> a_hat2_, Eigen::Matrix<double, 3, 1> pos_, Eigen::Matrix<double, 3, 1> vel_,
-                     Eigen::Quaterniond quat_, time_point imu_time_)
+		imu_raw_type(Eigen::Matrix<double,3,1> w_hat_,
+					 Eigen::Matrix<double,3,1> a_hat_,
+					 Eigen::Matrix<double,3,1> w_hat2_,
+					 Eigen::Matrix<double,3,1> a_hat2_,
+					 Eigen::Matrix<double,3,1> pos_,
+					 Eigen::Matrix<double,3,1> vel_,
+					 Eigen::Quaterniond quat_,
+					 time_point imu_time_)
                 : w_hat{w_hat_}
                 , a_hat{a_hat_}
                 , w_hat2{w_hat2_}
@@ -148,7 +172,8 @@ namespace ILLIXR {
                 , pos{pos_}
                 , vel{vel_}
                 , quat{quat_}
-                , imu_time{imu_time_} { }
+			, imu_time{imu_time_}
+		{ }
     };
 
     struct pose_type : public switchboard::event {
@@ -159,12 +184,15 @@ namespace ILLIXR {
         pose_type()
                 : sensor_time{time_point{}}
                 , position{Eigen::Vector3f{0, 0, 0}}
-                , orientation{Eigen::Quaternionf{1, 0, 0, 0}} { }
-
-        pose_type(time_point sensor_time_, Eigen::Vector3f position_, Eigen::Quaternionf orientation_)
+			, orientation{Eigen::Quaternionf{1, 0, 0, 0}}
+		{ }
+		pose_type(time_point sensor_time_,
+				  Eigen::Vector3f position_,
+				  Eigen::Quaternionf orientation_)
                 : sensor_time{sensor_time_}
                 , position{position_}
-                , orientation{orientation_} { }
+			, orientation{orientation_}
+		{ }
     };
 
     typedef struct {
