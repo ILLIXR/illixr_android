@@ -23,8 +23,8 @@
 /*   * (This version uploaded to ILLIXR github)                              */
 /*                                                                           */
 
-#include "illixr/data_format.hpp"
-#include "illixr/pose_prediction.hpp"
+#include "illixr/data_format/pose.hpp"
+#include "illixr/data_format/pose_prediction.hpp"
 #include "illixr/threadloop.hpp"
 #include "illixr/switchboard.hpp"
 
@@ -54,30 +54,30 @@ public:
     }
 
     // ********************************************************************
-    virtual ~faux_pose_impl() {
+    ~faux_pose_impl() {
 #ifndef NDEBUG
         std::cout << "[fauxpose] Ending Service\n";
 #endif
     }
 
     // ********************************************************************
-    virtual pose_type get_true_pose() const override {
+    data_format::pose_type get_true_pose() const override {
         throw std::logic_error{"Not Implemented"};
     }
 
     // ********************************************************************
-    virtual bool fast_pose_reliable() const override {
+    bool fast_pose_reliable() const override {
         return true;
     }
 
     // ********************************************************************
-    virtual bool true_pose_reliable() const override {
+    bool true_pose_reliable() const override {
         return false;
     }
 
     // ********************************************************************
-    virtual pose_type correct_pose([[maybe_unused]] const pose_type pose) const override {
-        pose_type simulated_pose;
+    data_format::pose_type correct_pose([[maybe_unused]] const data_format::pose_type pose) const override {
+        data_format::pose_type simulated_pose;
 #ifndef NDEBUG
         std::cout << "[fauxpose] Returning (zero) pose\n";
 #endif
@@ -85,19 +85,19 @@ public:
     }
 
     // ********************************************************************
-    virtual Eigen::Quaternionf get_offset() override {
+    Eigen::Quaternionf get_offset() override {
         return offset;
     }
 
     // ********************************************************************
-    virtual void set_offset(const Eigen::Quaternionf& raw_o_times_offset) override {
+    void set_offset(const Eigen::Quaternionf& raw_o_times_offset) override {
         std::unique_lock   lock{offset_mutex};
         Eigen::Quaternionf raw_o = raw_o_times_offset * offset.inverse();
         offset                   = raw_o.inverse();
     }
 
     // ********************************************************************
-    virtual fast_pose_type get_fast_pose() const override {
+    data_format::fast_pose_type get_fast_pose() const override {
         // MHuzai:  In actual pose prediction, the semantics are that
         //  we return the pose for next vsync, not now. I think we
         //  should do the same here, unless your intent is different
@@ -111,8 +111,8 @@ public:
     //   always facing "front".)
     //
     // NOTE: time_type == std::chrono::system_clock::time_point
-    virtual fast_pose_type get_fast_pose(time_type time) const override {
-        pose_type simulated_pose; /* The algorithmically calculated 6-DOF pose */
+    data_format::fast_pose_type get_fast_pose(time_type time) const override {
+        data_format::pose_type simulated_pose; /* The algorithmically calculated 6-DOF pose */
         double    sim_time;       /* sim_time is used to regulate a consistent movement */
 
         RAC_ERRNO_MSG("[fauxpose] at start of _p_one_iteration");
@@ -133,7 +133,7 @@ public:
 #ifndef NDEBUG
         std::cout << "[fauxpose] Returning pose\n";
 #endif
-        return fast_pose_type{
+        return data_format::fast_pose_type{
                 .pose = simulated_pose, .predict_computed_time = std::chrono::system_clock::now(), .predict_target_time = time};
     }
 

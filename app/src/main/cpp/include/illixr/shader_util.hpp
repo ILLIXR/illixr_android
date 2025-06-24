@@ -1,3 +1,5 @@
+#pragma once
+
 #include "error_util.hpp"
 #include "EGL/egl.h"
 

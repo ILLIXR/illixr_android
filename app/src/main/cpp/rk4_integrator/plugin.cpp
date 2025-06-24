@@ -4,7 +4,7 @@
 #include "illixr/plugin.hpp"
 //#include "illixr/log_service.hpp"
 
-#include "illixr/data_format.hpp"
+#include "illixr/data_format/imu.hpp"
 #include "illixr/plugin.hpp"
 #include "illixr/switchboard.hpp"
 
@@ -27,15 +27,15 @@ public:
             : plugin{name_, pb_}
             , sb{pb->lookup_impl<switchboard>()}
 //            , sl{pb->lookup_impl<log_service>()}
-            , _m_imu_integrator_input{sb->get_reader<imu_integrator_input>("imu_integrator_input")}
-            , _m_imu_raw{sb->get_writer<imu_raw_type>("imu_raw")} {
+            , _m_imu_integrator_input{sb->get_reader<data_format::imu_integrator_input>("imu_integrator_input")}
+            , _m_imu_raw{sb->get_writer<data_format::imu_raw_type>("imu_raw")} {
         LOGR("RK4 INTEGRATOR");
-        sb->schedule<imu_cam_type>(id, "imu_cam", [&](switchboard::ptr<const imu_cam_type> datum, size_t) {
+        sb->schedule<data_format::imu_cam_type>(id, "imu_cam", [&](switchboard::ptr<const data_format::imu_cam_type> datum, size_t) {
             callback(datum);
         });
     }
 
-    void callback(switchboard::ptr<const imu_cam_type> datum) {
+    void callback(switchboard::ptr<const data_format::imu_cam_type> datum) {
         _imu_vec.emplace_back(datum->time, datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
 
         clean_imu_vec(datum->time);
@@ -53,11 +53,11 @@ private:
 //    const std::shared_ptr<log_service> sl;
 
     // IMU Data, Sequence Flag, and State Vars Needed
-    switchboard::reader<imu_integrator_input> _m_imu_integrator_input;
+    switchboard::reader<data_format::imu_integrator_input> _m_imu_integrator_input;
 
     // IMU Biases
-    switchboard::writer<imu_raw_type> _m_imu_raw;
-    std::vector<imu_type>             _imu_vec;
+    switchboard::writer<data_format::imu_raw_type> _m_imu_raw;
+    std::vector<data_format::imu_type>             _imu_vec;
     duration                          last_imu_offset;
     bool                              has_last_offset = false;
 
@@ -113,7 +113,7 @@ private:
         time_point time0 = input_values->last_cam_integration_time + last_imu_offset;
         time_point time1 = real_time + t_off_new;
 
-        std::vector<imu_type>       prop_data = select_imu_readings(_imu_vec, time0, time1);
+        std::vector<data_format::imu_type>       prop_data = select_imu_readings(_imu_vec, time0, time1);
         Eigen::Matrix<double, 3, 1> w_hat;
         Eigen::Matrix<double, 3, 1> a_hat;
         Eigen::Matrix<double, 3, 1> w_hat2;
@@ -149,9 +149,9 @@ private:
     }
 
     // Select IMU readings based on timestamp similar to how OpenVINS selects IMU values to propagate
-    std::vector<imu_type> select_imu_readings(const std::vector<imu_type>& imu_data, time_point time_begin,
+    std::vector<data_format::imu_type> select_imu_readings(const std::vector<data_format::imu_type>& imu_data, time_point time_begin,
                                               time_point time_end) {
-        std::vector<imu_type> prop_data;
+        std::vector<data_format::imu_type> prop_data;
         if (imu_data.size() < 2) {
             return prop_data;
         }
@@ -159,7 +159,7 @@ private:
         for (size_t i = 0; i < imu_data.size() - 1; i++) {
             // If time_begin comes inbetween two IMUs (A and B), interpolate A forward to time_begin
             if (imu_data[i + 1].timestamp > time_begin && imu_data[i].timestamp < time_begin) {
-                imu_type data = interpolate_imu(imu_data[i], imu_data[i + 1], time_begin);
+                data_format::imu_type data = interpolate_imu(imu_data[i], imu_data[i + 1], time_begin);
                 prop_data.push_back(data);
                 continue;
             }
@@ -172,7 +172,7 @@ private:
 
             // IMU is past time_end
             if (imu_data[i + 1].timestamp > time_end) {
-                imu_type data = interpolate_imu(imu_data[i], imu_data[i + 1], time_end);
+                data_format::imu_type data = interpolate_imu(imu_data[i], imu_data[i + 1], time_end);
                 prop_data.push_back(data);
                 break;
             }
@@ -191,9 +191,9 @@ private:
     }
 
     // For when an integration time ever falls inbetween two imu measurements (modeled after OpenVINS)
-    static imu_type interpolate_imu(const imu_type& imu_1, const imu_type& imu_2, time_point timestamp) {
+    static data_format::imu_type interpolate_imu(const data_format::imu_type& imu_1, const data_format::imu_type& imu_2, time_point timestamp) {
         double lambda = duration2double(timestamp - imu_1.timestamp) / duration2double(imu_2.timestamp - imu_1.timestamp);
-        return imu_type{timestamp, (1 - lambda) * imu_1.am + lambda * imu_2.am, (1 - lambda) * imu_1.wm + lambda * imu_2.wm};
+        return data_format::imu_type{timestamp, (1 - lambda) * imu_1.am + lambda * imu_2.am, (1 - lambda) * imu_1.wm + lambda * imu_2.wm};
     }
 
     void predict_mean_rk4(Eigen::Vector4d quat, Eigen::Vector3d pos, Eigen::Vector3d vel, double dt,

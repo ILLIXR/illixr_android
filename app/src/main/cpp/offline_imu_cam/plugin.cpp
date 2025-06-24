@@ -1,4 +1,4 @@
-#include "illixr/data_format.hpp"
+#include "illixr/data_format/imu.hpp"
 #include "illixr/global_module_defs.hpp"
 #include "illixr/relative_clock.hpp"
 #include "illixr/switchboard.hpp"
@@ -29,7 +29,7 @@ public:
         , _m_sensor_data_it{_m_sensor_data.cbegin()}
         , _m_sb{pb->lookup_impl<switchboard>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
-        , _m_imu_cam{_m_sb->get_writer<imu_cam_type>("imu_cam")}
+        , _m_imu_cam{_m_sb->get_writer<data_format::imu_cam_type>("imu_cam")}
         , dataset_first_time{_m_sensor_data_it->first}
         , imu_cam_log{record_logger_}
         , camera_cvtfmt_log{record_logger_} { }
@@ -88,8 +88,8 @@ protected:
         }
 #endif /// NDEBUG
 
-        _m_imu_cam.put(_m_imu_cam.allocate<imu_cam_type>(
-            imu_cam_type{time_point{std::chrono::nanoseconds(dataset_now - dataset_first_time)},
+        _m_imu_cam.put(_m_imu_cam.allocate<data_format::imu_cam_type>(
+                data_format::imu_cam_type{time_point{std::chrono::nanoseconds(dataset_now - dataset_first_time)},
                          (sensor_datum.imu0.value().angular_v).cast<float>(),
                          (sensor_datum.imu0.value().linear_a).cast<float>(), cam0, cam1}));
         LOGO("AG: %f, %f, %f, %f, %f, %f", sensor_datum.imu0.value().angular_v[0], sensor_datum.imu0.value().angular_v[1], sensor_datum.imu0.value().angular_v[2], sensor_datum.imu0.value().linear_a[0], sensor_datum.imu0.value().linear_a[1], sensor_datum.imu0.value().linear_a[2]);
@@ -105,7 +105,7 @@ private:
     std::map<ullong, sensor_types>::const_iterator _m_sensor_data_it;
     const std::shared_ptr<switchboard>             _m_sb;
     std::shared_ptr<const RelativeClock>           _m_clock;
-    switchboard::writer<imu_cam_type>              _m_imu_cam;
+    switchboard::writer<data_format::imu_cam_type>              _m_imu_cam;
 
     // Timestamp of the first IMU value from the dataset
     ullong dataset_first_time;

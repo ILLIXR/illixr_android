@@ -5,12 +5,14 @@
 #include <GLES2/gl2ext.h>
 
 
-#include "illixr/data_format.hpp"
+#include "illixr/data_format/frame.hpp"
+#include "illixr/data_format/pose.hpp"
+#include "illixr/data_format/misc.hpp"
 #include "illixr/error_util.hpp"
 #include "illixr/extended_window.hpp"
 #include "illixr/global_module_defs.hpp"
 #include "illixr/math_util.hpp"
-#include "illixr/pose_prediction.hpp"
+#include "illixr/data_format/pose_prediction.hpp"
 #include "illixr/shader_util.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
@@ -77,16 +79,16 @@ public:
     timewarp_gl(std::string name_, phonebook* pb_)
         : threadloop{name_, pb_}
         , sb{pb->lookup_impl<switchboard>()}
-        , pp{pb->lookup_impl<pose_prediction>()}
+        , pp{pb->lookup_impl<data_format::pose_prediction>()}
         , cl{pb->lookup_impl<common_lock>()}
 //        , sl{pb->lookup_impl<log_service>()}
 //        , xwin{pb->lookup_impl<xlib_gl_extended_window>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
-        , _m_eyebuffer{sb->get_reader<ILLIXR::rendered_frame>("eyebuffer")}
-        , _m_illixr_signal{sb->get_writer<illixr_signal>("illixr_signal")}
-        , _m_hologram{sb->get_writer<hologram_input>("hologram_in")}
+        , _m_eyebuffer{sb->get_reader<ILLIXR::data_format::rendered_frame>("eyebuffer")}
+        , _m_illixr_signal{sb->get_writer<data_format::illixr_signal>("illixr_signal")}
+        , _m_hologram{sb->get_writer<data_format::hologram_input>("hologram_in")}
         , _m_vsync_estimate{sb->get_writer<switchboard::event_wrapper<time_point>>("vsync_estimate")}
-        , _m_offload_data{sb->get_writer<texture_pose>("texture_pose")}
+        , _m_offload_data{sb->get_writer<data_format::texture_pose>("texture_pose")}
         , timewarp_gpu_logger{record_logger_}
         , mtp_logger{record_logger_}
         // TODO: Use #198 to configure this. Delete getenv_or.
@@ -178,7 +180,7 @@ public:
 //                        exit(1);
 //                    }
         #endif
-        client_backend      = graphics_api::TBD;
+        client_backend      = data_format::graphics_api::TBD;
         rendering_ready     = false;
         image_handles_ready = false;
 //        swapchain_ready     = false;
@@ -187,7 +189,7 @@ public:
         #else
                 semaphore_handles_ready    = true;
         #endif
-        sb->schedule<image_handle>(id, "image_handle", [this](switchboard::ptr<const image_handle> handle, std::size_t) {
+        sb->schedule<data_format::image_handle>(id, "image_handle", [this](switchboard::ptr<const data_format::image_handle> handle, std::size_t) {
             // only 2 swapchains (for the left and right eye) are supported for now.
 //            if (handle->swapchain_index == 0) {
 //                LOGT("SWAPCHAIN 0 READY");
@@ -204,12 +206,12 @@ public:
             #endif
                     LOGT("handle.. %d", handle->usage);
                     switch (handle->usage) {
-                        case swapchain_usage::LEFT_SWAPCHAIN: {
+                        case data_format::swapchain_usage::LEFT_SWAPCHAIN: {
                             this->_m_eye_image_handles[0].push_back(*handle);
                             this->_m_eye_swapchains_size[0] = handle->num_images;
                             break;
                         }
-                        case swapchain_usage::RIGHT_SWAPCHAIN: {
+                        case data_format::swapchain_usage::RIGHT_SWAPCHAIN: {
                             this->_m_eye_image_handles[1].push_back(*handle);
                             this->_m_eye_swapchains_size[1] = handle->num_images;
                             break;
@@ -235,7 +237,7 @@ public:
             LOGT("SWITCH DONE");
 //            assert(handle->swapchain_index == 0 || handle->swapchain_index == 1);
 //            this->_m_image_handles[handle->swapchain_index].push_back(*handle);
-            if (client_backend == graphics_api::TBD) {
+            if (client_backend == data_format::graphics_api::TBD) {
                 client_backend = handle->type;
             } else {
                 assert(client_backend == handle->type);
@@ -288,7 +290,7 @@ public:
     }
 private:
     const std::shared_ptr<switchboard>             sb;
-    const std::shared_ptr<pose_prediction>         pp;
+    const std::shared_ptr<data_format::pose_prediction>         pp;
     const std::shared_ptr<common_lock>             cl;
 //    const std::shared_ptr<log_service>             sl;
 //    const std::shared_ptr<xlib_gl_extended_window> xwin;
@@ -304,7 +306,7 @@ private:
     static constexpr double DELAY_FRACTION = 0.9;
     // Shared objects between ILLIXR and the application (either gldemo or Monado)
     bool                                     rendering_ready;
-    graphics_api                             client_backend;
+    data_format::graphics_api                             client_backend;
     std::atomic<bool>                        image_handles_ready;
 //    bool                                     swapchain_ready;
 //    std::array<std::vector<image_handle>, 2> _m_image_handles;
@@ -312,7 +314,7 @@ private:
         std::atomic<bool>                        semaphore_handles_ready;
 
         // Left and right eye images
-        std::array<std::vector<image_handle>, 2> _m_eye_image_handles;
+        std::array<std::vector<data_format::image_handle>, 2> _m_eye_image_handles;
         std::array<std::vector<GLuint>, 2>       _m_eye_swapchains;
         std::array<size_t, 2>                    _m_eye_swapchains_size;
 
@@ -327,17 +329,17 @@ private:
         //std::array<GLuint, 2>                    _m_semaphores;
     #endif
     // Switchboard plug for application eye buffer.
-    switchboard::reader<rendered_frame> _m_eyebuffer;
-    switchboard::writer<illixr_signal> _m_illixr_signal;
+    switchboard::reader<data_format::rendered_frame> _m_eyebuffer;
+    switchboard::writer<data_format::illixr_signal> _m_illixr_signal;
 
     // Switchboard plug for sending hologram calls
-    switchboard::writer<hologram_input> _m_hologram;
+    switchboard::writer<data_format::hologram_input> _m_hologram;
 
     // Switchboard plug for publishing vsync estimates
     switchboard::writer<switchboard::event_wrapper<time_point>> _m_vsync_estimate;
 
     // Switchboard plug for publishing offloaded data
-    switchboard::writer<texture_pose> _m_offload_data;
+    switchboard::writer<data_format::texture_pose> _m_offload_data;
 
     record_coalescer timewarp_gpu_logger;
     record_coalescer mtp_logger;
@@ -538,7 +540,7 @@ private:
         }
     }
 */
-    void VulkanGLInteropBuffer(const vk_buffer_handle& vk_buffer_handle, swapchain_usage usage) {
+    void VulkanGLInteropBuffer(const data_format::vk_buffer_handle& vk_buffer_handle, data_format::swapchain_usage usage) {
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(dpy, surface, surface, glc));
         assert(gl_result && "glXMakeCurrent should not fail");
         EGLClientBuffer native_buffer = NULL;
@@ -586,22 +588,22 @@ private:
 //        _m_swapchain[swapchain_index].push_back(image_handle);
         LOGT("SWITCH");
         switch (usage) {
-                case swapchain_usage::LEFT_SWAPCHAIN: {
+                case data_format::swapchain_usage::LEFT_SWAPCHAIN: {
                         LOGT("Pushed LEFT_SWAPCHAIN");
                         _m_eye_swapchains[0].push_back(image_handle);
                         break;
                     }
-                    case swapchain_usage::RIGHT_SWAPCHAIN: {
+                    case data_format::swapchain_usage::RIGHT_SWAPCHAIN: {
                         LOGT("Pushed RIGHT_SWAPCHAIN");
                         _m_eye_swapchains[1].push_back(image_handle);
                         break;
                     }
-                    case swapchain_usage::LEFT_RENDER: {
+                    case data_format::swapchain_usage::LEFT_RENDER: {
                         LOGT("Pushed LEFT_RENDER");
                         _m_eye_output_textures[0] = image_handle;
                         break;
                     }
-                    case swapchain_usage::RIGHT_RENDER: {
+                    case data_format::swapchain_usage::RIGHT_RENDER: {
                         LOGT("Pushed RIGHT_RENDER");
                         _m_eye_output_textures[1] = image_handle;
                         break;
@@ -944,8 +946,8 @@ public:
             for (int eye = 0; eye < 2; eye++) {
                 uint32_t num_images = _m_eye_image_handles[eye][0].num_images;
                 for (uint32_t image_index = 0; image_index < num_images; image_index++) {
-                    image_handle image = _m_eye_image_handles[eye][image_index];
-                    if (client_backend == graphics_api::OPENGL) {
+                    data_format::image_handle image = _m_eye_image_handles[eye][image_index];
+                    if (client_backend == data_format::graphics_api::OPENGL) {
                         _m_eye_swapchains[eye].push_back(image.gl_handle);
                     } else {
                         LOGT("CONVERTING IMAGES TO GL");
@@ -992,7 +994,7 @@ public:
             rendering_ready = true;
         }
 
-        switchboard::ptr<const rendered_frame> most_recent_frame = _m_eyebuffer.get_ro();
+        switchboard::ptr<const data_format::rendered_frame> most_recent_frame = _m_eyebuffer.get_ro();
 
         // Use the timewarp program
         glUseProgram(timewarpShaderProgram);
@@ -1009,7 +1011,7 @@ public:
         Eigen::Matrix4f viewMatrixBegin = Eigen::Matrix4f::Identity();
         Eigen::Matrix4f viewMatrixEnd   = Eigen::Matrix4f::Identity();
         //LOGT("Disable warp %d", disable_warp);
-        const fast_pose_type latest_pose  = disable_warp ? most_recent_frame->render_pose : pp->get_fast_pose();
+        const data_format::fast_pose_type latest_pose  = disable_warp ? most_recent_frame->render_pose : pp->get_fast_pose();
         viewMatrixBegin.block(0, 0, 3, 3) = latest_pose.pose.orientation.toRotationMatrix();
 
         // TODO: We set the "end" pose to the same as the beginning pose, but this really should be the pose for
@@ -1027,7 +1029,7 @@ public:
 
         glUniformMatrix4fv(tw_start_transform_unif, 1, GL_FALSE, (GLfloat*) (timeWarpStartTransform4x4.data()));
         glUniformMatrix4fv(tw_end_transform_unif, 1, GL_FALSE, (GLfloat*) (timeWarpEndTransform4x4.data()));
-        glUniform1i(flip_y_unif, client_backend == graphics_api::VULKAN);
+        glUniform1i(flip_y_unif, client_backend == data_format::graphics_api::VULKAN);
         // Debugging aid, toggle switch for rendering in the fragment shader
         glUniform1i(glGetUniformLocation(timewarpShaderProgram, "ArrayIndex"), 0);
         glUniform1i(eye_sampler_0, 0);
@@ -1110,7 +1112,7 @@ public:
         glFinish();
         //LOGT("ITERATION finished");
 
-        _m_illixr_signal.put(_m_illixr_signal.allocate<illixr_signal>(++prev_counter));
+        _m_illixr_signal.put(_m_illixr_signal.allocate<data_format::illixr_signal>(data_format::illixr_signal{++prev_counter}));
 //        glEndQuery(GL_TIME_ELAPSED);
 
 #ifndef NDEBUG
@@ -1126,7 +1128,7 @@ public:
         }
 #endif
         // Call Hologram
-        _m_hologram.put(_m_hologram.allocate<hologram_input>(++_hologram_seq));
+        _m_hologram.put(_m_hologram.allocate<data_format::hologram_input>(data_format::hologram_input{++_hologram_seq}));
 
         // Call swap buffers; when vsync is enabled, this will return to the
         // CPU thread once the buffers have been successfully swapped.
@@ -1180,8 +1182,8 @@ public:
             GLubyte* image = readTextureImage();
 
             // Publish image and pose
-            _m_offload_data.put(_m_offload_data.allocate<texture_pose>(
-                texture_pose{offload_duration, image, time_last_swap, latest_pose.pose.position, latest_pose.pose.orientation,
+            _m_offload_data.put(_m_offload_data.allocate<data_format::texture_pose>(
+                    data_format::texture_pose{offload_duration, image, time_last_swap, latest_pose.pose.position, latest_pose.pose.orientation,
                              most_recent_frame->render_pose.pose.orientation}));
         }
 

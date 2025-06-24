@@ -1,6 +1,5 @@
 #include "illixr/global_module_defs.hpp"
 #include "runtime_impl.hpp"
-#include "illixr/data_format.hpp"
 #include "main.h"
 
 #include <csignal>

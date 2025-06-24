@@ -12,7 +12,8 @@
 
 #include "illixr/plugin.hpp"
 #include "illixr/switchboard.hpp"
-#include "illixr/data_format.hpp"
+#include "illixr/data_format/pose.hpp"
+#include "illixr/data_format/imu.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/relative_clock.hpp"
 //#include "illixr/log_service.hpp"
@@ -241,8 +242,8 @@ public:
 		: plugin{name_, pb_}
 		, sb{pb->lookup_impl<switchboard>()}
 //		, sl{pb->lookup_impl<log_service>()}
-		, _m_pose{sb->get_writer<pose_type>("slow_pose")}
-		, _m_imu_integrator_input{sb->get_writer<imu_integrator_input>("imu_integrator_input")}
+		, _m_pose{sb->get_writer<data_format::pose_type>("slow_pose")}
+		, _m_imu_integrator_input{sb->get_writer<data_format::imu_integrator_input>("imu_integrator_input")}
 		, open_vins_estimator{manager_params}
 		, imu_cam_buffer{nullptr}
 	{
@@ -261,14 +262,14 @@ public:
 
 	virtual void start() override {
 		plugin::start();
-		sb->schedule<imu_cam_type>(id, "imu_cam", [&](switchboard::ptr<const imu_cam_type> datum, std::size_t iteration_no) {
+		sb->schedule<data_format::imu_cam_type>(id, "imu_cam", [&](switchboard::ptr<const data_format::imu_cam_type> datum, std::size_t iteration_no) {
 			this->feed_imu_cam(datum, iteration_no);
 		});
 		LOGS("SLAM STARTED");
 	}
 
 
-	void feed_imu_cam(switchboard::ptr<const imu_cam_type> datum, std::size_t iteration_no) {
+	void feed_imu_cam(switchboard::ptr<const data_format::imu_cam_type> datum, std::size_t iteration_no) {
 		// Ensures that slam doesnt start before valid IMU readings come in
 		if (datum == NULL) {
 			LOGS("DATUM IS NULL");
@@ -357,7 +358,7 @@ public:
 			_m_imu_integrator_input.put(_m_imu_integrator_input.allocate(
 				datum->time,
 				from_seconds(state->_calib_dt_CAMtoIMU->value()(0)),
-				imu_params{
+                data_format::imu_params{
                     .gyro_noise = manager_params.imu_noises.sigma_w,
                     .acc_noise = manager_params.imu_noises.sigma_a,
                     .gyro_walk = manager_params.imu_noises.sigma_wb,
@@ -393,14 +394,14 @@ public:
 private:
 	const std::shared_ptr<switchboard> sb;
 //	const std::shared_ptr<log_service> sl;
-	switchboard::writer<pose_type> _m_pose;
-    switchboard::writer<imu_integrator_input> _m_imu_integrator_input;
+	switchboard::writer<data_format::pose_type> _m_pose;
+    switchboard::writer<data_format::imu_integrator_input> _m_imu_integrator_input;
 	State *state;
 
 	VioManagerOptions manager_params = create_params();
 	VioManager open_vins_estimator;
 
-	switchboard::ptr<const imu_cam_type> imu_cam_buffer;
+	switchboard::ptr<const data_format::imu_cam_type> imu_cam_buffer;
 	bool isUninitialized = true;
 };
 

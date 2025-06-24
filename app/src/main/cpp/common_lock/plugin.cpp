@@ -4,6 +4,7 @@
 
 #include "illixr/common_lock.hpp"
 #include "illixr/plugin.hpp"
+#include "illixr/switchboard.hpp"
 #include <android/log.h>
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "common-lock", __VA_ARGS__))

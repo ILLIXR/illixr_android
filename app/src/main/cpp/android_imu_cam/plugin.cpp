@@ -2,11 +2,12 @@
 #include <opencv2/core/mat.hpp>
 
 // ILLIXR includes
-#include "illixr/data_format.hpp"
+#include "illixr/data_format/imu.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/plugin.hpp"
 #include "illixr/threadloop.hpp"
+#include "illixr/data_format/misc.hpp"
 //#include "illixr/log_service.hpp"
 #include <chrono>
 #include <thread>
@@ -60,7 +61,7 @@ public:
             , sb{pb->lookup_impl<switchboard>()}
 //            , sl{pb->lookup_impl<log_service>()}
             , _m_clock{pb->lookup_impl<RelativeClock>()}
-            , _m_imu_cam{sb->get_writer<imu_cam_type>("imu_cam")}{
+            , _m_imu_cam{sb->get_writer<data_format::imu_cam_type>("imu_cam")}{
         LOGA("IMU CAM CONSTRUCTOR");
         cam_proc_time = 0;
         imu_time = 0;
@@ -534,8 +535,8 @@ public:
         time_point curr_time =_m_clock->now();
         //LOGA("TIME = %lf and cam_time %llu",duration2double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
 //        _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
-        _m_imu_cam.put(_m_imu_cam.allocate<imu_cam_type>(
-                imu_cam_type{time_point{curr_time},
+        _m_imu_cam.put(_m_imu_cam.allocate<data_format::imu_cam_type>(
+                data_format::imu_cam_type{time_point{curr_time},
                              cur_gyro.cast<float>(),
                              cur_accel.cast<float>(), ir_left, ir_right}));
         auto stop = std::chrono::high_resolution_clock::now();
@@ -550,7 +551,7 @@ private:
 //    const std::shared_ptr<log_service>         sl;
     const std::shared_ptr<const RelativeClock> _m_clock;
     //switchboard::writer<cam_type>              _m_cam;
-    switchboard::writer<imu_cam_type>           _m_imu_cam;
+    switchboard::writer<data_format::imu_cam_type>           _m_imu_cam;
 
     std::optional<ullong>     _m_first_imu_time;
     std::optional<time_point> _m_first_real_time_imu;

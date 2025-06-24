@@ -1,9 +1,11 @@
 #include "illixr/plugin.hpp"
 
-#include "illixr/data_format.hpp"
+#include "illixr/data_format/pose.hpp"
+#include "illixr/data_format/misc.hpp"
 #include "illixr/global_module_defs.hpp"
 #include "illixr/phonebook.hpp"
-#include "illixr/pose_prediction.hpp"
+#include "illixr/data_format/pose_prediction.hpp"
+#include "illixr/switchboard.hpp"
 #include "data_loading.hpp"
 #include "utils.hpp"
 
@@ -12,7 +14,7 @@
 
 using namespace ILLIXR;
 
-class pose_lookup_impl : public pose_prediction {
+class pose_lookup_impl : public data_format::pose_prediction {
 public:
     pose_lookup_impl(const phonebook* const pb)
         : sb{pb->lookup_impl<switchboard>()}
@@ -39,7 +41,7 @@ public:
         //set_offset(newoffset);
     }
 
-    virtual fast_pose_type get_fast_pose() const override {
+    virtual data_format::fast_pose_type get_fast_pose() const override {
         const switchboard::ptr<const switchboard::event_wrapper<time_point>> estimated_vsync =
             _m_vsync_estimate.get_ro_nullable();
         if (estimated_vsync == nullptr) {
@@ -50,7 +52,7 @@ public:
         }
     }
 
-    virtual pose_type get_true_pose() const override {
+    virtual data_format::pose_type get_true_pose() const override {
         throw std::logic_error{"Not Implemented"};
     }
 
@@ -66,11 +68,11 @@ public:
         return offset;
     }
 
-    virtual pose_type correct_pose(const pose_type pose) const override {
-        pose_type swapped_pose;
+    virtual data_format::pose_type correct_pose(const data_format::pose_type pose) const override {
+        data_format::pose_type swapped_pose;
 
         // Step 1: Compensate starting point to (0, 0, 0), pos only
-        auto input_pose = pose_type{pose.sensor_time,
+        auto input_pose = data_format::pose_type{pose.sensor_time,
                                     Eigen::Vector3f{
                                         pose.position(0) - init_pos_offset(0),
                                         pose.position(1) - init_pos_offset(1),
@@ -124,7 +126,7 @@ public:
         return orientation * offset;
     }
 
-    virtual fast_pose_type get_fast_pose(time_point time) const override {
+    virtual data_format::fast_pose_type get_fast_pose(time_point time) const override {
         ullong lookup_time = time.time_since_epoch().count() + dataset_first_time;
 
         auto nearest_row = _m_sensor_data.upper_bound(lookup_time);
@@ -149,7 +151,7 @@ public:
 
         auto looked_up_pose        = nearest_row->second;
         looked_up_pose.sensor_time = time_point{std::chrono::nanoseconds{nearest_row->first - dataset_first_time}};
-        return fast_pose_type{
+        return data_format::fast_pose_type{
             .pose = correct_pose(looked_up_pose), .predict_computed_time = _m_clock->now(), .predict_target_time = time};
     }
 
@@ -176,7 +178,7 @@ class pose_lookup_plugin : public plugin {
 public:
     pose_lookup_plugin(const std::string& name, phonebook* pb)
         : plugin{name, pb} {
-        pb->register_impl<pose_prediction>(std::static_pointer_cast<pose_prediction>(std::make_shared<pose_lookup_impl>(pb)));
+        pb->register_impl<data_format::pose_prediction>(std::static_pointer_cast<data_format::pose_prediction>(std::make_shared<pose_lookup_impl>(pb)));
     }
 };
 

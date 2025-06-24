@@ -1,13 +1,5 @@
-//
-// Created by madhuparna on 10/19/22.
-//
+#pragma once
 
-#ifndef ILLIXR_NATIVE_ACTIVITY_LOG_SERVICE_HPP
-#define ILLIXR_NATIVE_ACTIVITY_LOG_SERVICE_HPP
-
-#endif //ILLIXR_NATIVE_ACTIVITY_LOG_SERVICE_HPP
-
-#include "data_format.hpp"
 #include "phonebook.hpp"
 #include <fstream>
 

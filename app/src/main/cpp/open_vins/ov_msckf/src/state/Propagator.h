@@ -28,7 +28,7 @@
 #define ILLIXR_INTEGRATION 1
 
 #ifdef ILLIXR_INTEGRATION
-#include "illixr/data_format.hpp"
+//#include "illixr/data_format.hpp"
 #endif /// ILLIXR_INTEGRATION
 
 

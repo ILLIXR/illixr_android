@@ -40,7 +40,7 @@ typedef struct {
     std::optional<lazy_load_image> cam1;
 } sensor_types;
 
-static std::map<ullong, sensor_types> load_data() {
+[[maybe_unused]] static std::map<ullong, sensor_types> load_data() {
     const char* illixr_data_c_str = std::getenv("ILLIXR_DATA");
     if (!illixr_data_c_str) {
         std::cerr << "Please define ILLIXR_DATA" << std::endl;

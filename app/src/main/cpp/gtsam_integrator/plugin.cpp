@@ -1,6 +1,6 @@
 #include "illixr/plugin.hpp"
 
-#include "illixr/data_format.hpp"
+#include "illixr/data_format/imu.hpp"
 #include "illixr/plugin.hpp"
 #include "illixr/switchboard.hpp"
 
@@ -29,9 +29,9 @@ public:
         : plugin{name_, pb_}
         , sb{pb->lookup_impl<switchboard>()}
         , _m_clock{pb->lookup_impl<RelativeClock>()}
-        , _m_imu_integrator_input{sb->get_reader<imu_integrator_input>("imu_integrator_input")}
-        , _m_imu_raw{sb->get_writer<imu_raw_type>("imu_raw")} {
-        sb->schedule<imu_type>(id, "imu", [&](switchboard::ptr<const imu_type> datum, size_t) {
+        , _m_imu_integrator_input{sb->get_reader<data_format::imu_integrator_input>("imu_integrator_input")}
+        , _m_imu_raw{sb->get_writer<data_format::imu_raw_type>("imu_raw")} {
+        sb->schedule<data_format::imu_type>(id, "imu", [&](switchboard::ptr<const data_format::imu_type> datum, size_t) {
             callback(datum);
         });
     }
@@ -50,12 +50,12 @@ private:
     const std::shared_ptr<RelativeClock> _m_clock;
 
     // IMU Data, Sequence Flag, and State Vars Needed
-    switchboard::reader<imu_integrator_input> _m_imu_integrator_input;
+    switchboard::reader<data_format::imu_integrator_input> _m_imu_integrator_input;
 
     // Write IMU Biases for PP
-    switchboard::writer<imu_raw_type> _m_imu_raw;
+    switchboard::writer<data_format::imu_raw_type> _m_imu_raw;
 
-    std::vector<imu_type> _imu_vec;
+    std::vector<data_format::imu_type> _imu_vec;
 
     [[maybe_unused]] time_point last_cam_time;
     duration                    last_imu_offset;
@@ -65,8 +65,8 @@ private:
      */
     class PimObject {
     public:
-        using imu_int_t = ILLIXR::imu_integrator_input;
-        using imu_t     = imu_type;
+        using imu_int_t = ILLIXR::data_format::imu_integrator_input;
+        using imu_t     = data_format::imu_type;
         using bias_t    = ImuBias;
         using nav_t     = gtsam::NavState;
         using pim_t     = gtsam::PreintegratedCombinedMeasurements;
@@ -179,7 +179,7 @@ private:
         time_point time_begin = input_values->last_cam_integration_time + last_imu_offset;
         time_point time_end   = input_values->t_offset + real_time;
 
-        const std::vector<imu_type> prop_data = select_imu_readings(_imu_vec, time_begin, time_end);
+        const std::vector<data_format::imu_type> prop_data = select_imu_readings(_imu_vec, time_begin, time_end);
 
         /// Need to integrate over a sliding window of 2 imu_type values.
         /// If the container of data is smaller than 2 elements, return early.
@@ -211,7 +211,7 @@ private:
         std::cout << "New  Position (x, y, z) = " << out_pose.x() << ", " << out_pose.y() << ", " << out_pose.z() << std::endl;
 #endif
 
-        _m_imu_raw.put(_m_imu_raw.allocate<imu_raw_type>(imu_raw_type{prev_bias.gyroscope(), prev_bias.accelerometer(),
+        _m_imu_raw.put(_m_imu_raw.allocate<data_format::imu_raw_type>(imu_raw_type{prev_bias.gyroscope(), prev_bias.accelerometer(),
                                                                       bias.gyroscope(), bias.accelerometer(),
                                                                       out_pose.translation(),             /// Position
                                                                       navstate_k.velocity(),              /// Velocity
@@ -220,9 +220,9 @@ private:
     }
 
     // Select IMU readings based on timestamp similar to how OpenVINS selects IMU values to propagate
-    std::vector<imu_type> select_imu_readings(const std::vector<imu_type>& imu_data, const time_point time_begin,
+    std::vector<data_format::imu_type> select_imu_readings(const std::vector<data_format::imu_type>& imu_data, const time_point time_begin,
                                               const time_point time_end) {
-        std::vector<imu_type> prop_data;
+        std::vector<data_format::imu_type> prop_data;
         if (imu_data.size() < 2) {
             return prop_data;
         }

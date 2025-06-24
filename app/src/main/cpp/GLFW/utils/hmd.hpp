@@ -1,5 +1,4 @@
-#ifndef _HMD_H
-#define _HMD_H
+#pragma once
 
 #include <array>
 #include <EGL/egl.h>
@@ -56,5 +55,3 @@ public:
     BuildDistortionMeshes(std::array<std::array<std::vector<mesh_coord2d_t>, NUM_COLOR_CHANNELS>, NUM_EYES>& distort_coords,
                           hmd_info_t&                                                                        hmdInfo);
 };
-
-#endif

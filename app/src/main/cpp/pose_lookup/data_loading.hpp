@@ -1,3 +1,6 @@
+#pragma once
+
+#include "illixr/data_format/pose.hpp"
 #include "illixr/error_util.hpp"
 #include "csv_iterator.hpp"
 
@@ -20,7 +23,7 @@
 
 using namespace ILLIXR;
 
-typedef pose_type sensor_types;
+typedef data_format::pose_type sensor_types;
 
 static std::map<ullong, sensor_types> load_data() {
     const char* illixr_data_c_str = std::getenv("ILLIXR_DATA");

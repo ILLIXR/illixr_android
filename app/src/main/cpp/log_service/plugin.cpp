@@ -4,10 +4,11 @@
 
 #include "illixr/log_service.hpp"
 #include "illixr/plugin.hpp"
+#include "illixr/switchboard.hpp"
 
 class log_service_impl : public log_service {
 public:
-    log_service_impl(const phonebook* const pb)
+    explicit log_service_impl(const phonebook* const pb)
             : sb{pb->lookup_impl<switchboard>()}{
         const char* illixr_data_c_str = std::getenv("ILLIXR_LOG");
         if (!illixr_data_c_str) {
@@ -18,17 +19,17 @@ public:
         log_file.open(illixr_data);
     }
 
-    ~log_service_impl() {
+    ~log_service_impl() override {
         log_file.close();
     }
 
-    void write_duration(std::string plugin_name, double duration) {
+    void write_duration(std::string plugin_name, double duration) override {
         lock.lock();
         log_file << plugin_name << " " << std::to_string(duration) <<std::endl;
         lock.unlock();
     }
 
-    void write_duration_filename(std::string plugin_name, double duration, std::string filename) {
+    void write_duration_filename(std::string plugin_name, double duration, std::string filename) override {
         lock.lock();
         log_file << plugin_name << " " << std::to_string(duration) <<std::endl;
         lock.unlock();

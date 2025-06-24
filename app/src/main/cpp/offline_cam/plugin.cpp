@@ -1,8 +1,8 @@
 #include "illixr/plugin.hpp"
 
-#include "illixr/data_format.hpp"
+#include "illixr/data_format/opencv_data_types.hpp"
 #include "illixr/phonebook.hpp"
-#include "illixr/pose_prediction.hpp"
+#include "illixr/data_format/pose_prediction.hpp"
 #include "illixr/relative_clock.hpp"
 #include "illixr/threadloop.hpp"
 #include "data_loading.hpp"
@@ -19,14 +19,14 @@ public:
     offline_cam(std::string name_, phonebook* pb_)
         : threadloop{name_, pb_}
         , sb{pb->lookup_impl<switchboard>()}
-        , _m_cam_publisher{sb->get_writer<cam_type>("cam")}
+        , _m_cam_publisher{sb->get_writer<data_format::cam_type>("cam")}
         , _m_sensor_data{load_data()}
         , dataset_first_time{_m_sensor_data.cbegin()->first}
         , last_ts{0}
         , _m_rtc{pb->lookup_impl<RelativeClock>()}
         , next_row{_m_sensor_data.cbegin()} { }
 
-    virtual skip_option _p_should_skip() override {
+    skip_option _p_should_skip() override {
         if (true) {
             return skip_option::run;
         } else {
@@ -34,7 +34,7 @@ public:
         }
     }
 
-    virtual void _p_one_iteration() override {
+    void _p_one_iteration() override {
         duration time_since_start = _m_rtc->now().time_since_epoch();
         // duration begin            = time_since_start;
         ullong lookup_time = std::chrono::nanoseconds{time_since_start}.count() + dataset_first_time;
@@ -74,7 +74,7 @@ public:
 
             time_point expected_real_time_given_dataset_time(
                 std::chrono::duration<long, std::nano>{nearest_row->first - dataset_first_time});
-            _m_cam_publisher.put(_m_cam_publisher.allocate<cam_type>(cam_type{
+            _m_cam_publisher.put(_m_cam_publisher.allocate<data_format::cam_type>(data_format::cam_type{
                 expected_real_time_given_dataset_time,
                 img0,
                 img1,
@@ -86,7 +86,7 @@ public:
 
 private:
     const std::shared_ptr<switchboard>             sb;
-    switchboard::writer<cam_type>                  _m_cam_publisher;
+    switchboard::writer<data_format::cam_type>                  _m_cam_publisher;
     const std::map<ullong, sensor_types>           _m_sensor_data;
     ullong                                         dataset_first_time;
     ullong                                         last_ts;
