@@ -1,10 +1,10 @@
 /// A minimal/no-op ILLIXR plugin
 
-#include "common/phonebook.hpp"
-#include "common/plugin.hpp"
-#include "common/threadloop.hpp"
-#include "common/switchboard.hpp"
-#include "common/data_format.hpp"
+#include "illixr/phonebook.hpp"
+#include "illixr/plugin.hpp"
+#include "illixr/threadloop.hpp"
+#include "illixr/switchboard.hpp"
+#include "illixr/data_format.hpp"
 #include <android/sensor.h>
 #include <android/log.h>
 #include <chrono>

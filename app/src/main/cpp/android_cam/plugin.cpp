@@ -2,11 +2,11 @@
 #include <opencv2/core/mat.hpp>
 
 // ILLIXR includes
-#include "common/data_format.hpp"
-#include "common/switchboard.hpp"
-#include "common/phonebook.hpp"
-#include "common/plugin.hpp"
-#include "common/threadloop.hpp"
+#include "illixr/data_format.hpp"
+#include "illixr/switchboard.hpp"
+#include "illixr/phonebook.hpp"
+#include "illixr/plugin.hpp"
+#include "illixr/threadloop.hpp"
 #include <chrono>
 #include <thread>
 #include <mutex>

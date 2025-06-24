@@ -23,10 +23,10 @@
 /*   * (This version uploaded to ILLIXR github)                              */
 /*                                                                           */
 
-#include "common/data_format.hpp"
-#include "common/pose_prediction.hpp"
-#include "common/threadloop.hpp"
-#include "common/switchboard.hpp"
+#include "illixr/data_format.hpp"
+#include "illixr/pose_prediction.hpp"
+#include "illixr/threadloop.hpp"
+#include "illixr/switchboard.hpp"
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "faux_pose", __VA_ARGS__))
 

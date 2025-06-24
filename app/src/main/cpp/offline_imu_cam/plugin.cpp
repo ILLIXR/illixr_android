@@ -1,8 +1,8 @@
-#include "common/data_format.hpp"
-#include "common/global_module_defs.hpp"
-#include "common/relative_clock.hpp"
-#include "common/switchboard.hpp"
-#include "common/threadloop.hpp"
+#include "illixr/data_format.hpp"
+#include "illixr/global_module_defs.hpp"
+#include "illixr/relative_clock.hpp"
+#include "illixr/switchboard.hpp"
+#include "illixr/threadloop.hpp"
 #include "data_loading.hpp"
 #include <android/log.h>
 
@@ -92,6 +92,7 @@ protected:
             imu_cam_type{time_point{std::chrono::nanoseconds(dataset_now - dataset_first_time)},
                          (sensor_datum.imu0.value().angular_v).cast<float>(),
                          (sensor_datum.imu0.value().linear_a).cast<float>(), cam0, cam1}));
+        LOGO("AG: %f, %f, %f, %f, %f, %f", sensor_datum.imu0.value().angular_v[0], sensor_datum.imu0.value().angular_v[1], sensor_datum.imu0.value().angular_v[2], sensor_datum.imu0.value().linear_a[0], sensor_datum.imu0.value().linear_a[1], sensor_datum.imu0.value().linear_a[2]);
 
         RAC_ERRNO_MSG("offline_imu_cam at bottom of iteration");
         auto stop = std::chrono::high_resolution_clock::now();

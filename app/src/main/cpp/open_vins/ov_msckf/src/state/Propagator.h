@@ -23,12 +23,12 @@
 
 
 #include "../state/StateHelper.h"
-#include "../ov_core/src/utils/quat_ops.h"
+#include "../../../ov_core/src/utils/quat_ops.h"
 
 #define ILLIXR_INTEGRATION 1
 
 #ifdef ILLIXR_INTEGRATION
-#include "common/data_format.hpp"
+#include "illixr/data_format.hpp"
 #endif /// ILLIXR_INTEGRATION
 
 

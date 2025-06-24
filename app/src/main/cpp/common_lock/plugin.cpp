@@ -2,8 +2,8 @@
 // Created by madhuparna on 10/19/22.
 //
 
-#include "../common/common_lock.hpp"
-#include "common/plugin.hpp"
+#include "illixr/common_lock.hpp"
+#include "illixr/plugin.hpp"
 #include <android/log.h>
 
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "common-lock", __VA_ARGS__))

@@ -1,12 +1,12 @@
 // This entire IMU integrator has been ported almost as-is from the original OpenVINS integrator, which
 // can be found here: https://github.com/rpng/open_vins/blob/master/ov_msckf/src/state/Propagator.cpp
 
-#include "common/plugin.hpp"
-//#include "common/log_service.hpp"
+#include "illixr/plugin.hpp"
+//#include "illixr/log_service.hpp"
 
-#include "common/data_format.hpp"
-#include "common/plugin.hpp"
-#include "common/switchboard.hpp"
+#include "illixr/data_format.hpp"
+#include "illixr/plugin.hpp"
+#include "illixr/switchboard.hpp"
 
 #include <chrono>
 #include <Eigen/Dense>
@@ -36,11 +36,7 @@ public:
     }
 
     void callback(switchboard::ptr<const imu_cam_type> datum) {
-		_imu_vec.emplace_back(
-			datum->time,
-			datum->angular_v.cast<double>(),
-			datum->linear_a.cast<double>()
-		);
+        _imu_vec.emplace_back(datum->time, datum->angular_v.cast<double>(), datum->linear_a.cast<double>());
 
         clean_imu_vec(datum->time);
         auto start = std::chrono::high_resolution_clock::now();
@@ -147,16 +143,9 @@ private:
             }
         }
 
-		_m_imu_raw.put(_m_imu_raw.allocate(
-			w_hat,
-			a_hat,
-			w_hat2,
-			a_hat2,
-			curr_pos,
-			curr_vel,
+        _m_imu_raw.put(_m_imu_raw.allocate(w_hat, a_hat, w_hat2, a_hat2, curr_pos, curr_vel,
                                            Eigen::Quaterniond{curr_quat(3), curr_quat(0), curr_quat(1), curr_quat(2)},
-			real_time
-		));
+                                           real_time));
     }
 
     // Select IMU readings based on timestamp similar to how OpenVINS selects IMU values to propagate
@@ -204,18 +193,13 @@ private:
     // For when an integration time ever falls inbetween two imu measurements (modeled after OpenVINS)
     static imu_type interpolate_imu(const imu_type& imu_1, const imu_type& imu_2, time_point timestamp) {
         double lambda = duration2double(timestamp - imu_1.timestamp) / duration2double(imu_2.timestamp - imu_1.timestamp);
-		return imu_type {
-			timestamp,
-			(1 - lambda) * imu_1.am + lambda * imu_2.am,
-			(1 - lambda) * imu_1.wm + lambda * imu_2.wm
-		};
+        return imu_type{timestamp, (1 - lambda) * imu_1.am + lambda * imu_2.am, (1 - lambda) * imu_1.wm + lambda * imu_2.wm};
     }
 
     void predict_mean_rk4(Eigen::Vector4d quat, Eigen::Vector3d pos, Eigen::Vector3d vel, double dt,
-                                  const Eigen::Vector3d &w_hat1, const Eigen::Vector3d &a_hat1,
-                                  const Eigen::Vector3d &w_hat2, const Eigen::Vector3d &a_hat2,
-                                  Eigen::Vector4d &new_q, Eigen::Vector3d &new_v, Eigen::Vector3d &new_p) {
-									  
+                          const Eigen::Vector3d& w_hat1, const Eigen::Vector3d& a_hat1, const Eigen::Vector3d& w_hat2,
+                          const Eigen::Vector3d& a_hat2, Eigen::Vector4d& new_q, Eigen::Vector3d& new_v,
+                          Eigen::Vector3d& new_p) {
         Eigen::Matrix<double, 3, 1> gravity_vec = Eigen::Matrix<double, 3, 1>(0.0, 0.0, 9.81);
 
         // Pre-compute things
@@ -338,9 +322,7 @@ private:
      */
     static const inline Eigen::Matrix<double, 3, 3> skew_x(const Eigen::Matrix<double, 3, 1>& w) {
         Eigen::Matrix<double, 3, 3> w_x;
-        w_x << 0, -w(2), w(1),
-                w(2), 0, -w(0),
-                -w(1), w(0), 0;
+        w_x << 0, -w(2), w(1), w(2), 0, -w(0), -w(1), w(0), 0;
         return w_x;
     }
 
@@ -357,8 +339,7 @@ private:
      */
     static const inline Eigen::Matrix<double, 3, 3> quat_2_Rot(const Eigen::Matrix<double, 4, 1>& q) {
         Eigen::Matrix<double, 3, 3> q_x = skew_x(q.block(0, 0, 3, 1));
-        Eigen::MatrixXd Rot = (2 * std::pow(q(3, 0), 2) - 1) * Eigen::MatrixXd::Identity(3, 3)
-                              - 2 * q(3, 0) * q_x +
+        Eigen::MatrixXd             Rot = (2 * std::pow(q(3, 0), 2) - 1) * Eigen::MatrixXd::Identity(3, 3) - 2 * q(3, 0) * q_x +
                                           2 * q.block(0, 0, 3, 1) * (q.block(0, 0, 3, 1).transpose());
         return Rot;
     }

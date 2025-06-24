@@ -23,7 +23,7 @@
 #define ILLIXR_INTEGRATION 1
 
 #ifdef ILLIXR_INTEGRATION
-#include "common/cpu_timer.hpp"
+#include "illixr/cpu_timer.hpp"
 #endif /// ILLIXR_INTEGRATION
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/mat.hpp>

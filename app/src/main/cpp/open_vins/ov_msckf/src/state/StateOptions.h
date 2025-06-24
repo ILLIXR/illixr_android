@@ -21,7 +21,7 @@
 #ifndef OV_MSCKF_STATE_OPTIONS_H
 #define OV_MSCKF_STATE_OPTIONS_H
 
-#include "../ov_core/src/types/LandmarkRepresentation.h"
+#include "../../../ov_core/src/types/LandmarkRepresentation.h"
 
 using namespace ov_type;
 

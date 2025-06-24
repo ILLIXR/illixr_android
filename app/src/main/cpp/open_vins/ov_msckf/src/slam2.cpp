@@ -10,12 +10,12 @@
 #include "core/VioManager.h"
 #include "state/State.h"
 
-#include "common/plugin.hpp"
-#include "common/switchboard.hpp"
-#include "common/data_format.hpp"
-#include "common/phonebook.hpp"
-#include "common/relative_clock.hpp"
-//#include "common/log_service.hpp"
+#include "illixr/plugin.hpp"
+#include "illixr/switchboard.hpp"
+#include "illixr/data_format.hpp"
+#include "illixr/phonebook.hpp"
+#include "illixr/relative_clock.hpp"
+//#include "illixr/log_service.hpp"
 #include <android/log.h>
 #include <fstream>
 #include <chrono>

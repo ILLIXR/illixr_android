@@ -1,6 +1,6 @@
-#include "common/global_module_defs.hpp"
+#include "illixr/global_module_defs.hpp"
 #include "runtime_impl.hpp"
-#include "common/data_format.hpp"
+#include "illixr/data_format.hpp"
 #include "main.h"
 
 #include <csignal>

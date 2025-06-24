@@ -2,8 +2,8 @@
 // Created by madhuparna on 10/19/22.
 //
 
-#include "../common/log_service.hpp"
-#include "common/plugin.hpp"
+#include "illixr/log_service.hpp"
+#include "illixr/plugin.hpp"
 
 class log_service_impl : public log_service {
 public:

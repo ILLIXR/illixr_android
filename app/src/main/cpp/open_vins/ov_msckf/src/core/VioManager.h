@@ -28,13 +28,12 @@
 #include <Eigen/StdVector>
 #include <boost/filesystem.hpp>
 
-//#include "track/TrackAruco.h"
-#include "../ov_core/src/track/TrackDescriptor.h"
-#include "../ov_core/src/track/TrackKLT.h"
-#include "../ov_core/src/track/TrackSIM.h"
-#include "../ov_core/src/init/InertialInitializer.h"
-#include "../ov_core/src/types/LandmarkRepresentation.h"
-#include "../ov_core/src/types/Landmark.h"
+#include "../../../ov_core/src/track/TrackDescriptor.h"
+#include "../../../ov_core/src/track/TrackKLT.h"
+#include "../../../ov_core/src/track/TrackSIM.h"
+#include "../../../ov_core/src/init/InertialInitializer.h"
+#include "../../../ov_core/src/types/LandmarkRepresentation.h"
+#include "../../../ov_core/src/types/Landmark.h"
 
 #include "../state/Propagator.h"
 #include "../state/State.h"

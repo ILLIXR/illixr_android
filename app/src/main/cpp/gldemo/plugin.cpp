@@ -1,19 +1,19 @@
 // clang-format off
 // clang-format on
 
-#include "common/data_format.hpp"
-#include "common/error_util.hpp"
-#include "common/extended_window.hpp"
-#include "common/gl_util/obj.hpp"
-#include "common/global_module_defs.hpp"
-#include "common/pose_prediction.hpp"
-#include "common/shader_util.hpp"
-#include "common/switchboard.hpp"
-#include "common/threadloop.hpp"
+#include "illixr/data_format.hpp"
+#include "illixr/error_util.hpp"
+#include "illixr/extended_window.hpp"
+#include "illixr/gl_util/obj.hpp"
+#include "illixr/global_module_defs.hpp"
+#include "illixr/pose_prediction.hpp"
+#include "illixr/shader_util.hpp"
+#include "illixr/switchboard.hpp"
+#include "illixr/threadloop.hpp"
 #include "shaders/demo_shader.hpp"
-#include "common/common_lock.hpp"
-#include "common/math_util.hpp"
-#include "common/log_service.hpp"
+#include "illixr/common_lock.hpp"
+#include "illixr/math_util.hpp"
+#include "illixr/log_service.hpp"
 
 #include <EGL/egl.h>
 
@@ -32,6 +32,7 @@ using namespace ILLIXR;
 // Wake up 1 ms after vsync instead of exactly at vsync to account for scheduling uncertainty
 static constexpr std::chrono::milliseconds VSYNC_SAFETY_DELAY{1};
 
+const Eigen::Quaternionf INIT = {0.9238795, 0., 0.3826834, 0.};
 class gldemo : public threadloop {
 public:
     // Public constructor, create_component passes Switchboard handles ("plugs")
@@ -134,7 +135,6 @@ public:
 
         // We'll calculate this model view matrix
         // using fresh pose data, if we have any.
-        Eigen::Matrix4f modelViewMatrix;
 
         Eigen::Matrix4f modelMatrix = Eigen::Matrix4f::Identity();
 
@@ -142,14 +142,15 @@ public:
         pose_type            pose      = fast_pose.pose;
 
         Eigen::Matrix3f head_rotation_matrix = pose.orientation.toRotationMatrix();
-
+        LOGG("Pose: %f %f %f %f %f %f %f", pose.position.x(), pose.position.y(), pose.position.z(),
+             pose.orientation.w(), pose.orientation.x(), pose.orientation.y(), pose.orientation.z());
         // Excessive? Maybe.
         constexpr int LEFT_EYE = 0;
 
         for (auto eye_idx = 0; eye_idx < 2; eye_idx++) {
             // Offset of eyeball from pose
             auto eyeball =
-                Eigen::Vector3f((eye_idx == LEFT_EYE ? -display_params::ipd / 2.0f : display_params::ipd / 2.0f), 0, 0);
+                Eigen::Vector3f((eye_idx == LEFT_EYE ? -display_params::ipd / 2.0f : display_params::ipd / 2.0f), 1.5, 4.0);
 
             // Apply head rotation to eyeball offset vector
             eyeball = head_rotation_matrix * eyeball;
@@ -160,7 +161,8 @@ public:
             // Build our eye matrix from the pose's position + orientation.
             Eigen::Matrix4f eye_matrix   = Eigen::Matrix4f::Identity();
             eye_matrix.block<3, 1>(0, 3) = eyeball; // Set position to eyeball's position
-            eye_matrix.block<3, 3>(0, 0) = pose.orientation.toRotationMatrix();
+            Eigen::Quaternionf rot = INIT * pose.orientation;
+            eye_matrix.block<3, 3>(0, 0) = rot.toRotationMatrix();
 
             // Objects' "view matrix" is inverse of eye matrix.
             auto view_matrix = eye_matrix.inverse();

@@ -2,12 +2,12 @@
 #include <opencv2/core/mat.hpp>
 
 // ILLIXR includes
-#include "common/data_format.hpp"
-#include "common/switchboard.hpp"
-#include "common/phonebook.hpp"
-#include "common/plugin.hpp"
-#include "common/threadloop.hpp"
-//#include "common/log_service.hpp"
+#include "illixr/data_format.hpp"
+#include "illixr/switchboard.hpp"
+#include "illixr/phonebook.hpp"
+#include "illixr/plugin.hpp"
+#include "illixr/threadloop.hpp"
+//#include "illixr/log_service.hpp"
 #include <chrono>
 #include <thread>
 #include <mutex>
@@ -154,14 +154,14 @@ public:
 //                        avg_filter.pop_front();
 //                    }
                     //uint64_t time_s = std::chrono::system_clock::now().time_since_epoch().count();
-                    //LOGA("IMU Values : accel %f %f %f %f %f %f", accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
+                    LOGA("IMU Values : accel %f %f %f %f %f %f", accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
 
                 }
                 default: ;
             }
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-            LOGA("duration: %f", duration2double(duration));
+            LOGA("durationX: %f", duration2double(duration));
             imu_time = imu_time + duration2double(duration);
             _m_lock.unlock();
         }
@@ -213,13 +213,13 @@ public:
                         accel[0] = event.acceleration.x;
                         accel[1] = event.acceleration.y;
                         accel[2] = event.acceleration.z;
-                        LOGA("ACCEL ..");
+                        //LOGA("ACCEL %f, %f, %f", accel[0], accel[1], accel[2]);
                         break;
                     case ASENSOR_TYPE_GYROSCOPE:
                         gyro[0] = event.data[0];
                         gyro[1] = event.data[1];
                         gyro[2] = event.data[2];
-                        LOGA("GYRO ...");
+                        //LOGA("GYRO %f, %f, %f", gyro[0], gyro[1], gyro[2]);
                         break;
                 }
                 imu_ts = event.timestamp;
@@ -541,6 +541,7 @@ public:
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         LOGA("duration: %f", duration2double(duration));
+        LOGA("AG: %f, %f, %f, %f, %f, %f", cur_accel[0], cur_accel[1], cur_accel[2], cur_gyro[0], cur_gyro[1], cur_gyro[2]);
 //        sl->write_duration("imu_cam", duration2double(duration) + last_imu_time + last_cam_time);
     }
 
