@@ -44,78 +44,7 @@ set(CMAKE_SHARED_LINKER_FLAGS
 add_library(native-activity
         SHARED
         main.cpp
-        runtime/plugin.cpp
-)
-
-add_library(runtime
-        SHARED
-        runtime/plugin.cpp
-)
-
-add_library(gldemo
-        SHARED
-        gldemo/plugin.cpp
-)
-
-add_library(common_lock
-        SHARED
-        common_lock/plugin.cpp
-)
-
-add_library(log_service
-        SHARED
-        log_service/plugin.cpp
-)
-
-add_library(timewarp_gl
-        SHARED
-        timewarp_gl/plugin.cpp
-        GLFW/utils/hmd.cpp
-)
-
-add_library(pose_lookup
-        SHARED
-        pose_lookup/plugin.cpp
-)
-
-add_library(pose_prediction
-        SHARED
-        pose_prediction/plugin.cpp
-)
-
-add_library(rk4_integrator
-        SHARED
-        rk4_integrator/plugin.cpp
-)
-
-#add_library(android_cam
-#        SHARED
-#        android_cam/plugin.cpp
-#        )
-#
-#add_library(android_imu
-#        SHARED
-#        android_imu/plugin.cpp
-#        )
-
-#add_library(offline_cam
-#        SHARED
-#        offline_cam/plugin.cpp
-#        )
-
-#add_library(offline_imu
-#        SHARED
-#        offline_imu/plugin.cpp
-#        )
-
-add_library(offline_imu_cam
-        SHARED
-        offline_imu_cam/plugin.cpp
-)
-
-add_library(android_imu_cam
-        SHARED
-        android_imu_cam/plugin.cpp
+        src/plugin.cpp
 )
 
 add_library(ov_core_lib
@@ -150,85 +79,18 @@ add_library(slam
         open_vins/ov_msckf/src/slam2.cpp
 )
 
-#add_library(faux_pose
-#        SHARED
-#        faux_pose/plugin.cpp
-#        )
-
 target_include_directories(native-activity PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_include_directories(runtime PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_include_directories(gldemo PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_include_directories(common_lock PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-target_include_directories(log_service PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-target_include_directories(timewarp_gl PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-target_include_directories(pose_lookup PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-target_include_directories(pose_prediction PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-target_include_directories(rk4_integrator PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-#target_include_directories(android_cam PRIVATE
-#        ${OpenCV_LIBS}
-#        ${jnigraphics-lib}
-#        ${ANDROID_NDK}/sources/android/native_app_glue)
-#
-#target_include_directories(android_imu PRIVATE
-#        ${OpenCV_LIBS}
-#        ${jnigraphics-lib}
-#        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-target_include_directories(offline_imu_cam PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-target_include_directories(android_imu_cam PRIVATE
-        ${OpenCV_LIBS}
-        ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-#target_include_directories(offline_imu PRIVATE
-#        ${OpenCV_LIBS}
-#        ${jnigraphics-lib}
-#        ${ANDROID_NDK}/sources/android/native_app_glue)
-
-#target_include_directories(offline_cam PRIVATE
-#        ${OpenCV_LIBS}
-#        ${jnigraphics-lib}
-#        ${ANDROID_NDK}/sources/android/native_app_glue)
+if (ILLIXR_CAM)
+    #add_subdirectory(plugins/offline_cam)
+    #add_subdirectory(plugins/offline_imu)
+    add_subdirectory(plugins/offline_imu_cam)
+endif ()
 
 target_include_directories(ov_core_lib PRIVATE
         ${OpenCV_LIBS}
@@ -247,11 +109,6 @@ target_include_directories(slam PRIVATE
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-#target_include_directories(faux_pose PRIVATE
-#        ${OpenCV_LIBS}
-#        ${jnigraphics-lib}
-#        ${ANDROID_NDK}/sources/android/native_app_glue)
-
 # add lib dependencies
 
 
@@ -264,123 +121,7 @@ target_link_libraries(native-activity
         Eigen3::Eigen
 )
 
-target_link_libraries(runtime
-        EGL
-        GLESv3
-        log
-        Eigen3::Eigen
-)
 
-target_link_libraries(gldemo
-        EGL
-        GLESv3
-        log
-        Eigen3::Eigen
-)
-
-target_link_libraries(common_lock
-        EGL
-        GLESv3
-        log
-        Eigen3::Eigen
-)
-
-target_link_libraries(log_service
-        EGL
-        GLESv3
-        log
-        Eigen3::Eigen
-)
-
-target_link_libraries(timewarp_gl
-        EGL
-        GLESv3
-        log
-        android
-        Eigen3::Eigen
-)
-
-target_link_libraries(pose_lookup
-        EGL
-        GLESv3
-        log
-        Eigen3::Eigen
-)
-
-target_link_libraries(pose_prediction
-        EGL
-        GLESv3
-        log
-        Eigen3::Eigen
-)
-
-target_link_libraries(rk4_integrator
-        EGL
-        GLESv3
-        log
-        Eigen3::Eigen
-)
-
-#target_link_libraries(offline_imu
-#        EGL
-#        GLESv3
-#        log
-#        )
-
-target_link_libraries(offline_imu_cam
-        EGL
-        GLESv3
-        log
-        opencv_core
-        opencv_imgproc
-        opencv_highgui
-        opencv_imgcodecs
-        Eigen3::Eigen
-)
-
-target_link_libraries(android_imu_cam
-        EGL
-        GLESv3
-        log
-        opencv_core
-        opencv_imgproc
-        opencv_highgui
-        opencv_imgcodecs
-        camera2ndk
-        mediandk
-        android
-        Eigen3::Eigen
-)
-
-#target_link_libraries(offline_cam
-#        EGL
-#        GLESv3
-#        log
-#        opencv_core
-#        opencv_imgproc
-#        opencv_highgui
-#        opencv_imgcodecs
-#        )
-
-#target_link_libraries(android_cam
-#        EGL
-#        GLESv3
-#        log
-#        opencv_core
-#        opencv_imgproc
-#        opencv_highgui
-#        opencv_imgcodecs
-#        camera2ndk
-#        mediandk
-#        android
-#        )
-#
-#target_link_libraries(android_imu
-#        EGL
-#        GLESv3
-#        log
-#        android
-#        )
 
 target_link_libraries(ov_core_lib
         EGL
@@ -437,11 +178,18 @@ target_link_libraries(slam
         Boost::atomic
         Eigen3::Eigen
 )
+#add_subdirectory(plugins/android_cam)
+#add_subdirectory(plugins/android_imu)
+add_subdirectory(plugins/android_imu_cam)
+add_subdirectory(plugins/gldemo)
+#add_subdirectory(plugins/gtsam_integrator)
+add_subdirectory(plugins/rk4_integrator)
+add_subdirectory(plugins/timewarp_gl)
+add_subdirectory(services/common_lock)
+add_subdirectory(services/log_service)
+add_subdirectory(services/pose_prediction)
+#add_subdirectory(services/pose_lookup)
+#add_subdirectory(services/fauxpose)
 
-#target_link_libraries(faux_pose
-#    EGL
-#    GLESv3
-#    log
-#    )
 
-
+add_subdirectory(src)

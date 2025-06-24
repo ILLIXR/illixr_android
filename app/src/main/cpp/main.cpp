@@ -5,7 +5,7 @@
 #include <android/log.h>
 #include <thread>
 #include <vector>
-#include "runtime/main.h"
+#include "src/main.h"
 //#define  ILLIXR_MONADO 1
 using namespace ILLIXR;
 
