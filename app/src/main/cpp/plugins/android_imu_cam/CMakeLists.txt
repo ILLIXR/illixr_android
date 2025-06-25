@@ -1,6 +1,10 @@
-add_library(android_imu_cam
-        SHARED
+add_library(android_imu_cam SHARED
         plugin.cpp
+        plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/misc.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
 )
 
 target_include_directories(android_imu_cam PRIVATE
