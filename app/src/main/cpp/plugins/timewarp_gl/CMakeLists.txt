@@ -19,7 +19,6 @@ add_library(timewarp_gl SHARED
         ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
         shaders/basic_shader.hpp
         shaders/timewarp_shader.hpp
-
         $<TARGET_OBJECTS:illixr_hmd>
 )
 
@@ -30,6 +29,7 @@ target_include_directories(timewarp_gl PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_link_libraries(timewarp_gl
+        extended_window
         EGL
         GLESv3
         log

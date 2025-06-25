@@ -1,5 +1,4 @@
-add_library(runtime
-        SHARED
+add_library(runtime SHARED
         plugin.cpp
 )
 target_include_directories(runtime PRIVATE
@@ -8,6 +7,7 @@ target_include_directories(runtime PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_link_libraries(runtime
+        extended_window
         EGL
         GLESv3
         log

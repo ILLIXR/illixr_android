@@ -35,9 +35,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_SHARED_LINKER_FLAGS
         "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate -v -fvisibility=hidden")
 
+add_subdirectory(services/extended_window)
+add_subdirectory(services/common_lock)
+add_subdirectory(services/log_service)
+add_subdirectory(services/pose_prediction)
+#add_subdirectory(services/pose_lookup)
+#add_subdirectory(services/fauxpose)
+
 add_subdirectory(utils)
-add_library(native-activity
-        SHARED
+add_library(native-activity SHARED
         main.cpp
         src/plugin.cpp
 )
@@ -107,6 +113,7 @@ target_include_directories(slam PRIVATE
 
 
 target_link_libraries(native-activity
+        extended_window
         android
         native_app_glue
         EGL
@@ -178,11 +185,6 @@ add_subdirectory(plugins/gldemo)
 #add_subdirectory(plugins/gtsam_integrator)
 add_subdirectory(plugins/rk4_integrator)
 add_subdirectory(plugins/timewarp_gl)
-add_subdirectory(services/common_lock)
-add_subdirectory(services/log_service)
-add_subdirectory(services/pose_prediction)
-#add_subdirectory(services/pose_lookup)
-#add_subdirectory(services/fauxpose)
 
 
 add_subdirectory(src)

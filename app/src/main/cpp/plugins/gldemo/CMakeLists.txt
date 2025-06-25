@@ -18,6 +18,7 @@ target_include_directories(gldemo PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_link_libraries(gldemo
+        extended_window
         EGL
         GLESv3
         log

@@ -22,6 +22,7 @@
 #include <thread>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <android/log.h>
 
 #define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "timewarp", __VA_ARGS__))
 
@@ -69,10 +70,10 @@ timewarp_gl::timewarp_gl(const std::string& name_, phonebook* pb_)
                   ILLIXR::str_to_bool(ILLIXR::getenv_or("ILLIXR_OFFLOAD_ENABLE", "False"))} {
 #ifndef ILLIXR_MONADO
     const std::shared_ptr<xlib_gl_extended_window> xwin = pb->lookup_impl<xlib_gl_extended_window>();
-    display_ = xwin->display;
-    window_ = xwin->my_window;
-    surface_ = xwin->surface;
-    glcontext_ = xwin->context;
+    display_ = xwin->display_;
+    window_ = xwin->my_window_;
+    surface_ = xwin->surface_;
+    glcontext_ = xwin->context_;
     ANDROID_LOG("NOT ILLIXR_MONADO ..");
 #else
     LOGT("ILLIXR_MONADO ..");

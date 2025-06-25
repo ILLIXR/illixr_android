@@ -104,10 +104,10 @@ void gldemo::_p_one_iteration() {
     wait_vsync();
 
     lock_->get_lock();
-    [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin_->display,
-                                                                             xwin_->surface,
-                                                                             xwin_->surface,
-                                                                             xwin_->context));
+    [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(xwin_->display_,
+                                                                             xwin_->surface_,
+                                                                             xwin_->surface_,
+                                                                             xwin_->context_));
     assert(gl_result && "eglMakeCurrent should not fail");
 
     glUseProgram(demo_shader_program_);
@@ -213,7 +213,7 @@ void gldemo::_p_one_iteration() {
     which_buffer_ = !which_buffer_;
 
 
-    [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin_->display,
+    [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin_->display_,
                                                                                NULL, NULL,
                                                                                nullptr));
     assert(gl_result_1 && "glXMakeCurrent should not fail");
@@ -284,10 +284,10 @@ void gldemo::createFBO(GLuint *texture_handle, GLuint *fbo, GLuint *depth_target
 
 void gldemo::start() {
     lock_->get_lock();
-    [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin_->display,
-                                                                               xwin_->surface,
-                                                                               xwin_->surface,
-                                                                               xwin_->context));
+    [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(xwin_->display_,
+                                                                               xwin_->surface_,
+                                                                               xwin_->surface_,
+                                                                               xwin_->context_));
     assert(gl_result_0 && "glXMakeCurrent should not fail");
 
     // Init and verify GLEW
@@ -344,7 +344,7 @@ void gldemo::start() {
                                       display_params::fov_y / 2.0f, rendering_params::near_z,
                                       rendering_params::far_z);
 
-    [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin_->display,
+    [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(xwin_->display_,
                                                                                NULL, NULL,
                                                                                nullptr));
     assert(gl_result_1 && "glXMakeCurrent should not fail");
