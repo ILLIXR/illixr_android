@@ -1,6 +1,9 @@
-add_library(rk4_integrator
-        SHARED
+add_library(rk4_integrator SHARED
         plugin.cpp
+        plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
 )
 
 target_include_directories(rk4_integrator PRIVATE
