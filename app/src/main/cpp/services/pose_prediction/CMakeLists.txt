@@ -1,6 +1,9 @@
-add_library(pose_prediction
-        SHARED
-        plugin.cpp
+add_library(pose_prediction SHARED
+        service.cpp
+        service.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose_prediction.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/plugin.hpp
 )
 
 target_include_directories(pose_prediction PRIVATE
