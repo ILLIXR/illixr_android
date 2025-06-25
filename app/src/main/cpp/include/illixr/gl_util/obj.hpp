@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../error_util.hpp"
+#include "illixr/error_util.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "lib/tiny_obj_loader.h"
