@@ -2,6 +2,7 @@ add_library(timewarp_gl
         SHARED
         plugin.cpp
         ../../GLFW/utils/hmd.cpp
+        $<TARGET_OBJECTS:illixr_hmd>
 )
 
 target_include_directories(timewarp_gl PRIVATE
