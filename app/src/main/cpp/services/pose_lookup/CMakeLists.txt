@@ -1,6 +1,10 @@
-add_library(pose_lookup
-        SHARED
-        plugin.cpp
+add_library(pose_lookup SHARED
+        service.cpp
+        service.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/misc.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose_prediction.hpp
+        data_loading.hpp
+        utils.hpp
 )
 
 target_include_directories(pose_lookup PRIVATE

@@ -1,0 +1,141 @@
+#include "service.hpp"
+#include "illixr/plugin.hpp"
+
+#include "illixr/global_module_defs.hpp"
+
+#include <shared_mutex>
+
+using namespace ILLIXR;
+
+pose_lookup_impl::pose_lookup_impl(const phonebook* const pb)
+        : switchboard_{pb->lookup_impl<switchboard>()}
+        , clock_{pb->lookup_impl<RelativeClock>()}
+        , sensor_data_{load_data()}
+        , sensor_data_it_{sensor_data_.cbegin()}
+        , dataset_first_time_{sensor_data_it_->first}
+        , vsync_estimate_{switchboard_->get_reader<switchboard::event_wrapper<time_point>>("vsync_estimate")} /// TODO: Set with #198
+        , enable_alignment_{ILLIXR::str_to_bool(getenv_or("ILLIXR_ALIGNMENT_ENABLE", "False"))}
+        , init_pos_offset_{Eigen::Vector3f::Zero()}
+        , align_rot_{Eigen::Matrix3f::Zero()}
+        , align_trans_{Eigen::Vector3f::Zero()}
+        , align_quat_{Eigen::Vector4f::Zero()}
+        , align_scale_{0.0} {
+        if (enable_alignment_) {
+            std::string path_to_alignment(ILLIXR::getenv_or("ILLIXR_ALIGNMENT_FILE", "./metrics/alignMatrix.txt"));
+            load_align_parameters(path_to_alignment, align_rot_, align_trans_, align_quat_, align_scale_);
+        }
+        // Read position data of the first frame
+        init_pos_offset_ = sensor_data_.cbegin()->second.position;
+
+        auto newoffset = correct_pose(sensor_data_.begin()->second).orientation;
+        set_offset(Eigen::Quaternionf::Identity());
+        //set_offset(newoffset);
+    }
+
+    data_format::fast_pose_type pose_lookup_impl::get_fast_pose() const {
+        const switchboard::ptr<const switchboard::event_wrapper<time_point>> estimated_vsync =
+            vsync_estimate_.get_ro_nullable();
+        if (estimated_vsync == nullptr) {
+            std::cerr << "Vsync estimation not valid yet, returning fast_pose for now()" << std::endl;
+            return get_fast_pose(clock_->now());
+        } else {
+            return get_fast_pose(**estimated_vsync);
+        }
+    }
+    
+    data_format::pose_type pose_lookup_impl::correct_pose(const data_format::pose_type pose) const {
+        data_format::pose_type swapped_pose;
+
+        // Step 1: Compensate starting point to (0, 0, 0), pos only
+        auto input_pose = data_format::pose_type{pose.sensor_time,
+                                    Eigen::Vector3f{
+                                            pose.position(0) - init_pos_offset_(0),
+                                            pose.position(1) - init_pos_offset_(1),
+                                            pose.position(2) - init_pos_offset_(2),
+                                    },
+                                    pose.orientation};
+
+        if (enable_alignment_) {
+            // Step 2: Apply estimated alignment parameters
+            // Step 2.1: Position alignment
+            input_pose.position = align_scale_ * align_rot_ * input_pose.position + align_trans_;
+
+            // Step 2.2: Orientation alignment
+            Eigen::Vector4f quat_in  = {pose.orientation.x(), pose.orientation.y(), pose.orientation.z(), pose.orientation.w()};
+            Eigen::Vector4f quat_out = ori_multiply(quat_in, ori_inv(align_quat_));
+            input_pose.orientation.x() = quat_out(0);
+            input_pose.orientation.y() = quat_out(1);
+            input_pose.orientation.z() = quat_out(2);
+            input_pose.orientation.w() = quat_out(3);
+        }
+
+        // Step 3: Swap axis for both position and orientation
+        // Step 3.1: Swap for position
+        // This uses the OpenVINS standard output coordinate system.
+        // This is a mapping between the OV coordinate system and the OpenGL system.
+        swapped_pose.position.x() = -input_pose.position.y();
+        swapped_pose.position.y() = input_pose.position.z();
+        swapped_pose.position.z() = -input_pose.position.x();
+
+        // Step 3.2: Swap for orientation
+        // There is a slight issue with the orientations: basically,
+        // the output orientation acts as though the "top of the head" is the
+        // forward direction, and the "eye direction" is the up direction.
+        Eigen::Quaternionf raw_o(input_pose.orientation.w(), -input_pose.orientation.y(), input_pose.orientation.z(),
+                                 -input_pose.orientation.x());
+
+        swapped_pose.orientation = apply_offset(raw_o);
+
+        return swapped_pose;
+    }
+
+    void pose_lookup_impl::set_offset(const Eigen::Quaternionf& raw_o_times_offset) {
+        std::unique_lock   lock{offset_mutex_};
+        Eigen::Quaternionf raw_o = raw_o_times_offset * offset_.inverse();
+        // std::cout << "pose_prediction: set_offset" << std::endl;
+        offset_ = raw_o.inverse();
+    }
+
+    Eigen::Quaternionf pose_lookup_impl::apply_offset(const Eigen::Quaternionf& orientation) const {
+        std::shared_lock lock{offset_mutex_};
+        return orientation * offset_;
+    }
+
+    data_format::fast_pose_type pose_lookup_impl::get_fast_pose(time_point time) const {
+        ullong lookup_time = time.time_since_epoch().count() + dataset_first_time_;
+
+        auto nearest_row = sensor_data_.upper_bound(lookup_time);
+
+        if (nearest_row == sensor_data_.cend()) {
+#ifndef NDEBUG
+            std::cerr << "Time " << lookup_time << " (" << std::chrono::nanoseconds(time.time_since_epoch()).count() << " + "
+                      << dataset_first_time_ << ") after last datum " << sensor_data_.rbegin()->first << std::endl;
+#endif
+            nearest_row--;
+        } else if (nearest_row == sensor_data_.cbegin()) {
+#ifndef NDEBUG
+            std::cerr << "Time " << lookup_time << " (" << std::chrono::nanoseconds(time.time_since_epoch()).count() << " + "
+                      << dataset_first_time_ << ") before first datum " << sensor_data_.cbegin()->first << std::endl;
+#endif
+        } else {
+            // "std::map::upper_bound" returns an iterator to the first pair whose key is GREATER than the argument.
+            // I already know we aren't at the begin()
+            // So I will decrement nearest_row here.
+            nearest_row--;
+        }
+
+        auto looked_up_pose        = nearest_row->second;
+        looked_up_pose.sensor_time = time_point{std::chrono::nanoseconds{nearest_row->first - dataset_first_time_}};
+        return data_format::fast_pose_type{
+            .pose = correct_pose(looked_up_pose), .predict_computed_time = clock_->now(), .predict_target_time = time};
+    }
+
+class pose_lookup_plugin : public plugin {
+public:
+    [[maybe_unused]] pose_lookup_plugin(const std::string& name, phonebook* pb)
+        : plugin{name, pb} {
+        pb->register_impl<data_format::pose_prediction>(std::static_pointer_cast<data_format::pose_prediction>(std::make_shared<pose_lookup_impl>(pb)));
+    }
+};
+
+PLUGIN_MAIN(pose_lookup_plugin)

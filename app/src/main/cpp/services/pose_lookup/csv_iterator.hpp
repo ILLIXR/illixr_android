@@ -8,14 +8,14 @@
 class CSVRow {
 public:
     std::string const& operator[](std::size_t index) const {
-        return m_data[index];
+        return data_[index];
     }
 
     std::size_t size() const {
-        return m_data.size();
+        return data_.size();
     }
 
-    void readNextRow(std::istream& str) {
+    void read_next_row(std::istream& str) {
         std::string line;
         std::getline(str, line);
 
@@ -24,23 +24,23 @@ public:
         std::stringstream lineStream(line);
         std::string       cell;
 
-        m_data.clear();
+        data_.clear();
         while (std::getline(lineStream, cell, ',')) {
-            m_data.push_back(cell);
+            data_.push_back(cell);
         }
         // This checks for a trailing comma with no data after it.
         if (!lineStream && cell.empty()) {
             // If there was a trailing comma then add an empty element.
-            m_data.push_back("");
+            data_.push_back("");
         }
     }
 
 private:
-    std::vector<std::string> m_data;
+    std::vector<std::string> data_;
 };
 
 std::istream& operator>>(std::istream& str, CSVRow& data) {
-    data.readNextRow(str);
+    data.read_next_row(str);
     return str;
 }
 
@@ -53,13 +53,13 @@ public:
     typedef CSVRow&                 reference;
 
     CSVIterator(std::istream& str, std::size_t skip = 0)
-        : m_str(str.good() ? &str : NULL) {
+        : stream_(str.good() ? &str : NULL) {
         ++(*this);
         (*this) += skip;
     }
 
     CSVIterator()
-        : m_str(NULL) { }
+        : stream_(NULL) { }
 
     CSVIterator& operator+=(std::size_t skip) {
         for (size_t i = 0; i < skip; ++i) {
@@ -70,9 +70,9 @@ public:
 
     // Pre Increment
     CSVIterator& operator++() {
-        if (m_str) {
-            if (!((*m_str) >> m_row)) {
-                m_str = NULL;
+        if (stream_) {
+            if (!((*stream_) >> row_)) {
+                stream_ = NULL;
             }
         }
         return *this;
@@ -86,15 +86,15 @@ public:
     }
 
     CSVRow const& operator*() const {
-        return m_row;
+        return row_;
     }
 
     CSVRow const* operator->() const {
-        return &m_row;
+        return &row_;
     }
 
     bool operator==(CSVIterator const& rhs) {
-        return ((this == &rhs) || ((this->m_str == NULL) && (rhs.m_str == NULL)));
+        return ((this == &rhs) || ((this->stream_ == NULL) && (rhs.stream_ == NULL)));
     }
 
     bool operator!=(CSVIterator const& rhs) {
@@ -102,10 +102,10 @@ public:
     }
 
     const std::string& operator[](std::size_t idx) {
-        return m_row[idx];
+        return row_[idx];
     }
 
 private:
-    std::istream* m_str;
-    CSVRow        m_row;
+    std::istream* stream_;
+    CSVRow        row_;
 };
