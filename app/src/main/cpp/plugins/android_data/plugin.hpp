@@ -24,11 +24,11 @@ struct android_imu_struct
 };
 
 
-class android_imu_cam : public threadloop {
+class android_data : public threadloop {
 public:
-    [[maybe_unused]] android_imu_cam(const std::string& name_, phonebook *pb_);
+    [[maybe_unused]] android_data(const std::string& name_, phonebook *pb_);
 
-    ~android_imu_cam() override;
+    ~android_data() override;
 
     [[maybe_unused]] static int android_sensor_callback(int fd, int events, void *data);
 

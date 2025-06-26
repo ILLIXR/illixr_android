@@ -1,19 +1,18 @@
-add_library(android_cam SHARED
+add_library(android_data SHARED
         plugin.cpp
         plugin.hpp
-        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/opencv_data_types.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/data_format/misc.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
 )
 
-
-target_include_directories(android_cam PRIVATE
+target_include_directories(android_data PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_link_libraries(android_cam
+target_link_libraries(android_data
         EGL
         GLESv3
         log
@@ -24,4 +23,5 @@ target_link_libraries(android_cam
         camera2ndk
         mediandk
         android
+        Eigen3::Eigen
 )

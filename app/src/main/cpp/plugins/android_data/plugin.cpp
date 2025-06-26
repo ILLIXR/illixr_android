@@ -18,20 +18,20 @@
 
 using namespace ILLIXR;
 
-double android_imu_cam::cam_proc_time_ = 0.;
-double android_imu_cam::imu_time_ = 0.;
-std::ofstream android_imu_cam::my_file_ = {};
-std::ofstream android_imu_cam::cam_file_ = {};
-std::mutex android_imu_cam::lock_ = {};
-Eigen::Vector3f android_imu_cam::gyro_ = {};
-Eigen::Vector3f android_imu_cam::accel_ = {};
-ullong android_imu_cam::imu_ts_ = 0;
-std::mutex android_imu_cam::mtx_ = {};
-cv::Mat android_imu_cam::last_image_ = {};
-bool android_imu_cam::img_ready_ = false;
-int android_imu_cam::counter_ = 0;
+double android_data::cam_proc_time_ = 0.;
+double android_data::imu_time_ = 0.;
+std::ofstream android_data::my_file_ = {};
+std::ofstream android_data::cam_file_ = {};
+std::mutex android_data::lock_ = {};
+Eigen::Vector3f android_data::gyro_ = {};
+Eigen::Vector3f android_data::accel_ = {};
+ullong android_data::imu_ts_ = 0;
+std::mutex android_data::mtx_ = {};
+cv::Mat android_data::last_image_ = {};
+bool android_data::img_ready_ = false;
+int android_data::counter_ = 0;
 
-[[maybe_unused]] android_imu_cam::android_imu_cam(const std::string &name_, phonebook *pb_)
+[[maybe_unused]] android_data::android_data(const std::string &name_, phonebook *pb_)
         : threadloop{name_, pb_}, switchboard_{pb->lookup_impl<switchboard>()},
           clock_{pb->lookup_impl<RelativeClock>()},
           imu_cam_{switchboard_->get_writer<data_format::imu_cam_type>("imu_cam")} {
@@ -45,7 +45,7 @@ int android_imu_cam::counter_ = 0;
     std::thread(android_run_thread, imu_).detach();
 }
 
-android_imu_cam::~android_imu_cam() {
+android_data::~android_data() {
     std::cout << "Deconstructing android_cam" << std::endl;
     ACameraCaptureSession_stopRepeating(capture_session_);
     ACameraCaptureSession_close(capture_session_);
@@ -61,7 +61,7 @@ android_imu_cam::~android_imu_cam() {
     cam_file_.close();
 }
 
-[[maybe_unused]] int android_imu_cam::android_sensor_callback(int fd, int events, void *data) {
+[[maybe_unused]] int android_data::android_sensor_callback(int fd, int events, void *data) {
     (void)fd;
     (void)events;
     android_imu_struct *d = static_cast<android_imu_struct*>(data);
@@ -142,7 +142,7 @@ android_imu_cam::~android_imu_cam() {
     return 1;
 }
 
-void *android_imu_cam::android_run_thread(void *ptr) {
+void *android_data::android_run_thread(void *ptr) {
 //        myfile.open ("/sdcard/Android/data/com.example.native_activity/imu0.csv");
     struct android_imu_struct *d = (struct android_imu_struct *) ptr;
     const int32_t poll_rate_usec = POLL_RATE_USEC;
@@ -210,7 +210,7 @@ void *android_imu_cam::android_run_thread(void *ptr) {
 }
 
 // Reference: https://github.com/sixo/native-camera/tree/93b05aec6d05604a314dc822b6b09a4cbc3d5104
-void android_imu_cam::image_callback(void *context, AImageReader *reader) {
+void android_data::image_callback(void *context, AImageReader *reader) {
     (void)context;
     AImage *image = nullptr;
     AImageReader_acquireNextImage(reader, &image);
@@ -252,7 +252,7 @@ void android_imu_cam::image_callback(void *context, AImageReader *reader) {
 }
 
 
-AImageReader *android_imu_cam::create_jpeg_reader() {
+AImageReader *android_data::create_jpeg_reader() {
     AImageReader *reader = nullptr;
     media_status_t status =
             AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888, 10, &reader);
@@ -272,45 +272,45 @@ AImageReader *android_imu_cam::create_jpeg_reader() {
     return reader;
 }
 
-ANativeWindow *android_imu_cam::create_surface(AImageReader *reader) {
+ANativeWindow *android_data::create_surface(AImageReader *reader) {
     ANativeWindow *nativeWindow;
     AImageReader_getWindow(reader, &nativeWindow);
     return nativeWindow;
 }
 
 //Camera callbacks
-void android_imu_cam::on_disconnected(void *context, ACameraDevice *device) {
+void android_data::on_disconnected(void *context, ACameraDevice *device) {
     (void)context;
     (void)device;
     ANDROID_LOG("on_disconnected");
 }
 
-void android_imu_cam::on_error(void *context, ACameraDevice *device, int error) {
+void android_data::on_error(void *context, ACameraDevice *device, int error) {
     (void)context;
     (void)device;
     ANDROID_LOG("error %d", error);
 }
 
-void android_imu_cam::on_session_active(void *context, ACameraCaptureSession *session) {
+void android_data::on_session_active(void *context, ACameraCaptureSession *session) {
     (void)context;
     (void)session;
     ANDROID_LOG("on_session_active()");
 }
 
-void android_imu_cam::on_session_ready(void *context, ACameraCaptureSession *session) {
+void android_data::on_session_ready(void *context, ACameraCaptureSession *session) {
     (void)context;
     (void)session;
     ANDROID_LOG("on_session_ready()");
 }
 
-void android_imu_cam::on_session_closed(void *context, ACameraCaptureSession *session) {
+void android_data::on_session_closed(void *context, ACameraCaptureSession *session) {
     (void)context;
     (void)session;
     ANDROID_LOG("on_session_closed()");
 }
 
-void android_imu_cam::on_capture_failed(void *context, ACameraCaptureSession *session,
-                                        ACaptureRequest *request, ACameraCaptureFailure *failure) {
+void android_data::on_capture_failed(void *context, ACameraCaptureSession *session,
+                                     ACaptureRequest *request, ACameraCaptureFailure *failure) {
     (void)context;
     (void)session;
     (void)request;
@@ -318,7 +318,7 @@ void android_imu_cam::on_capture_failed(void *context, ACameraCaptureSession *se
     ANDROID_LOG("on_capture_failed ");
 }
 
-std::string android_imu_cam::get_back_facing_cam_id() {
+std::string android_data::get_back_facing_cam_id() {
     ACameraIdList *cameraIds = nullptr;
     ACameraManager_getCameraIdList(camera_manager_, &cameraIds);
 
@@ -396,7 +396,7 @@ std::string android_imu_cam::get_back_facing_cam_id() {
     return backId;
 }
 
-void android_imu_cam::init_cam() {
+void android_data::init_cam() {
     ANDROID_LOG("INIT CAM");
     camera_manager_ = ACameraManager_create();
     auto id = get_back_facing_cam_id();
@@ -424,7 +424,7 @@ void android_imu_cam::init_cam() {
 
 /// For `threadloop` style plugins, do not override the start() method unless you know what you're doing!
 /// _p_one_iteration() is called in a thread created by threadloop::start()
-void android_imu_cam::_p_one_iteration() {
+void android_data::_p_one_iteration() {
     //ANDROID_LOG("Android_cam started ..");
     std::this_thread::sleep_for(std::chrono::milliseconds{5});
     if (!img_ready_)
@@ -489,5 +489,5 @@ void android_imu_cam::_p_one_iteration() {
 }
 
 
-PLUGIN_MAIN(android_imu_cam);
+PLUGIN_MAIN(android_data);
 
