@@ -1,119 +1,102 @@
-#include "illixr/data_format/imu.hpp"
+#include "plugin.hpp"
 #include "illixr/global_module_defs.hpp"
-#include "illixr/relative_clock.hpp"
-#include "illixr/switchboard.hpp"
-#include "illixr/threadloop.hpp"
-#include "data_loading.hpp"
 #include <android/log.h>
 
 #include <cassert>
-#include <ratio>
 
-#define LOGO(...) ((void)__android_log_print(ANDROID_LOG_INFO, "offline_imu_cam", __VA_ARGS__))
+#define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "offline_imu_cam", __VA_ARGS__))
 
 using namespace ILLIXR;
 
 const record_header imu_cam_record{
-    "imu_cam",
-    {
-        {"iteration_no", typeid(std::size_t)},
-        {"has_camera", typeid(bool)},
-    },
+        "imu_cam",
+        {
+                {"iteration_no", typeid(std::size_t)},
+                {"has_camera", typeid(bool)},
+        },
 };
 
-class offline_imu_cam : public ILLIXR::threadloop {
-public:
-    offline_imu_cam(std::string name_, phonebook* pb_)
+[[maybe_unused]] offline_imu_cam::offline_imu_cam(const std::string& name_, phonebook* pb_)
         : threadloop{name_, pb_}
-        , _m_sensor_data{load_data()}
-        , _m_sensor_data_it{_m_sensor_data.cbegin()}
-        , _m_sb{pb->lookup_impl<switchboard>()}
-        , _m_clock{pb->lookup_impl<RelativeClock>()}
-        , _m_imu_cam{_m_sb->get_writer<data_format::imu_cam_type>("imu_cam")}
-        , dataset_first_time{_m_sensor_data_it->first}
-        , imu_cam_log{record_logger_}
-        , camera_cvtfmt_log{record_logger_} { }
+        , sensor_data_{load_data()}
+        , sensor_data_it_{sensor_data_.cbegin()}
+        , switchboard_{pb->lookup_impl<switchboard>()}
+        , clock_{pb->lookup_impl<RelativeClock>()}
+        , imu_cam_{switchboard_->get_writer<data_format::imu_cam_type>("imu_cam")}
+        , dataset_first_time_{sensor_data_it_->first}, imu_cam_log_{record_logger_}
+        , camera_cvtfmt_log_{record_logger_} {}
 
-protected:
-    virtual skip_option _p_should_skip() override {
-        if (_m_sensor_data_it != _m_sensor_data.end()) {
-            dataset_now = _m_sensor_data_it->first;
+threadloop::skip_option offline_imu_cam::_p_should_skip() {
+    if (sensor_data_it_ != sensor_data_.end()) {
+        dataset_now_ = sensor_data_it_->first;
 
-            std::this_thread::sleep_for(time_point{std::chrono::nanoseconds{dataset_now - dataset_first_time}} -
-                                        _m_clock->now());
-            if (_m_sensor_data_it->second.imu0) {
-                return skip_option::run;
-            } else {
-                ++_m_sensor_data_it;
-                return skip_option::skip_and_yield;
-            }
-
+        std::this_thread::sleep_for(
+                time_point{std::chrono::nanoseconds{dataset_now_ - dataset_first_time_}} -
+                clock_->now());
+        if (sensor_data_it_->second.imu0) {
+            return skip_option::run;
         } else {
-            return skip_option::stop;
+            ++sensor_data_it_;
+            return skip_option::skip_and_yield;
         }
+
+    } else {
+        return skip_option::stop;
     }
+}
 
-    virtual void _p_one_iteration() override {
-        auto start = std::chrono::high_resolution_clock::now();
-        RAC_ERRNO_MSG("offline_imu_cam at start of _p_one_iteration");
-        assert(_m_sensor_data_it != _m_sensor_data.end());
+void offline_imu_cam::_p_one_iteration() {
+    auto start = std::chrono::high_resolution_clock::now();
+    RAC_ERRNO_MSG("offline_imu_cam at start of _p_one_iteration");
+    assert(sensor_data_it_ != sensor_data_.end());
 #ifndef NDEBUG
-        std::chrono::time_point<std::chrono::nanoseconds> tp_dataset_now{std::chrono::nanoseconds{dataset_now}};
-        std::cerr << " IMU time: " << tp_dataset_now.time_since_epoch().count() << std::endl;
+    std::chrono::time_point<std::chrono::nanoseconds> tp_dataset_now{
+            std::chrono::nanoseconds{dataset_now_}};
+    std::cerr << " IMU time: " << tp_dataset_now.time_since_epoch().count() << std::endl;
 #endif
-        const sensor_types& sensor_datum = _m_sensor_data_it->second;
-        ++_m_sensor_data_it;
+    const sensor_types& sensor_datum = sensor_data_it_->second;
+    ++sensor_data_it_;
 
-        imu_cam_log.log(record{imu_cam_record,
-                               {
-                                   {iteration_no},
-                                   {bool(sensor_datum.cam0)},
-                               }});
+    imu_cam_log_.log(record{imu_cam_record,
+                            {
+                                    {iteration_no},
+                                    {bool(sensor_datum.cam0)},
+                            }});
 
-        std::optional<cv::Mat> cam0 =
-            sensor_datum.cam0 ? std::make_optional<cv::Mat>(*(sensor_datum.cam0.value().load())) : std::nullopt;
-        RAC_ERRNO_MSG("offline_imu_cam after cam0");
+    std::optional<cv::Mat> cam0 =
+            sensor_datum.cam0 ? std::make_optional<cv::Mat>(*(sensor_datum.cam0.value().load()))
+                              : std::nullopt;
+    RAC_ERRNO_MSG("offline_imu_cam after cam0");
 
-        std::optional<cv::Mat> cam1 =
-            sensor_datum.cam1 ? std::make_optional<cv::Mat>(*(sensor_datum.cam1.value().load())) : std::nullopt;
-        RAC_ERRNO_MSG("offline_imu_cam after cam1");
+    std::optional<cv::Mat> cam1 =
+            sensor_datum.cam1 ? std::make_optional<cv::Mat>(*(sensor_datum.cam1.value().load()))
+                              : std::nullopt;
+    RAC_ERRNO_MSG("offline_imu_cam after cam1");
 
 #ifndef NDEBUG
-        /// If debugging, assert the image is grayscale
-        if (cam0.has_value() && cam1.has_value()) {
-            const int num_ch0 = cam0.value().channels();
-            const int num_ch1 = cam1.value().channels();
-            assert(num_ch0 == 1 && "Data from lazy_load_image should be grayscale");
-            assert(num_ch1 == 1 && "Data from lazy_load_image should be grayscale");
-        }
+    /// If debugging, assert the image is grayscale
+    if (cam0.has_value() && cam1.has_value()) {
+        const int num_ch0 = cam0.value().channels();
+        const int num_ch1 = cam1.value().channels();
+        assert(num_ch0 == 1 && "Data from lazy_load_image should be grayscale");
+        assert(num_ch1 == 1 && "Data from lazy_load_image should be grayscale");
+    }
 #endif /// NDEBUG
 
-        _m_imu_cam.put(_m_imu_cam.allocate<data_format::imu_cam_type>(
-                data_format::imu_cam_type{time_point{std::chrono::nanoseconds(dataset_now - dataset_first_time)},
-                         (sensor_datum.imu0.value().angular_v).cast<float>(),
-                         (sensor_datum.imu0.value().linear_a).cast<float>(), cam0, cam1}));
-        LOGO("AG: %f, %f, %f, %f, %f, %f", sensor_datum.imu0.value().angular_v[0], sensor_datum.imu0.value().angular_v[1], sensor_datum.imu0.value().angular_v[2], sensor_datum.imu0.value().linear_a[0], sensor_datum.imu0.value().linear_a[1], sensor_datum.imu0.value().linear_a[2]);
+    imu_cam_.put(imu_cam_.allocate<data_format::imu_cam_type>(
+            data_format::imu_cam_type{
+                    time_point{std::chrono::nanoseconds(dataset_now_ - dataset_first_time_)},
+                    (sensor_datum.imu0.value().angular_v).cast<float>(),
+                    (sensor_datum.imu0.value().linear_a).cast<float>(), cam0, cam1}));
+    ANDROID_LOG("AG: %f, %f, %f, %f, %f, %f", sensor_datum.imu0.value().angular_v[0],
+                sensor_datum.imu0.value().angular_v[1], sensor_datum.imu0.value().angular_v[2],
+                sensor_datum.imu0.value().linear_a[0], sensor_datum.imu0.value().linear_a[1],
+                sensor_datum.imu0.value().linear_a[2]);
 
-        RAC_ERRNO_MSG("offline_imu_cam at bottom of iteration");
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration =  std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        LOGO("duration: %f", duration2double(duration));
-    }
-
-private:
-    const std::map<ullong, sensor_types>           _m_sensor_data;
-    std::map<ullong, sensor_types>::const_iterator _m_sensor_data_it;
-    const std::shared_ptr<switchboard>             _m_sb;
-    std::shared_ptr<const RelativeClock>           _m_clock;
-    switchboard::writer<data_format::imu_cam_type>              _m_imu_cam;
-
-    // Timestamp of the first IMU value from the dataset
-    ullong dataset_first_time;
-    // Current IMU timestamp
-    ullong dataset_now;
-
-    record_coalescer imu_cam_log;
-    record_coalescer camera_cvtfmt_log;
-};
+    RAC_ERRNO_MSG("offline_imu_cam at bottom of iteration");
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    ANDROID_LOG("duration: %f", duration2double(duration));
+}
 
 PLUGIN_MAIN(offline_imu_cam)

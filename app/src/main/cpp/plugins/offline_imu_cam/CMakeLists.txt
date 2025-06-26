@@ -1,6 +1,11 @@
-add_library(offline_imu_cam
-        SHARED
+add_library(offline_imu_cam SHARED
         plugin.cpp
+        plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/relative_clock.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/global_module_defs.hpp
 )
 
 target_include_directories(offline_imu_cam PRIVATE
