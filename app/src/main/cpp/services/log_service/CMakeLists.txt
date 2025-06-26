@@ -1,6 +1,9 @@
-add_library(log_service
-        SHARED
-        plugin.cpp
+add_library(log_service SHARED
+        service.cpp
+        service.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/log_service.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
 )
 
 target_include_directories(log_service PRIVATE
