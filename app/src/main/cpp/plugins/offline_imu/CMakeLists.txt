@@ -1,6 +1,10 @@
-add_library(offline_imu
-        SHARED
+add_library(offline_imu SHARED
         plugin.cpp
+        plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/phonebook.hpp
 )
 
 target_link_libraries(offline_imu
