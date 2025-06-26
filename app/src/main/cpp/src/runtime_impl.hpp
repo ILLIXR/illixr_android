@@ -15,9 +15,26 @@
 #include <cerrno>
 #include <chrono>
 #include <thread>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/android_sink.h>
+
 //#define ILLIXR_MONADO 1
 
 using namespace ILLIXR;
+
+void spdlogger(const std::string& name) {
+#ifdef NDEBUG
+    const std::string log_level = "warn";
+#else
+    const std::string log_level = "debug";
+#endif
+    std::vector<spdlog::sink_ptr> sinks;
+    sinks.push_back(std::make_shared<spdlog::sinks::android_sink_mt>());
+    auto logger = std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
+    logger->set_level(spdlog::level::from_str(log_level));
+    spdlog::register_logger(logger);
+}
+
 
 class runtime_impl : public runtime {
 public:
@@ -27,6 +44,7 @@ public:
             ANativeWindow *window
 #endif
             ) {
+        spdlogger("illixr");
         pb.register_impl<record_logger>(std::make_shared<noop_record_logger>());
         pb.register_impl<gen_guid>(std::make_shared<gen_guid>());
         pb.register_impl<switchboard>(std::make_shared<switchboard>(&pb));
