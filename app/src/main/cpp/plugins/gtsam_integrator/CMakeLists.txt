@@ -3,7 +3,13 @@ cmake_minimum_required(VERSION 3.17)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(plugin SHARED plugin.cpp)
+add_library(plugin SHARED 
+        plugin.cpp
+        plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+)
 
 find_package(GTSAMCMakeTools REQUIRED)
 find_package(Eigen3 REQUIRED)
