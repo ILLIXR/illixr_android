@@ -3,17 +3,22 @@
 #include <cassert>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <shared_mutex>
 #include <stdexcept>
 #include <typeindex>
 #include <unordered_map>
+
+#ifndef NDEBUG
+    #include <spdlog/spdlog.h>
+#endif
 
 namespace ILLIXR {
 
 /**
  * @brief A [service locator][1] for ILLIXR.
  *
- * This will be explained through an exmaple: Suppose one dynamically-loaded plugin, `A_plugin`,
+ * This will be explained through an example: Suppose one dynamically-loaded plugin, `A_plugin`,
  * needs a service, `B_service`, provided by another, `B_plugin`. `A_plugin` cannot statically
  * construct a `B_service`, because the implementation `B_plugin` is dynamically
  * loaded. However, `B_plugin` can register an implementation of `B_service` when it is loaded,
@@ -80,9 +85,41 @@ public:
      */
     class service {
     public:
-        /**
-         */
-        virtual ~service() { }
+        // auto spdlogger(const char* log_level) {
+        //     if (!log_level) {
+        // #ifdef NDEBUG
+        //         log_level = "warn";
+        // #else
+        //         log_level = "debug";
+        // #endif
+        //     }
+        //     std::vector<spdlog::sink_ptr> sinks;
+        //     // auto                          file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/" +
+        //     type_index.name() + ".log"); auto                          console_sink =
+        //     std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        //     // sinks.push_back(file_sink);
+        //     sinks.push_back(console_sink);
+        //     plugin_logger = std::make_shared<spdlog::logger>(type_index.name(), begin(sinks), end(sinks));
+        //     plugin_logger->set_level(spdlog::level::from_str(log_level));
+        //     spdlog::register_logger(plugin_logger);
+        //     return plugin_logger;
+        // }
+
+        // void spd_add_file_sink(const std::string& file_name, const std::string& extension, const std::string& log_level) {
+        //     if (!plugin_logger) {
+        //         throw std::runtime_error("Logger not found");
+        //     }
+
+        // auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/" + file_name + "." + extension, true);
+        // file_sink->set_level(spdlog::level::from_str(log_level));
+        // plugin_logger->sinks().push_back(file_sink);
+        // size_t sink_count = plugin_logger->sinks().size();
+        // plugin_logger->sinks()[sink_count-1]->set_pattern("%v");
+        // }
+
+        virtual ~service() = default;
+
+        // std::shared_ptr<spdlog::logger>      plugin_logger;
     };
 
     /**
@@ -92,20 +129,20 @@ public:
      *
      * The implementation will be owned by phonebook (phonebook calls `delete`).
      */
-    template<typename specific_service>
-    void register_impl(std::shared_ptr<specific_service> impl) {
-        const std::unique_lock<std::shared_mutex> lock{_m_mutex};
+    template<typename Specific_service>
+    void register_impl(std::shared_ptr<Specific_service> impl) {
+        const std::unique_lock<std::shared_mutex> lock{mutex_};
 
-        const std::type_index type_index = std::type_index(typeid(specific_service));
+        const std::type_index type_index = std::type_index(typeid(Specific_service));
 #ifndef NDEBUG
-        std::cerr << "Register " << type_index.name() << std::endl;
+        spdlog::get("illixr")->debug("[phonebook] Register {}", type_index.name());
 #endif
-        assert(_m_registry.count(type_index.name()) == 0);
-        _m_registry.try_emplace(type_index.name(), impl);
+        assert(registry_.count(type_index) == 0);
+        registry_.try_emplace(type_index, impl);
     }
 
     /**
-     * @brief Look up an implementation of @p specific_service, which should be registered first.
+     * @brief Look up an implementation of @p Specific_service, which should be registered first.
      *
      * Safe to be called from any thread.
      *
@@ -113,31 +150,41 @@ public:
      *
      * @throws if an implementation is not already registered.
      */
-    template<typename specific_service>
-    std::shared_ptr<specific_service> lookup_impl() const {
-        const std::shared_lock<std::shared_mutex> lock{_m_mutex};
+    template<typename Specific_service>
+    std::shared_ptr<Specific_service> lookup_impl() const {
+        const std::shared_lock<std::shared_mutex> lock{mutex_};
 
-        const std::type_index type_index = std::type_index(typeid(specific_service));
+        const std::type_index type_index = std::type_index(typeid(Specific_service));
 
 #ifndef NDEBUG
-        // if this assert fails, and there are no duplicate base classes, ensure the hash_code's are unique.
-        if (_m_registry.count(type_index.name()) != 1) {
+        // if this fails, and there are no duplicate base classes, ensure the hash_code's are unique.
+        if (registry_.count(type_index) != 1) {
             throw std::runtime_error{"Attempted to lookup an unregistered implementation " + std::string{type_index.name()}};
         }
 #endif
 
-        std::shared_ptr<service> this_service = _m_registry.at(type_index.name());
-        assert(this_service);
-        auto this_specific_service_auto = (reinterpret_cast<typename std::shared_ptr<specific_service>::element_type*>(this_service.get()));
-        std::shared_ptr<specific_service> this_specific_service = std::shared_ptr<specific_service>{this_service, this_specific_service_auto};
+        std::shared_ptr<service> this_service = registry_.at(type_index);
+        if (!static_cast<bool>(this_service))
+            throw std::runtime_error{"Could not find " + std::string{type_index.name()}};
 
-        assert(this_specific_service);
+        std::shared_ptr<Specific_service> this_specific_service = std::dynamic_pointer_cast<Specific_service>(this_service);
+        if (!static_cast<bool>(this_service))
+            throw std::runtime_error{"Could not find specific " + std::string{type_index.name()}};
 
         return this_specific_service;
     }
 
+    template<typename specific_service>
+    [[maybe_unused]] bool has_impl() const {
+        const std::shared_lock<std::shared_mutex> lock{mutex_};
+
+        const std::type_index type_index = std::type_index(typeid(specific_service));
+
+        return registry_.count(type_index) == 1;
+    }
+
 private:
-    std::unordered_map<std::string, const std::shared_ptr<service>> _m_registry;
-    mutable std::shared_mutex                                           _m_mutex;
+    std::unordered_map<std::type_index, const std::shared_ptr<service>> registry_;
+    mutable std::shared_mutex                                           mutex_;
 };
 } // namespace ILLIXR

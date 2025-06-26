@@ -2,16 +2,19 @@
 
 #include "global_module_defs.hpp"
 
-#include <cerrno>
-#include <cstdlib>
 #include <iostream>
+#include <spdlog/spdlog.h>
 #include <string>
 
+#ifdef NDEBUG
+#include <cerrno>
+    #include <cstdlib>
+#endif
 /**
  * @brief Parameterless macro for report_and_clear_errno.
  */
 #ifndef RAC_ERRNO
-    #define RAC_ERRNO() ILLIXR::report_and_clear_errno(__FILE__, __LINE__, __func__)
+#define RAC_ERRNO() ILLIXR::report_and_clear_errno(__FILE__, __LINE__, __func__)
 #endif /// RAC_ERRNO
 
 /**
@@ -20,12 +23,13 @@
  * Prints a message from the calling context for additional info.
  */
 #ifndef RAC_ERRNO_MSG
-    #define RAC_ERRNO_MSG(msg) ILLIXR::report_and_clear_errno(__FILE__, __LINE__, __func__, msg)
+#define RAC_ERRNO_MSG(msg) ILLIXR::report_and_clear_errno(__FILE__, __LINE__, __func__, msg)
 #endif /// RAC_ERRNO_MSG
 
 namespace ILLIXR {
-
-static const bool ENABLE_VERBOSE_ERRORS{ILLIXR::str_to_bool(ILLIXR::getenv_or("ILLIXR_ENABLE_VERBOSE_ERRORS", "False"))};
+// can't use switchboard interface here
+static const bool ENABLE_VERBOSE_ERRORS{getenv("ILLIXR_ENABLE_VERBOSE_ERRORS") != nullptr &&
+                                        ILLIXR::str_to_bool(getenv("ILLIXR_ENABLE_VERBOSE_ERRORS"))};
 
 /**
  * @brief Support function to report errno values when debugging (NDEBUG).
@@ -39,9 +43,9 @@ inline void report_and_clear_errno([[maybe_unused]] const std::string& file, [[m
 #ifndef NDEBUG
     if (errno > 0) {
         if (ILLIXR::ENABLE_VERBOSE_ERRORS) {
-            std::cerr << "|| Errno was set: " << errno << " @ " << file << ":" << line << "[" << function << "]" << std::endl;
+            spdlog::get("illixr")->error("[error_util] || Errno was set: {} @ {}:{} [{}]", errno, file, line, function);
             if (!msg.empty()) {
-                std::cerr << "|> Message: " << msg << std::endl;
+                spdlog::get("illixr")->error("[error_util]|> Message: {}", msg);
             }
         }
         errno = 0;
@@ -56,7 +60,7 @@ inline void report_and_clear_errno([[maybe_unused]] const std::string& file, [[m
  * SIGABRT for debugging.
  */
 inline void abort(const std::string& msg = "", [[maybe_unused]] const int error_val = 1) {
-    std::cerr << "** ERROR ** " << msg << std::endl;
+    spdlog::get("illixr")->error("[error_util] ** ERROR ** {}", msg);
 #ifndef NDEBUG
     std::abort();
 #else  /// NDEBUG

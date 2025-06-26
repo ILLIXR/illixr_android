@@ -1,8 +1,9 @@
 #pragma once
 
-#include "extended_window.hpp"
+#include "illixr/phonebook.hpp"
+#include "illixr/switchboard.hpp"
 
-#include <memory>
+#include <string>
 #include <vector>
 //#define ILLIXR_MONADO 1
 
@@ -13,9 +14,9 @@ typedef plugin* (*plugin_factory)(phonebook*);
 
 class runtime {
 public:
-    virtual void load_so(const std::vector<std::string>& so) = 0;
-    virtual void load_so(const std::string_view so)          = 0;
-    virtual void load_plugin_factory(plugin_factory plugin)  = 0;
+    virtual void                  load_so(const std::vector<std::string>& so) = 0;
+    [[maybe_unused]] virtual void load_so(const std::string_view& so)         = 0;
+    virtual void                  load_plugin_factory(plugin_factory plugin)  = 0;
 
     /**
      * Returns when the runtime is completely stopped.
@@ -26,9 +27,21 @@ public:
      * Requests that the runtime is completely stopped.
      * Clients must call this before deleting the runtime.
      */
-    virtual void stop() = 0;
+    virtual void _stop() = 0;
+
+    void stop() {
+        _stop();
+    }
+
+    std::shared_ptr<switchboard> get_switchboard() {
+        return switchboard_;
+    }
 
     virtual ~runtime() = default;
+
+protected:
+    bool                         enable_monado_ = false;
+    std::shared_ptr<switchboard> switchboard_;
 };
 
 #ifdef ILLIXR_MONADO

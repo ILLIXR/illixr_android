@@ -59,6 +59,8 @@ struct rendering_params {
 
     // Far plane distance in meters
     static constexpr float far_z = 20.0f;
+
+    static constexpr bool reverse_z = true;
 };
 
 /**
@@ -70,13 +72,45 @@ inline bool str_to_bool(std::string var) {
                            : throw std::runtime_error("Invalid conversion from std::string to bool");
 }
 
-/// Temporary environment variable getter. Not needed once #198 is merged.
-inline std::string getenv_or(std::string var, std::string default_) {
-    if (std::getenv(var.c_str())) {
-        return {std::getenv(var.c_str())};
-    } else {
-        return default_;
-    }
+// Offloading parameters - this really should be extended to everything though
+constexpr float server_fov = 0.99;
+
+struct server_params {
+    // static constexpr float fov_left[2] = {-server_fov, -server_fov};
+    // static constexpr float fov_right[2] = {server_fov, server_fov};
+    // static constexpr float fov_up[2] = {server_fov, server_fov};
+    // static constexpr float fov_down[2] = {-server_fov, -server_fov};
+    //
+    //    // The server can render at an arbitrary resolution
+    //    static constexpr unsigned width_pixels = 2160;
+    //    static constexpr unsigned height_pixels = 2400;
+
+    static constexpr float fov_left[2]  = {-0.907341, -0.897566};
+    static constexpr float fov_right[2] = {0.897500, 0.907700};
+    static constexpr float fov_up[2]    = {0.953644, 0.954293};
+    static constexpr float fov_down[2]  = {-0.953628, -0.952802};
+};
+
+struct index_params {
+    static constexpr float fov_left[2]  = {-0.907341, -0.897566};
+    static constexpr float fov_right[2] = {0.897500, 0.907700};
+    static constexpr float fov_up[2]    = {0.953644, 0.954293};
+    static constexpr float fov_down[2]  = {-0.953628, -0.952802};
+};
+
+;
+
+/**
+ * @brief Convert a string containing a (python) boolean to the bool type
+ */
+inline bool str_to_bool(const std::string& var) {
+    std::string temp = var;
+    std::transform(temp.begin(), temp.end(), temp.begin(), ::toupper);
+    if (temp.empty())
+        return false;
+    return (temp == "TRUE" || temp == "1") ? true
+                                           : (temp == "FALSE")                ? false
+                                                                              : throw std::runtime_error("Invalid conversion from std::string to bool");
 }
 
 } // namespace ILLIXR

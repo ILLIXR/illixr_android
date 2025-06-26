@@ -1,18 +1,28 @@
 #pragma once
 
+#include "concurrentqueue/blockingconcurrentqueue.hpp"
+#include "managed_thread.hpp"
+#include "network/network_backend.hpp"
+#include "network/topic_config.hpp"
 #include "phonebook.hpp"
+#include "record_logger.hpp"
 
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <exception>
-#include <functional>
+#ifdef Success
+    #undef Success // For 'Success' conflict
+#endif
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <iostream>
 #include <list>
-#include <memory>
+#include <mutex>
 #include <shared_mutex>
-#include <sstream>
-#include <string>
-#include <type_traits>
+#include <utility>
+
+#ifndef NDEBUG
+    #include <spdlog/spdlog.h>
+#endif
+
 #if __has_include("cpu_timer.hpp")
     #include "cpu_timer.hpp"
 #else
@@ -20,18 +30,27 @@ static std::chrono::nanoseconds thread_cpu_time() {
     return {};
 }
 #endif
-#include "concurrentqueue/blockingconcurrentqueue.hpp"
-#include "managed_thread.hpp"
-#include "record_logger.hpp"
+
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/iostreams/device/back_inserter.hpp>
+#include <boost/iostreams/stream.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 
 namespace ILLIXR {
 
 using plugin_id_t = std::size_t;
 
+const std::vector<std::string> ignore_vars = {"plugins"};
+const std::vector<std::string> ENV_VARS    = {
+    "ILLIXR_ENABLE_PRE_SLEEP",
+    "ILLIXR_LOG_LEVEL",
+    "ILLIXR_RUN_DURATION",
+};
 /**
  * @Should be private to Switchboard.
  */
-const record_header __switchboard_callback_header{
+const record_header _switchboard_callback_header{
     "switchboard_callback",
     {
         {"plugin_id", typeid(plugin_id_t)},
@@ -46,14 +65,14 @@ const record_header __switchboard_callback_header{
 /**
  * @Should be private to Switchboard.
  */
-const record_header __switchboard_topic_stop_header{"switchboard_topic_stop",
-                                                    {
-                                                        {"plugin_id", typeid(plugin_id_t)},
-                                                        {"topic_name", typeid(std::string)},
-                                                        {"enqueued", typeid(std::size_t)},
-                                                        {"dequeued", typeid(std::size_t)},
-                                                        {"idle_cycles", typeid(std::size_t)},
-                                                    }};
+const record_header _switchboard_topic_stop_header{"switchboard_topic_stop",
+                                                   {
+                                                       {"plugin_id", typeid(plugin_id_t)},
+                                                       {"topic_name", typeid(std::string)},
+                                                       {"enqueued", typeid(std::size_t)},
+                                                       {"dequeued", typeid(std::size_t)},
+                                                       {"idle_cycles", typeid(std::size_t)},
+                                                   }};
 
 /**
  * @brief A manager for typesafe, threadsafe, named event-streams (called
@@ -104,8 +123,8 @@ public:
      * TODO: Make this agnostic to the type of `ptr`
      * Currently, it depends on `ptr` == shared_ptr
      */
-    template<typename specific_event>
-    using ptr = std::shared_ptr<specific_event>;
+    template<typename Specific_event>
+    using ptr = std::shared_ptr<Specific_event>;
 
     /**
      * @brief Virtual class for event types.
@@ -120,6 +139,12 @@ public:
      */
     class event {
     public:
+        template<typename Archive>
+        [[maybe_unused]] void serialize(Archive& ar, const unsigned int version) {
+            (void) ar;
+            (void) version;
+        }
+
         virtual ~event() = default;
     };
 
@@ -133,28 +158,28 @@ public:
      * event_wrapper<int> int_event = 5;
      * \endcode
      */
-    template<typename underlying_type>
+    template<typename Underlying_type>
     class event_wrapper : public event {
-    private:
-        underlying_type underlying_data;
-
     public:
-        event_wrapper() { }
+        event_wrapper() = default;
 
-        event_wrapper(underlying_type underlying_data_)
-            : underlying_data{underlying_data_} { }
+        explicit event_wrapper(Underlying_type underlying_data)
+            : underlying_data_{std::move(underlying_data)} { }
 
-        operator underlying_type() const {
-            return underlying_data;
+        explicit operator Underlying_type() const {
+            return underlying_data_;
         }
 
-        underlying_type& operator*() {
-            return underlying_data;
+        Underlying_type& operator*() {
+            return underlying_data_;
         }
 
-        const underlying_type& operator*() const {
-            return underlying_data;
+        const Underlying_type& operator*() const {
+            return underlying_data_;
         }
+
+    private:
+        Underlying_type underlying_data_;
     };
 
 private:
@@ -167,107 +192,25 @@ private:
      * Each topic can have 0 or more topic_subscriptions.
      */
     class topic_subscription {
-    private:
-        const std::string&                                    _m_topic_name;
-        plugin_id_t                                           _m_plugin_id;
-        std::function<void(ptr<const event>&&, std::size_t)>  _m_callback;
-        const std::shared_ptr<record_logger>                  _m_record_logger;
-        record_coalescer                                      _m_cb_log;
-        moodycamel::BlockingConcurrentQueue<ptr<const event>> _m_queue{8 /*max size estimate*/};
-        moodycamel::ConsumerToken                             _m_ctok{_m_queue};
-        static constexpr std::chrono::milliseconds            _m_queue_timeout{100};
-        std::size_t                                           _m_enqueued{0};
-        std::size_t                                           _m_dequeued{0};
-        std::size_t                                           _m_idle_cycles{0};
-
-        // This needs to be last,
-        // so it is destructed before the data it uses.
-        managed_thread _m_thread;
-
-        void thread_on_start() {
-#ifndef NDEBUG
-            std::cerr << "Thread " << std::this_thread::get_id() << " start" << std::endl;
-#endif
-        }
-
-        void thread_body() {
-            // Try to pull event off of queue
-            ptr<const event> this_event;
-            std::int64_t     timeout_usecs = std::chrono::duration_cast<std::chrono::microseconds>(_m_queue_timeout).count();
-            // Note the use of timed blocking wait
-            if (_m_queue.wait_dequeue_timed(_m_ctok, this_event, timeout_usecs)) {
-                // Process event
-                // Also, record and log the time
-                _m_dequeued++;
-                auto cb_start_cpu_time  = thread_cpu_time();
-                auto cb_start_wall_time = std::chrono::high_resolution_clock::now();
-                // std::cerr << "deq " << ptr_to_str(reinterpret_cast<const void*>(this_event.get_ro())) << " " <<
-                // this_event.use_count() << " v\n";
-                _m_callback(std::move(this_event), _m_dequeued);
-                if (_m_cb_log) {
-                    _m_cb_log.log(record{__switchboard_callback_header,
-                                         {
-                                             {_m_plugin_id},
-                                             {_m_topic_name},
-                                             {_m_dequeued},
-                                             {cb_start_cpu_time},
-                                             {thread_cpu_time()},
-                                             {cb_start_wall_time},
-                                             {std::chrono::high_resolution_clock::now()},
-                                         }});
-                }
-            } else {
-                // Nothing to do.
-                _m_idle_cycles++;
-            }
-        }
-
-        void thread_on_stop() {
-            // Drain queue
-            std::size_t unprocessed = _m_enqueued - _m_dequeued;
-            {
-                ptr<const event> this_event;
-                for (std::size_t i = 0; i < unprocessed; ++i) {
-                    [[maybe_unused]] bool ret = _m_queue.try_dequeue(_m_ctok, this_event);
-                    assert(ret);
-                    // std::cerr << "deq (stopping) " << ptr_to_str(reinterpret_cast<const void*>(this_event.get_ro())) << " "
-                    // << this_event.use_count() << " v\n";
-                    this_event.reset();
-                }
-            }
-
-            // Log stats
-            if (_m_record_logger) {
-                _m_record_logger->log(record{__switchboard_topic_stop_header,
-                                             {
-                                                 {_m_plugin_id},
-                                                 {_m_topic_name},
-                                                 {_m_dequeued},
-                                                 {unprocessed},
-                                                 {_m_idle_cycles},
-                                             }});
-            }
-        }
-
     public:
         topic_subscription(const std::string& topic_name, plugin_id_t plugin_id,
                            std::function<void(ptr<const event>&&, std::size_t)> callback,
-                           std::shared_ptr<record_logger>                       record_logger_)
-            : _m_topic_name{topic_name}
-            , _m_plugin_id{plugin_id}
-            , _m_callback{callback}
-            , _m_record_logger{record_logger_}
-            , _m_cb_log{record_logger_}
-            , _m_thread{[this] {
-                            this->thread_body();
-                        },
-                        [this] {
-                            this->thread_on_start();
-                        },
-                        [this] {
-                            this->thread_on_stop();
-                        }} {
-            _m_thread.start();
+                           const std::shared_ptr<record_logger>&                record_logger_)
+            : topic_name_{topic_name}
+            , plugin_id_{plugin_id}
+            , callback_{std::move(callback)}
+            , record_logger_{record_logger_}
+            , cb_log_{record_logger_}
+            , thread_{[this] {
+                          this->thread_body();
+                      },
+                      [] {
+                          thread_on_start();
+                      },
+                      [this] {
+                          this->thread_on_stop();
+                      }} {
+            thread_.start();
         }
 
         /**
@@ -276,41 +219,127 @@ private:
          * Thread-safe
          */
         void enqueue(ptr<const event>&& this_event) {
-            if (_m_thread.get_state() == managed_thread::state::running) {
-                [[maybe_unused]] bool ret = _m_queue.enqueue(std::move(this_event));
+            if (thread_.get_state() == managed_thread::state::running) {
+                [[maybe_unused]] bool ret = queue_.enqueue(std::move(this_event));
                 assert(ret);
-                _m_enqueued++;
+                enqueued_++;
             }
         }
+
+    private:
+        static void thread_on_start() {
+#ifndef NDEBUG
+            // spdlog::get("illixr")->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%l%$] [switchboard] thread %t %v");
+            // spdlog::get("illixr")->debug("start");
+            // spdlog::get("illixr")->set_pattern("%+");
+#endif
+        }
+
+        void thread_body() {
+            // Try to pull event off of queue
+            ptr<const event> this_event;
+            std::int64_t     timeout_usecs = std::chrono::duration_cast<std::chrono::microseconds>(queue_timeout_).count();
+            // Note the use of timed blocking wait
+            if (queue_.wait_dequeue_timed(token_, this_event, timeout_usecs)) {
+                // Process event
+                // Also, record and log the time
+                dequeued_++;
+                auto cb_start_cpu_time  = thread_cpu_time();
+                auto cb_start_wall_time = std::chrono::high_resolution_clock::now();
+                // std::cerr << "deq " << ptr_to_str(reinterpret_cast<const void*>(this_event.get_ro())) << " " <<
+                // this_event.use_count() << " v\n";
+                callback_(std::move(this_event), dequeued_);
+                if (cb_log_) {
+                    cb_log_.log(record{_switchboard_callback_header,
+                                       {
+                                           {plugin_id_},
+                                           {topic_name_},
+                                           {dequeued_},
+                                           {cb_start_cpu_time},
+                                           {thread_cpu_time()},
+                                           {cb_start_wall_time},
+                                           {std::chrono::high_resolution_clock::now()},
+                                       }});
+                }
+            } else {
+                // Nothing to do.
+                idle_cycles_++;
+            }
+        }
+
+        void thread_on_stop() {
+            // Drain queue
+            std::size_t unprocessed = enqueued_ - dequeued_;
+            {
+                ptr<const event> this_event;
+                for (std::size_t i = 0; i < unprocessed; ++i) {
+                    [[maybe_unused]] bool ret = queue_.try_dequeue(token_, this_event);
+                    assert(ret);
+                    // std::cerr << "deq (stopping) " << ptr_to_str(reinterpret_cast<const void*>(this_event.get_ro())) << " "
+                    // << this_event.use_count() << " v\n";
+                    this_event.reset();
+                }
+            }
+
+            // Log stats
+            if (record_logger_) {
+                record_logger_->log(record{_switchboard_topic_stop_header,
+                                           {
+                                               {plugin_id_},
+                                               {topic_name_},
+                                               {dequeued_},
+                                               {unprocessed},
+                                               {idle_cycles_},
+                                           }});
+            }
+        }
+
+        const std::string&                                    topic_name_;
+        plugin_id_t                                           plugin_id_;
+        std::function<void(ptr<const event>&&, std::size_t)>  callback_;
+        const std::shared_ptr<record_logger>                  record_logger_;
+        record_coalescer                                      cb_log_;
+        moodycamel::BlockingConcurrentQueue<ptr<const event>> queue_{8 /*max size estimate*/};
+        moodycamel::ConsumerToken                             token_{queue_};
+        static constexpr std::chrono::milliseconds            queue_timeout_{100};
+        std::size_t                                           enqueued_{0};
+        std::size_t                                           dequeued_{0};
+        std::size_t                                           idle_cycles_{0};
+
+        // This needs to be last,
+        // so it is destructed before the data it uses.
+        managed_thread thread_;
     };
 
     class topic_buffer {
-    private:
-        moodycamel::BlockingConcurrentQueue<ptr<const event>> _m_queue{8 /*max size estimate*/};
-        moodycamel::ConsumerToken                             _m_ctok{_m_queue};
-        std::atomic<size_t>                                   _m_queue_size{0};
-
     public:
         topic_buffer() {
-            printf("topic buffer created");
+#ifndef NDEBUG
+            spdlog::get("illixr")->info("[switchboard] topic buffer created");
+#endif
         }
 
         void enqueue(ptr<const event>&& this_event) {
-            _m_queue_size++;
-            [[maybe_unused]] bool ret = _m_queue.enqueue(std::move(this_event));
+            queue_size_++;
+            [[maybe_unused]] bool ret = queue_.enqueue(std::move(this_event));
             assert(ret);
         }
 
-        size_t size() const {
-            return _m_queue_size;
+        [[nodiscard]] size_t size() const {
+            return queue_size_;
         }
 
         ptr<const event> dequeue() {
             ptr<const event> obj;
-            _m_queue_size--;
-            _m_queue.wait_dequeue(_m_ctok, obj);
+            queue_size_--;
+            queue_.wait_dequeue(token_, obj);
             return obj;
         }
+
+    private:
+        moodycamel::BlockingConcurrentQueue<ptr<const event>> queue_{8 /*max size estimate*/};
+        moodycamel::ConsumerToken                             token_{queue_};
+        std::atomic<size_t>                                   queue_size_{0};
     };
 
     /**
@@ -324,42 +353,31 @@ private:
      * used `std::any` for this, but I think inheriting `event` will be slightly more efficient
      * because it avoids a heap-allocation.
      *
-     * However, this class can have _dynamic_ type-information in _m_ty, that gets set and checked
+     * However, this class can have _dynamic_ type-information in ty, that gets set and checked
      * at runtime.
      */
     class topic {
-    private:
-        const std::string                                   _m_name;
-        const std::type_info&                               _m_ty;
-        const std::shared_ptr<record_logger>                _m_record_logger;
-        std::atomic<size_t>                                 _m_latest_index;
-        static constexpr std::size_t                        _m_latest_buffer_size = 256;
-        std::array<ptr<const event>, _m_latest_buffer_size> _m_latest_buffer;
-        std::list<topic_subscription>                       _m_subscriptions;
-        std::list<topic_buffer>                             _m_buffers;
-        std::shared_mutex                                   _m_subscriptions_lock;
-
     public:
         topic(std::string name, const std::type_info& ty, std::shared_ptr<record_logger> record_logger_)
-            : _m_name{name}
-            , _m_ty{ty}
-            , _m_record_logger{record_logger_}
-            , _m_latest_index{0} { }
+            : name_{std::move(name)}
+            , type_info_{ty}
+            , record_logger_{std::move(record_logger_)}
+            , latest_index_{0} { }
 
         const std::string& name() {
-            return _m_name;
+            return name_;
         }
 
         const std::type_info& ty() {
-            return _m_ty;
+            return type_info_;
         }
 
         /**
          * @brief Gets a read-only copy of the most recent event on the topic.
          */
-        ptr<const event> get() const {
-            size_t           idx        = _m_latest_index.load() % _m_latest_buffer_size;
-            ptr<const event> this_event = _m_latest_buffer[idx];
+        [[nodiscard]] ptr<const event> get() const {
+            size_t           idx        = latest_index_.load() % latest_buffer_size_;
+            ptr<const event> this_event = latest_buffer_[idx];
             // if (this_event) {
             // 	std::cerr << "get " << ptr_to_str(reinterpret_cast<const void*>(this_event.get())) << " " <<
             // this_event.use_count() << "v \n";
@@ -390,21 +408,21 @@ private:
                    this_event.use_count() <= 2); /// <-- TODO: Revisit for solution that guarantees uniqueness
 
             /* The pointer that this gets exchanged with needs to get dropped. */
-            size_t index            = (_m_latest_index.load() + 1) % _m_latest_buffer_size;
-            _m_latest_buffer[index] = this_event;
-            _m_latest_index++;
+            size_t index          = (latest_index_.load() + 1) % latest_buffer_size_;
+            latest_buffer_[index] = this_event;
+            latest_index_++;
 
-            // Read/write on _m_subscriptions.
-            // Must acquire shared state on _m_subscriptions_lock
-            std::unique_lock lock{_m_subscriptions_lock};
-            for (topic_subscription& ts : _m_subscriptions) {
+            // Read/write on subscriptions_.
+            // Must acquire shared state on subscriptions_lock_
+            std::unique_lock lock{subscriptions_lock_};
+            for (topic_subscription& ts : subscriptions_) {
                 // std::cerr << "enq " << ptr_to_str(reinterpret_cast<const void*>(this_event->get())) << " " <<
                 // this_event->use_count() << " ^\n";
                 ptr<const event> event_ptr_copy{this_event};
                 ts.enqueue(std::move(event_ptr_copy));
             }
 
-            for (topic_buffer& ts : _m_buffers) {
+            for (topic_buffer& ts : buffers_) {
                 // std::cerr << "enq " << ptr_to_str(reinterpret_cast<const void*>(this_event->get())) << " " <<
                 // this_event->use_count() << " ^\n";
                 ptr<const event> event_ptr_copy{this_event};
@@ -414,22 +432,36 @@ private:
             // this_event->use_count() << " (= 1 + len(sub)) \n";
         }
 
+        [[maybe_unused]] void deserialize_and_put(std::vector<char>& buffer, network::topic_config& config) {
+            if (config.serialization_method == network::topic_config::SerializationMethod::BOOST) {
+                // TODO: Need to differentiate and support protobuf deserialization
+                boost::iostreams::stream<boost::iostreams::array_source> stream{buffer.data(), buffer.size()};
+                boost::archive::binary_iarchive                          ia{stream};
+                ptr<event>                                               this_event;
+                ia >> this_event;
+                put(std::move(this_event));
+            } else {
+                ptr<event> message = std::make_shared<event_wrapper<std::string>>((std::string(buffer.begin(), buffer.end())));
+                put(std::move(message));
+            }
+        }
+
         /**
          * @brief Schedules @p callback on the topic (@p plugin_id is for accounting)
          *
          * Thread-safe
          */
-        void schedule(plugin_id_t plugin_id, std::function<void(ptr<const event>&&, std::size_t)> callback) {
-            // Write on _m_subscriptions.
-            // Must acquire unique state on _m_subscriptions_lock
-            const std::unique_lock lock{_m_subscriptions_lock};
-            _m_subscriptions.emplace_back(_m_name, plugin_id, callback, _m_record_logger);
+        void schedule(plugin_id_t plugin_id, const std::function<void(ptr<const event>&&, std::size_t)>& callback) {
+            // Write on subscriptions_.
+            // Must acquire unique state on subscriptions_lock_
+            const std::unique_lock lock{subscriptions_lock_};
+            subscriptions_.emplace_back(name_, plugin_id, callback, record_logger_);
         }
 
         topic_buffer& get_buffer() {
-            const std::unique_lock lock{_m_subscriptions_lock};
-            _m_buffers.emplace_back();
-            return _m_buffers.back();
+            const std::unique_lock lock{subscriptions_lock_};
+            buffers_.emplace_back();
+            return buffers_.back();
         }
 
         /**
@@ -438,30 +470,38 @@ private:
          * Thread-safe
          */
         void stop() {
-            // Write on _m_subscriptions.
-            // Must acquire unique state on _m_subscriptions_lock
-            const std::unique_lock lock{_m_subscriptions_lock};
-            _m_subscriptions.clear();
+            // Write on subscriptions_.
+            // Must acquire unique state on subscriptions_lock_
+            const std::unique_lock lock{subscriptions_lock_};
+            subscriptions_.clear();
         }
+
+    private:
+        static constexpr std::size_t latest_buffer_size_ = 256;
+
+        const std::string                                 name_;
+        const std::type_info&                             type_info_;
+        const std::shared_ptr<record_logger>              record_logger_;
+        std::atomic<size_t>                               latest_index_;
+        std::array<ptr<const event>, latest_buffer_size_> latest_buffer_;
+        std::list<topic_subscription>                     subscriptions_;
+        std::list<topic_buffer>                           buffers_;
+        std::shared_mutex                                 subscriptions_lock_;
     };
 
 public:
     /**
      * @brief A handle which can read the latest event on a topic.
      */
-    template<typename specific_event>
+    template<typename Specific_event>
     class reader {
-    private:
-        /// Reference to the underlying topic
-        topic& _m_topic;
-
     public:
-        reader(topic& topic_)
-            : _m_topic{topic_} {
+        explicit reader(topic& topic)
+            : topic_{topic} {
 #ifndef NDEBUG
-            if (std::string(typeid(specific_event).name()) != std::string(_m_topic.ty().name())) {
-                std::cerr << "topic '" << _m_topic.name() << "' holds type " << _m_topic.ty().name() << ", but caller used type"
-                          << typeid(specific_event).name() << std::endl;
+            if (typeid(Specific_event) != topic_.ty()) {
+                spdlog::get("illixr")->error("[switchboard] topic '{}' holds type {}, but caller used type {}", topic_.name(),
+                                             topic_.ty().name(), typeid(Specific_event).name());
                 abort();
             }
 #endif
@@ -472,16 +512,15 @@ public:
          *
          * This will return null if no event is on the topic yet.
          */
-        ptr<const specific_event> get_ro_nullable() const noexcept {
-            ptr<const event>          this_event          = _m_topic.get();
-            auto this_specific_event_auto = (reinterpret_cast<typename std::shared_ptr<const specific_event>::element_type*>(this_event.get()));
-            ptr<const specific_event> this_specific_event = std::shared_ptr<const specific_event>{this_event, this_specific_event_auto};
+        ptr<const Specific_event> get_ro_nullable() const noexcept {
+            ptr<const event>          this_event          = topic_.get();
+            ptr<const Specific_event> this_specific_event = std::dynamic_pointer_cast<const Specific_event>(this_event);
 
             if (this_event != nullptr) {
                 assert(this_specific_event /* Otherwise, dynamic cast failed; dynamic type information could be wrong*/);
                 return this_specific_event;
             } else {
-                return ptr<const specific_event>{nullptr};
+                return ptr<const Specific_event>{nullptr};
             }
         }
 
@@ -490,8 +529,8 @@ public:
          *
          * @throws `runtime_error` If no event is on the topic yet.
          */
-        ptr<const specific_event> get_ro() const {
-            ptr<const specific_event> this_specific_event = get_ro_nullable();
+        ptr<const Specific_event> get_ro() const {
+            ptr<const Specific_event> this_specific_event = get_ro_nullable();
             if (this_specific_event != nullptr) {
                 return this_specific_event;
             } else {
@@ -505,55 +544,54 @@ public:
          *
          * @throws `runtime_error` If no event is on the topic yet.
          */
-        ptr<specific_event> get_rw() const {
+        [[maybe_unused]] ptr<Specific_event> get_rw() const {
             /*
               This method is currently not more efficient than calling get_ro() and making a copy,
               but in the future it could be.
              */
-            ptr<const specific_event> this_specific_event = get_ro();
-            return std::make_shared<specific_event>(*this_specific_event);
+            ptr<const Specific_event> this_specific_event = get_ro();
+            return std::make_shared<Specific_event>(*this_specific_event);
         }
+
+    private:
+        /// Reference to the underlying topic
+        topic& topic_;
     };
 
-    template<typename specific_event>
+    template<typename Specific_event>
     class buffered_reader {
-    private:
-        topic&        _m_topic;
-        size_t        serial_no = 0;
-        topic_buffer& _m_tb;
-
     public:
-        buffered_reader(topic& topic)
-            : _m_topic{topic}
-            , _m_tb{_m_topic.get_buffer()} { }
+        explicit buffered_reader(topic& topic)
+            : topic_{topic}
+            , topic_buffer_{topic_.get_buffer()} { }
 
-        size_t size() const {
-            return _m_tb.size();
+        [[nodiscard]] size_t size() const {
+            return topic_buffer_.size();
         }
 
-        ptr<const specific_event> dequeue() {
-            // CPU_TIMER_TIME_EVENT_INFO(true, false, "callback", cpu_timer::make_type_eraser<FrameInfo>("", _m_topic.name(),
-            // serial_no));
-            serial_no++;
-            ptr<const event>          this_event          = _m_tb.dequeue();
-            auto this_specific_event_auto = (reinterpret_cast<typename std::shared_ptr<const specific_event>::element_type*>(this_event.get()));
-            ptr<const specific_event> this_specific_event = std::shared_ptr<const specific_event>{this_event, this_specific_event_auto};
+        virtual ptr<const Specific_event> dequeue() {
+            // CPU_TIMER_TIME_EVENT_INFO(true, false, "callback", cpu_timer::make_type_eraser<FrameInfo>("", topic_.name(),
+            // serial_no_));
+            serial_no_++;
+            ptr<const event>          this_event          = topic_buffer_.dequeue();
+            ptr<const Specific_event> this_specific_event = std::dynamic_pointer_cast<const Specific_event>(this_event);
             return this_specific_event;
         }
+
+    private:
+        topic&        topic_;
+        size_t        serial_no_ = 0;
+        topic_buffer& topic_buffer_;
     };
 
     /**
      * @brief A handle which can publish events to a topic.
      */
-    template<typename specific_event>
+    template<typename Specific_event>
     class writer {
-    private:
-        // Reference to the underlying topic
-        topic& _m_topic;
-
     public:
-        writer(topic& topic_)
-            : _m_topic{topic_} { }
+        explicit writer(topic& topic)
+            : topic_{topic} { }
 
         /**
          * @brief Like `new`/`malloc` but more efficient for this specific case.
@@ -567,62 +605,175 @@ public:
          * [2]: https://en.wikipedia.org/wiki/Multiple_buffering
          */
         template<class... Args>
-        ptr<specific_event> allocate(Args&&... args) {
-            return std::make_shared<specific_event>(std::forward<Args>(args)...);
+        ptr<Specific_event> allocate(Args&&... args) {
+            return std::make_shared<Specific_event>(std::forward<Args>(args)...);
         }
 
         /**
          * @brief Publish @p ev to this topic.
          */
-        void put(ptr<specific_event>&& this_specific_event) {
-            assert(std::string(typeid(specific_event).name()) == std::string(_m_topic.ty().name()));
+        virtual void put(ptr<Specific_event>&& this_specific_event) {
+            assert(typeid(Specific_event) == topic_.ty());
             assert(this_specific_event != nullptr);
             assert(this_specific_event.unique());
             ptr<const event> this_event =
                 std::const_pointer_cast<const event>(std::static_pointer_cast<event>(std::move(this_specific_event)));
             assert(this_event.unique() ||
                    this_event.use_count() <= 2); /// TODO: Revisit for solution that guarantees uniqueness
-            _m_topic.put(std::move(this_event));
+            topic_.put(std::move(this_event));
         }
+
+    protected:
+        // Reference to the underlying topic
+        topic& topic_;
     };
 
-private:
-    std::unordered_map<std::string, topic> _m_registry;
-    std::shared_mutex                      _m_registry_lock;
-    std::shared_ptr<record_logger>         _m_record_logger;
+    template<typename Serializable_event>
+    class network_writer : public writer<Serializable_event> {
+    public:
+        explicit network_writer(topic& topic, ptr<network::network_backend> backend = nullptr,
+                                const network::topic_config& config = {})
+            : writer<Serializable_event>{topic}
+            , backend_{std::move(backend)}
+            , config_{config} { }
 
-    template<typename specific_event>
-    topic& try_register_topic(const std::string& topic_name) {
-        {
-            const std::shared_lock lock{_m_registry_lock};
-            auto                   found = _m_registry.find(topic_name);
-            if (found != _m_registry.end()) {
-                topic& topic_ = found->second;
-#ifndef NDEBUG
-                if (std::string(typeid(specific_event).name()) != std::string(topic_.ty().name())) {
-                    std::cerr << "topic '" << topic_name << "' holds type " << topic_.ty().name() << ", but caller used type"
-                              << typeid(specific_event).name() << std::endl;
-                    abort();
+        void put(ptr<Serializable_event>&& this_specific_event) override {
+            if (backend_->is_topic_networked(this->topic_.name())) {
+                if (config_.serialization_method == network::topic_config::SerializationMethod::BOOST) {
+                    auto base_event = std::dynamic_pointer_cast<event>(std::move(this_specific_event));
+                    assert(base_event && "Event is not derived from switchboard::event");
+                    // Default serialization method - Boost
+                    std::vector<char>                                                                        buffer;
+                    boost::iostreams::back_insert_device<std::vector<char>>                                  inserter{buffer};
+                    boost::iostreams::stream_buffer<boost::iostreams::back_insert_device<std::vector<char>>> stream{inserter};
+                    boost::archive::binary_oarchive                                                          oa{stream};
+                    oa << base_event;
+                    // flush
+                    stream.pubsync();
+                    backend_->topic_send(this->topic_.name(), std::move(std::string(buffer.begin(), buffer.end())));
+                } else {
+                    // PROTOBUF - this_specific_event will be a string
+                    auto        message_ptr = std::dynamic_pointer_cast<event_wrapper<std::string>>(this_specific_event);
+                    std::string message     = **message_ptr;
+                    backend_->topic_send(this->topic_.name(), std::move(message));
                 }
-#endif
-                return topic_;
+            } else {
+                writer<Serializable_event>::put(std::move(this_specific_event));
             }
         }
 
-#ifndef NDEBUG
-        std::cerr << "Creating: " << topic_name << " for " << typeid(specific_event).name() << std::endl;
-#endif
-        // Topic not found. Need to create it here.
-        const std::unique_lock lock{_m_registry_lock};
-        return _m_registry.try_emplace(topic_name, topic_name, typeid(specific_event), _m_record_logger).first->second;
-    }
+    private:
+        ptr<network::network_backend> backend_;
+        network::topic_config         config_;
+    };
 
 public:
     /**
      * If @p pb is null, then logging is disabled.
      */
-    switchboard(const phonebook* pb)
-        : _m_record_logger{pb ? pb->lookup_impl<record_logger>() : nullptr} { }
+    explicit switchboard(const phonebook* pb)
+        : phonebook_{pb}
+        , record_logger_{pb ? pb->lookup_impl<record_logger>() : nullptr} {
+        for (const auto& item : ENV_VARS) {
+            char* value = getenv(item.c_str());
+            if (value) {
+                env_vars_[item] = value;
+            } else {
+                env_vars_[item] = "";
+            }
+        }
+    }
+
+    [[maybe_unused]] bool topic_exists(const std::string& topic_name) {
+        const std::shared_lock lock{registry_lock_};
+        auto                   found = registry_.find(topic_name);
+        return found != registry_.end();
+    }
+
+    [[maybe_unused]] topic& get_topic(const std::string& topic_name) {
+        const std::shared_lock lock{registry_lock_};
+        auto                   found = registry_.find(topic_name);
+        if (found != registry_.end()) {
+            return found->second;
+        } else {
+            throw std::runtime_error("Topic not found");
+        }
+    }
+
+    /**
+     * @brief Set the local environment variable to the given value
+     */
+    void set_env(const std::string& var, const std::string& val) {
+        env_vars_[var] = val;
+        setenv(var.c_str(), val.c_str(), 1);
+    }
+
+    /**
+     * @brief Get a vector of the currently known environment variables
+     */
+    std::vector<std::string> env_names() const {
+        std::vector<std::string> keys(env_vars_.size());
+        std::transform(env_vars_.begin(), env_vars_.end(), keys.begin(), [](auto pair) {
+            return pair.first;
+        });
+        return keys;
+    }
+
+    /**
+     * @brief Switchboard access point for environment variables
+     *
+     * If the given variable `var` has a non-empty entry in the map, that value is returned. If the
+     * entry is empty then the system getenv is called. If this is non-empty then that value is stored
+     * and returned, otherwise the default value is returned (not stored).
+     */
+    std::string get_env(const std::string& var, std::string _default = "") {
+        try {
+            if (!env_vars_.at(var).empty())
+                return env_vars_.at(var);
+            env_vars_.at(var) = _default;
+            return _default;
+        } catch (std::out_of_range&) {
+            char* val = std::getenv(var.c_str());
+            if (val) {
+                set_env(var, val); // store it locally for faster retrieval
+                return {val};
+            }
+            return _default;
+        }
+    }
+
+    /**
+     * @brief Get the boolean value of the given environment variable
+     */
+    bool get_env_bool(const std::string& var, const std::string& def = "false") {
+        std::string val = get_env(var, def);
+        // see if we are dealing with an int value
+        try {
+            const int i_val = std::stoi(val);
+            if (i_val <= 0)
+                return false;
+            return true;
+        } catch (...) { }
+
+        const std::vector<std::string> affirmative{"yes", "y", "true", "on"};
+        for (auto s : affirmative) {
+            if (std::equal(val.begin(), val.end(), s.begin(), s.end(), [](char a, char b) {
+                    return std::tolower(a) == std::tolower(b);
+                }))
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * @brief Get a char* of the given environment variable
+     */
+    const char* get_env_char(const std::string& var, const std::string _default = "") {
+        std::string val = get_env(var, _default);
+        if (val.empty())
+            return nullptr;
+        return strdup(val.c_str());
+    }
 
     /**
      * @brief Schedules the callback @p fn every time an event is published to @p topic_name.
@@ -633,14 +784,14 @@ public:
      *
      * @throws if topic already exists and its type does not match the @p event.
      */
-    template<typename specific_event>
+    template<typename Specific_event>
     void schedule(plugin_id_t plugin_id, std::string topic_name,
-                  std::function<void(ptr<const specific_event>&&, std::size_t)> fn) {
-        try_register_topic<specific_event>(topic_name)
+                  std::function<void(ptr<const Specific_event>&&, std::size_t)> fn) {
+        try_register_topic<Specific_event>(topic_name)
             .schedule(plugin_id, [=](ptr<const event>&& this_event, std::size_t it_no) {
                 assert(this_event);
-                auto this_specific_event_auto = (reinterpret_cast<typename std::shared_ptr<const specific_event>::element_type*>(this_event.get()));
-                ptr<const specific_event> this_specific_event = std::shared_ptr<const specific_event>{this_event, this_specific_event_auto};
+                ptr<const Specific_event> this_specific_event =
+                    std::dynamic_pointer_cast<const Specific_event>(std::move(this_event));
                 assert(this_specific_event);
                 fn(std::move(this_specific_event), it_no);
             });
@@ -653,9 +804,18 @@ public:
      *
      * @throws If topic already exists, and its type does not match the @p event.
      */
-    template<typename specific_event>
-    writer<specific_event> get_writer(const std::string& topic_name) {
-        return writer<specific_event>{try_register_topic<specific_event>(topic_name)};
+    template<typename Specific_event>
+    writer<Specific_event> get_writer(const std::string& topic_name) {
+        return writer<Specific_event>{try_register_topic<Specific_event>(topic_name)};
+    }
+
+    template<typename Specific_event>
+    network_writer<Specific_event> get_network_writer(const std::string& topic_name, network::topic_config config = {}) {
+        auto backend = phonebook_->lookup_impl<network::network_backend>();
+        if (registry_.find(topic_name) == registry_.end()) {
+            backend->topic_create(topic_name, config);
+        }
+        return network_writer<Specific_event>{try_register_topic<Specific_event>(topic_name), backend, config};
     }
 
     /**
@@ -665,14 +825,14 @@ public:
      *
      * @throws If topic already exists, and its type does not match the @p event.
      */
-    template<typename specific_event>
-    reader<specific_event> get_reader(const std::string& topic_name) {
-        return reader<specific_event>{try_register_topic<specific_event>(topic_name)};
+    template<typename Specific_event>
+    reader<Specific_event> get_reader(const std::string& topic_name) {
+        return reader<Specific_event>{try_register_topic<Specific_event>(topic_name)};
     }
 
-    template<typename specific_event>
-    buffered_reader<specific_event> get_buffered_reader(const std::string& topic_name) {
-        return buffered_reader<specific_event>{try_register_topic<specific_event>(topic_name)};
+    template<typename Specific_event>
+    buffered_reader<Specific_event> get_buffered_reader(const std::string& topic_name) {
+        return buffered_reader<Specific_event>{try_register_topic<Specific_event>(topic_name)};
     }
 
     /**
@@ -683,11 +843,118 @@ public:
      * Leave topics in place, so existing reader/writer handles will not crash.
      */
     void stop() {
-        const std::shared_lock lock{_m_registry_lock};
-        for (auto& pair : _m_registry) {
+        const std::shared_lock lock{registry_lock_};
+        for (auto& pair : registry_) {
             pair.second.stop();
         }
     }
+
+private:
+    const phonebook*                             phonebook_;
+    std::unordered_map<std::string, topic>       registry_;
+    std::shared_mutex                            registry_lock_;
+    std::shared_ptr<record_logger>               record_logger_;
+    std::unordered_map<std::string, std::string> env_vars_;
+
+    template<typename Specific_event>
+    topic& try_register_topic(const std::string& topic_name) {
+        {
+            const std::shared_lock lock{registry_lock_};
+            auto                   found = registry_.find(topic_name);
+            if (found != registry_.end()) {
+                topic& _topic = found->second;
+#ifndef NDEBUG
+                if (typeid(Specific_event) != _topic.ty()) {
+                    spdlog::get("illixr")->error("[switchboard] topic '{}' holds type {}, but caller used type {}", topic_name,
+                                                 _topic.ty().name(), typeid(Specific_event).name());
+                    abort();
+                }
+#endif
+                return _topic;
+            }
+        }
+
+#ifndef NDEBUG
+        spdlog::get("illixr")->debug("[switchboard] Creating: {} for {}", topic_name, typeid(Specific_event).name());
+#endif
+        // Topic not found. Need to create it here.
+        const std::unique_lock lock{registry_lock_};
+        return registry_.try_emplace(topic_name, topic_name, typeid(Specific_event), record_logger_).first->second;
+    }
+
+    /**
+     * @brief Base coordinate system
+     *
+     * This class reads in and hold the world coordinate system origin. The origin can be provided by the
+     * WCS_ORIGIN environment/yaml variable and can be specified in one of three ways
+     *
+     *    - a set of 3 comma separated values, representing only the origin in x, y, and z coordinates
+     *    - a set of 4 comma separated values, representing only the quaternion of the origin in w, x, y, z
+     *    - a set of 7 comma seperated values, representing both the origin and its quaternion in the form x, y, z, w, wx, wy,
+     * wz
+     *
+     * Any component which is not given defaults to 0 (except w which is set to 1)
+     */
+    class coordinate_system {
+    private:
+        Eigen::Vector3f    position_;
+        Eigen::Quaternionf orientation_;
+
+    public:
+        coordinate_system()
+            : position_{0., 0., 0.}
+            , orientation_{1., 0., 0., 0.} {
+            const char* ini_pose = getenv("WCS_ORIGIN");
+            // =
+            // if (!ini_pose.empty()) {
+            if (ini_pose) {
+                std::string        ini_pose_str(ini_pose);
+                std::stringstream  iss(ini_pose_str);
+                std::string        token;
+                std::vector<float> ip;
+                while (!iss.eof() && std::getline(iss, token, ',')) {
+                    ip.emplace_back(std::stof(token));
+                }
+                if (ip.size() == 3) {
+                    position_.x() = ip[0];
+                    position_.y() = ip[1];
+                    position_.z() = ip[2];
+                } else if (ip.size() == 4) {
+                    orientation_.w() = ip[0];
+                    orientation_.x() = ip[1];
+                    orientation_.y() = ip[2];
+                    orientation_.z() = ip[3];
+                } else if (ip.size() == 7) {
+                    position_.x()    = ip[0];
+                    position_.y()    = ip[1];
+                    position_.z()    = ip[2];
+                    orientation_.w() = ip[3];
+                    orientation_.x() = ip[4];
+                    orientation_.y() = ip[5];
+                    orientation_.z() = ip[6];
+                }
+            }
+        }
+
+        /**
+         * Get the position portion of the WCS origin
+         * @return Eigen::Vector3f
+         */
+        [[nodiscard]] const Eigen::Vector3f& position() const {
+            return position_;
+        }
+
+        /**
+         * Get the orientation portion of the WCS origin
+         * @return Eigen::Quaternionf
+         */
+        [[nodiscard]] const Eigen::Quaternionf& orientation() const {
+            return orientation_;
+        }
+    };
+
+public:
+    coordinate_system root_coordinates; //!> The WCS origin
 };
 
 } // namespace ILLIXR
