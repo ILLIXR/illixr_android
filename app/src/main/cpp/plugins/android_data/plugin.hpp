@@ -1,6 +1,7 @@
 #pragma once
 
 #include "illixr/data_format/imu.hpp"
+#include "illixr/data_format/opencv_data_types.hpp"
 #include "illixr/data_format/misc.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
@@ -10,16 +11,12 @@
 #include <camera/NdkCameraManager.h>
 #include <android/sensor.h>
 
-#define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android_cam", __VA_ARGS__))
-
 namespace ILLIXR {
 
-struct android_imu_struct
-{
+struct android_imu_struct {
     ASensorManager *sensor_manager;
     const ASensor *accelerometer;
     const ASensor *gyroscope;
-    const ASensor* gravity;
     ASensorEventQueue *event_queue;
 };
 
@@ -91,8 +88,9 @@ public:
 
 private:
     const std::shared_ptr<switchboard> switchboard_;
-    const std::shared_ptr<const RelativeClock> clock_;
-    switchboard::writer<data_format::imu_cam_type> imu_cam_;
+    const std::shared_ptr<const relative_clock> clock_;
+    switchboard::writer<data_format::imu_type> imu_;
+    switchboard::writer<data_format::binocular_cam_type> cam_;
 
     std::optional<ullong> first_imu_time_;
     std::optional<time_point> first_real_time_imu_;
@@ -108,7 +106,7 @@ private:
     ACameraCaptureSession *capture_session_ = nullptr;
     static const int IMAGE_WIDTH = 752;
     static const int IMAGE_HEIGHT = 480;
-    android_imu_struct *imu_;
+    android_imu_struct *a_imu_;
 
     ACameraDevice_stateCallbacks camera_device_callbacks_ = {
             .context = nullptr,
@@ -138,8 +136,8 @@ private:
     static std::ofstream cam_file_;
 
     static std::mutex lock_;
-    static Eigen::Vector3f gyro_;
-    static Eigen::Vector3f accel_;
+    static Eigen::Vector3d gyro_;
+    static Eigen::Vector3d accel_;
     static cv::Mat last_image_;
     static bool img_ready_;
     static std::mutex mtx_;

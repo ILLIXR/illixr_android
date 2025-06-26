@@ -15,7 +15,7 @@ target_include_directories(android_data PRIVATE
 target_link_libraries(android_data
         EGL
         GLESv3
-        log
+        spdlog::spdlog_android
         opencv_core
         opencv_imgproc
         opencv_highgui
@@ -24,4 +24,5 @@ target_link_libraries(android_data
         mediandk
         android
         Eigen3::Eigen
+        spdlog::spdlog_android
 )

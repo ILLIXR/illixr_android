@@ -8,12 +8,11 @@
 #include <thread>
 #include <mutex>
 #include <fstream>
-#include <android/log.h>
 #include <camera/NdkCameraMetadata.h>
 #include <android/native_window_jni.h>
 #include <Eigen/Core>
 #include <filesystem>
-
+#include <spdlog/spdlog.h>
 #define POLL_RATE_USEC 1000
 
 using namespace ILLIXR;
@@ -23,8 +22,8 @@ double android_data::imu_time_ = 0.;
 std::ofstream android_data::my_file_ = {};
 std::ofstream android_data::cam_file_ = {};
 std::mutex android_data::lock_ = {};
-Eigen::Vector3f android_data::gyro_ = {};
-Eigen::Vector3f android_data::accel_ = {};
+Eigen::Vector3d android_data::gyro_ = {};
+Eigen::Vector3d android_data::accel_ = {};
 ullong android_data::imu_ts_ = 0;
 std::mutex android_data::mtx_ = {};
 cv::Mat android_data::last_image_ = {};
@@ -32,17 +31,21 @@ bool android_data::img_ready_ = false;
 int android_data::counter_ = 0;
 
 [[maybe_unused]] android_data::android_data(const std::string &name_, phonebook *pb_)
-        : threadloop{name_, pb_}, switchboard_{pb->lookup_impl<switchboard>()},
-          clock_{pb->lookup_impl<RelativeClock>()},
-          imu_cam_{switchboard_->get_writer<data_format::imu_cam_type>("imu_cam")} {
-    ANDROID_LOG("IMU CAM CONSTRUCTOR");
+        : threadloop{name_, pb_}
+        , switchboard_{pb_->lookup_impl<switchboard>()}
+        , clock_{pb_->lookup_impl<relative_clock>()}
+        , imu_{switchboard_->get_writer<data_format::imu_type>("imu")}
+        , cam_{switchboard_->get_writer<data_format::binocular_cam_type>("cam")}{
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("IMU CAM CONSTRUCTOR");
+#endif
     init_cam();
     //std::filesystem::create_directories("/sdcard/Android/data/com.example.native_activity/cam0/");
 //        remove("/sdcard/Android/data/com.example.native_activity/cam0/*.png");
     my_file_.open("/sdcard/Android/data/com.example.native_activity/imu0.csv");
     cam_file_.open("/sdcard/Android/data/com.example.native_activity/data.csv");
-    imu_ = new android_imu_struct();
-    std::thread(android_run_thread, imu_).detach();
+    a_imu_ = new android_imu_struct();
+    std::thread(android_run_thread, a_imu_).detach();
 }
 
 android_data::~android_data() {
@@ -126,16 +129,19 @@ android_data::~android_data() {
 //                        avg_filter.pop_front();
 //                    }
                 //uint64_t time_s = std::chrono::system_clock::now().time_since_epoch().count();
-                ANDROID_LOG("IMU Values : accel %f %f %f %f %f %f", accel_[0], accel_[1], accel_[2],
+#ifndef NDEBUG
+                spdlog::get("illixr")->debug("IMU Values : accel %f %f %f %f %f %f", accel_[0], accel_[1], accel_[2],
                             gyro_[0], gyro_[1], gyro_[2]);
-
+#endif
             }
             default:;
         }
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        ANDROID_LOG("durationX: %f", duration2double(duration));
-        imu_time_ = imu_time_ + duration2double(duration);
+#ifndef NDEBUG
+        spdlog::get("illixr")->debug("durationX: %f", duration_to_double(duration));
+#endif
+        imu_time_ = imu_time_ + duration_to_double(duration);
         lock_.unlock();
     }
 
@@ -216,7 +222,7 @@ void android_data::image_callback(void *context, AImageReader *reader) {
     AImageReader_acquireNextImage(reader, &image);
     //ANDROID_LOG("Image callback");
     if (image == nullptr) {
-        ANDROID_LOG("IMage is null!");
+        spdlog::get("illixr")->warn("IMage is null!");
         return;
     }
     auto start = std::chrono::high_resolution_clock::now();
@@ -247,8 +253,10 @@ void android_data::image_callback(void *context, AImageReader *reader) {
 //        processor.detach();
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    ANDROID_LOG("duration: %f", duration2double(duration));
-    cam_proc_time_ += duration2double(duration);
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("duration: %f", duration_to_double(duration));
+#endif
+    cam_proc_time_ += duration_to_double(duration);
 }
 
 
@@ -258,7 +266,7 @@ AImageReader *android_data::create_jpeg_reader() {
             AImageReader_new(IMAGE_WIDTH, IMAGE_HEIGHT, AIMAGE_FORMAT_YUV_420_888, 10, &reader);
 
     if (status != AMEDIA_OK) {
-        ANDROID_LOG("Error with image reader");
+        spdlog::get("illixr")->error("Error with image reader");
         return nullptr;
     }
 
@@ -282,31 +290,41 @@ ANativeWindow *android_data::create_surface(AImageReader *reader) {
 void android_data::on_disconnected(void *context, ACameraDevice *device) {
     (void)context;
     (void)device;
-    ANDROID_LOG("on_disconnected");
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("on_disconnected");
+#endif
 }
 
 void android_data::on_error(void *context, ACameraDevice *device, int error) {
     (void)context;
     (void)device;
-    ANDROID_LOG("error %d", error);
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("error %d", error);
+#endif
 }
 
 void android_data::on_session_active(void *context, ACameraCaptureSession *session) {
     (void)context;
     (void)session;
-    ANDROID_LOG("on_session_active()");
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("on_session_active()");
+#endif
 }
 
 void android_data::on_session_ready(void *context, ACameraCaptureSession *session) {
     (void)context;
     (void)session;
-    ANDROID_LOG("on_session_ready()");
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("on_session_ready()");
+#endif
 }
 
 void android_data::on_session_closed(void *context, ACameraCaptureSession *session) {
     (void)context;
     (void)session;
-    ANDROID_LOG("on_session_closed()");
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("on_session_closed()");
+#endif
 }
 
 void android_data::on_capture_failed(void *context, ACameraCaptureSession *session,
@@ -315,7 +333,9 @@ void android_data::on_capture_failed(void *context, ACameraCaptureSession *sessi
     (void)session;
     (void)request;
     (void)failure;
-    ANDROID_LOG("on_capture_failed ");
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("on_capture_failed ");
+#endif
 }
 
 std::string android_data::get_back_facing_cam_id() {
@@ -324,18 +344,24 @@ std::string android_data::get_back_facing_cam_id() {
 
     std::string backId;
 
-    ANDROID_LOG("found camera count %d", cameraIds->numCameras);
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("found camera count %d", cameraIds->numCameras);
+#endif
     bool camera_found = false;
     for (int i = 0; i < cameraIds->numCameras; ++i) {
         const char *id = cameraIds->cameraIds[i];
 
         ACameraMetadata *metadataObj;
         ACameraManager_getCameraCharacteristics(camera_manager_, id, &metadataObj);
-        ANDROID_LOG("get camera characteristics %d", i);
+#ifndef NDEBUG
+        spdlog::get("illixr")->debug("get camera characteristics %d", i);
+#endif
 
         ACameraMetadata_const_entry lensInfo = {0};
         ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_FACING, &lensInfo);
-        ANDROID_LOG("lens info %d", i);
+#ifndef NDEBUG
+        spdlog::get("illixr")->debug("lens info %d", i);
+#endif
 
         auto facing = static_cast<acamera_metadata_enum_android_lens_facing_t>(
                 lensInfo.data.u8[0]);
@@ -349,7 +375,9 @@ std::string android_data::get_back_facing_cam_id() {
         auto pose_ref = static_cast<acamera_metadata_enum_acamera_lens_pose_reference>(
                 pose_reference.data.u8[0]);
 
-        ANDROID_LOG("Pose reference is = %d and facing = %d", pose_ref, facing);
+//#ifndef NDEBUG
+//        spdlog::get("illixr")->debug("Pose reference is = %d and facing = %d", pose_ref, facing);
+//#endif
         // Found a back-facing camera?
         if (facing == ACAMERA_LENS_FACING_BACK) {
             backId = id;
@@ -360,44 +388,56 @@ std::string android_data::get_back_facing_cam_id() {
             ACameraMetadata_const_entry intrinsics;
             ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_INTRINSIC_CALIBRATION,
                                           &intrinsics);
+#ifndef NDEBUG
             for (int x = 0; x < intrinsics.count; ++x) {
-                ANDROID_LOG("Intrinsics total = %d : %f : index %d", intrinsics.count,
+                spdlog::get("illixr")->debug("Intrinsics total = %d : %f : index %d", intrinsics.count,
                             intrinsics.data.f[x], x);
             }
+#endif
 
             ACameraMetadata_const_entry distortion;
             ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_DISTORTION, &distortion);
+#ifndef NDEBUG
             for (int x = 0; x < distortion.count; ++x) {
-                ANDROID_LOG("distortion  = %d : %f : index %d", distortion.count,
+                spdlog::get("illixr")->debug("distortion  = %d : %f : index %d", distortion.count,
                             distortion.data.f[x], x);
             }
+#endif
 
             ACameraMetadata_const_entry rotation;
             ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_POSE_ROTATION, &rotation);
+#ifndef NDEBUG
             for (int x = 0; x < rotation.count; ++x) {
-                ANDROID_LOG("rotation total = %d : %f : index %d", rotation.count,
+                spdlog::get("illixr")->debug("rotation total = %d : %f : index %d", rotation.count,
                             rotation.data.f[x], x);
             }
+#endif
 
             ACameraMetadata_const_entry translation;
             ACameraMetadata_getConstEntry(metadataObj, ACAMERA_LENS_POSE_TRANSLATION, &translation);
+#ifndef NDEBUG
             for (int x = 0; x < translation.count; ++x) {
-                ANDROID_LOG("translation total = %d : %f : index %d", translation.count,
-                            translation.data.f[x], x);
+                spdlog::get("illixr")->debug("translation total = %d : %f : index %d", translation.count,
+                                             translation.data.f[x], x);
             }
+#endif
             break;
         }
 
 
     }
-    ANDROID_LOG("back camera id %s", backId.c_str());
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("back camera id %s", backId.c_str());
+#endif
 
     ACameraManager_deleteCameraIdList(cameraIds);
     return backId;
 }
 
 void android_data::init_cam() {
-    ANDROID_LOG("INIT CAM");
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("INIT CAM");
+#endif
     camera_manager_ = ACameraManager_create();
     auto id = get_back_facing_cam_id();
     ACameraManager_openCamera(camera_manager_, id.c_str(), &camera_device_callbacks_,
@@ -419,7 +459,9 @@ void android_data::init_cam() {
     camera_status_t status = ACameraCaptureSession_setRepeatingRequest(capture_session_,
                                                                        &capture_callbacks_, 1,
                                                                        &request_, nullptr);
-    ANDROID_LOG("ACameraCaptureSession_setRepeatingRequest status = %d", status);
+//#ifndef NDEBUG
+//    spdlog::get("illixr")->debug("ACameraCaptureSession_setRepeatingRequest status = %d", status);
+//#endif
 }
 
 /// For `threadloop` style plugins, do not override the start() method unless you know what you're doing!
@@ -446,8 +488,8 @@ void android_data::_p_one_iteration() {
     //ullong last_imu_time = 0;
     //double last_cam_time = 0;
     lock_.lock();
-    Eigen::Vector3f cur_gyro = gyro_;
-    Eigen::Vector3f cur_accel = accel_;
+    Eigen::Vector3d cur_gyro = gyro_;
+    Eigen::Vector3d cur_accel = accel_;
     counter_++;
 //        myfile << std::to_string((uint64_t)ts*1000) + "," + std::to_string(gyro[0]) + "," + std::to_string(gyro[1]) + "," +
 //                  std::to_string(gyro[2]) + "," + std::to_string(accel[0]) + ","  + std::to_string(accel[1]) + "," + std::to_string(accel[2])  + "\n";
@@ -455,12 +497,12 @@ void android_data::_p_one_iteration() {
     imu_time_ = 0;
     lock_.unlock();
 
-    std::optional<cv::Mat> ir_left = std::nullopt;
-    std::optional<cv::Mat> ir_right = std::nullopt;
+    cv::Mat ir_left;
+    cv::Mat ir_right;
     if (counter_ % 10 == 0) {
         mtx_.lock();
-        ir_left = std::make_optional<cv::Mat>(last_image_);
-        ir_right = std::make_optional<cv::Mat>(last_image_);
+        ir_left = last_image_;
+        ir_right = last_image_;
 //            uint64_t name = (uint64_t)ts*1000;
 //            bool check = cv::imwrite(
 //                    "/sdcard/Android/data/com.example.native_activity/cam0/"+ std::to_string(name)+".png", last_image);
@@ -474,18 +516,24 @@ void android_data::_p_one_iteration() {
 //        time_point cam_time_point{*first_real_time_imu_ + std::chrono::nanoseconds(last_imu_time - *first_imu_time_)};
 
     time_point curr_time = clock_->now();
-    //ANDROID_LOG("TIME = %lf and cam_time %llu",duration2double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
+    //ANDROID_LOG("TIME = %lf and cam_time %llu",duration_2_double(std::chrono::nanoseconds(cam_time - *_m_first_cam_time)), cam_time);
 //        _m_cam.put(_m_cam.allocate<cam_type>({cam_time_point, ir_left, ir_right}));
-    imu_cam_.put(imu_cam_.allocate<data_format::imu_cam_type>(
-            data_format::imu_cam_type{time_point{curr_time},
-                                      cur_gyro.cast<float>(),
-                                      cur_accel.cast<float>(), ir_left, ir_right}));
+    imu_.put(imu_.allocate<data_format::imu_type>(
+            data_format::imu_type{time_point{curr_time},
+                                      cur_gyro,
+                                      cur_accel}));
+    cam_.put(cam_.allocate<data_format::binocular_cam_type>(
+            data_format::binocular_cam_type{time_point{curr_time},
+                                            ir_left.clone(),
+                                            ir_right.clone()}));
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    ANDROID_LOG("duration: %f", duration2double(duration));
-    ANDROID_LOG("AG: %f, %f, %f, %f, %f, %f", cur_accel[0], cur_accel[1], cur_accel[2], cur_gyro[0],
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("duration: %f", duration_to_double(duration));
+    spdlog::get("illixr")->debug("AG: %f, %f, %f, %f, %f, %f", cur_accel[0], cur_accel[1], cur_accel[2], cur_gyro[0],
                 cur_gyro[1], cur_gyro[2]);
-//        sl->write_duration("imu_cam", duration2double(duration) + last_imu_time + last_cam_time);
+#endif
+//        sl->write_duration("imu_cam", duration_2_double(duration) + last_imu_time + last_cam_time);
 }
 
 
