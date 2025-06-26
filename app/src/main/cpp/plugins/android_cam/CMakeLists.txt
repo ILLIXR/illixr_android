@@ -1,7 +1,11 @@
-add_library(android_cam
-        SHARED
+add_library(android_cam SHARED
         plugin.cpp
-        )
+        plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/opencv_data_types.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/misc.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
+)
 
 
 target_include_directories(android_cam PRIVATE
@@ -20,4 +24,4 @@ target_link_libraries(android_cam
         camera2ndk
         mediandk
         android
-        )
+)
