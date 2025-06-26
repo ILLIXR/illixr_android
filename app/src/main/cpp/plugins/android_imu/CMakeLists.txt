@@ -1,7 +1,12 @@
-add_library(android_imu
-        SHARED
+add_library(android_imu SHARED
         plugin.cpp
-        )
+        plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/misc.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/phonebook.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
+)
 
 target_include_directories(android_imu PRIVATE
         ${OpenCV_LIBS}
@@ -13,4 +18,4 @@ target_link_libraries(android_imu
         GLESv3
         log
         android
-        )
+)
