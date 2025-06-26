@@ -2,14 +2,13 @@
 #include <android_native_app_glue.h>
 #include <EGL/egl.h>
 #include <GLES/gl.h>
-#include <android/log.h>
+
 #include <thread>
 #include <vector>
 #include "src/main.h"
+
 //#define  ILLIXR_MONADO 1
 using namespace ILLIXR;
-
-#define LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android-main", __VA_ARGS__))
 
 extern "C" {
     // called from Java after permission is granted
@@ -17,6 +16,7 @@ extern "C" {
 
     }
 }
+
 static void handle_cmd(struct android_app* app, int32_t cmd) {
     switch(cmd) {
         case APP_CMD_INIT_WINDOW:
@@ -26,7 +26,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
 //                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
 //            std::vector<std::string> arguments = { "", "liblog_service.so",
 //                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
-            std::vector<std::string> arguments = { "", "liblog_service.so", "libslam.so", "liboffline_imu_cam.so" ,"librk4_integrator.so",
+            std::vector<std::string> arguments = { "", "liblog_service.so", "libslam.so", "liboffline_imu.so", "liboffline_cam.so" ,"librk4_integrator.so",
                                                    "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
             std::vector<char*> argv;
             for (const auto& arg : arguments)
@@ -49,7 +49,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
             break;
         }
         default:
-            LOG("Some other command");
+            break;
     }
 }
 

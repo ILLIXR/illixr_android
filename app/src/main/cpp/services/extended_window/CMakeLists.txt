@@ -13,5 +13,5 @@ target_include_directories(extended_window PRIVATE
 target_link_libraries(extended_window
         EGL
         GLESv3
-        log
+        spdlog::spdlog_android
 )

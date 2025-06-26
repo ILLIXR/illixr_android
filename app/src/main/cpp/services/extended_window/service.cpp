@@ -2,10 +2,9 @@
 
 #include <cassert>
 #include <memory>
-#include <android/log.h>
+#include <spdlog/spdlog.h>
 
 using namespace ILLIXR;
-#define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "extended-window", __VA_ARGS__))
 
 xlib_gl_extended_window::xlib_gl_extended_window(int width, int height, EGLContext egl_context,
                                                  ANativeWindow* window) {
@@ -15,8 +14,10 @@ xlib_gl_extended_window::xlib_gl_extended_window(int width, int height, EGLConte
     display_ = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     EGLint major_version, minor_version;
     eglInitialize(display_, &major_version, &minor_version);
-    ANDROID_LOG("EGL Initialized with major version : %d minor version: %d", major_version,
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("EGL Initialized with major version : %d minor version: %d", major_version,
                 minor_version);
+#endif
 
     const EGLint attribs[] = {
             //EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
@@ -59,11 +60,13 @@ xlib_gl_extended_window::xlib_gl_extended_window(int width, int height, EGLConte
         return;
     }
     eglGetConfigAttrib(display_, config, EGL_NATIVE_VISUAL_ID, &format);
+#ifndef NDEBUG
     if (window != nullptr) {
-        ANDROID_LOG("window is not nullptr");
+        spdlog::get("illixr")->debug("window is not nullptr");
     } else {
-        ANDROID_LOG("window is nullptr");
+        spdlog::get("illixr")->debug("window is nullptr");
     }
+#endif
     try {
         surface_ = eglCreateWindowSurface(display_, config, my_window_, nullptr);
     }
@@ -86,8 +89,10 @@ xlib_gl_extended_window::xlib_gl_extended_window(int width, int height, EGLConte
     display_ = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     EGLint major_version, minor_version;
     eglInitialize(display_, &major_version, &minor_version);
-    ANDROID_LOG("EGL Initialized with major version : %d minor version: %d", major_version,
+#ifndef NDEBUG
+    spdlog::get("illixr")->debug("EGL Initialized with major version : %d minor version: %d", major_version,
                 minor_version);
+#endif
 
     const EGLint attribs[] = {
             //EGL_SURFACE_TYPE, EGL_WINDOW_BIT,

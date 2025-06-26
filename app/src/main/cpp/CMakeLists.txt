@@ -14,7 +14,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH})
 
 set(ILLIXR_INTEGRATION 1)
 find_package(OpenCV 4.5.5 REQUIRED CONFIG COMPONENTS opencv_java)
-find_package(Boost 1.72 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic)
+find_package(Boost 1.72 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic iostreams serialization)
 include_directories(${OpenCV_INCLUDE_DIRS})
 #set(CMAKE_BUILD_TYPE "Release")
 find_package(Eigen3 REQUIRED)
@@ -87,9 +87,9 @@ target_include_directories(native-activity PRIVATE
 
 
 if (ILLIXR_CAM)
-    #add_subdirectory(plugins/offline_cam)
-    #add_subdirectory(plugins/offline_imu)
-    add_subdirectory(plugins/offline_imu_cam)
+    add_subdirectory(plugins/offline_cam)
+    add_subdirectory(plugins/offline_imu)
+    #add_subdirectory(plugins/offline_imu_cam)
 endif ()
 
 target_include_directories(ov_core_lib PRIVATE
@@ -120,6 +120,8 @@ target_link_libraries(native-activity
         GLESv3
         log
         Eigen3::Eigen
+        spdlog::spdlog_android
+        Boost::serialization
 )
 
 
@@ -179,8 +181,7 @@ target_link_libraries(slam
         Eigen3::Eigen
 )
 #add_subdirectory(plugins/android_cam)
-#add_subdirectory(plugins/android_imu)
-add_subdirectory(plugins/android_imu_cam)
+add_subdirectory(plugins/android_data)
 add_subdirectory(plugins/gldemo)
 #add_subdirectory(plugins/gtsam_integrator)
 add_subdirectory(plugins/rk4_integrator)
