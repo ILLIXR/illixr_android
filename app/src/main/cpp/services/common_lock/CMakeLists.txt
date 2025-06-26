@@ -1,6 +1,9 @@
-add_library(common_lock
-        SHARED
-        plugin.cpp
+add_library(common_lock SHARED
+        service.cpp
+        service.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/common_lock.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
 )
 
 target_include_directories(common_lock PRIVATE
