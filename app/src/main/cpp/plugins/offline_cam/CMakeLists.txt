@@ -1,6 +1,9 @@
-add_library(offline_cam
-        SHARED
+add_library(offline_cam SHARED
         plugin.cpp
+        plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/opencv_data_types.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
 )
 
 target_include_directories(offline_cam PRIVATE
