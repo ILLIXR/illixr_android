@@ -8,7 +8,7 @@
 #include <fstream>
 
 std::ofstream myfile;
-#define LOGP(...) ((void)__android_log_print(ANDROID_LOG_INFO, "pose_prediction", __VA_ARGS__))
+#define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "pose_prediction", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -25,12 +25,12 @@ pose_prediction_impl::pose_prediction_impl(const phonebook* const pb)
 
 data_format::fast_pose_type pose_prediction_impl::get_fast_pose() const {
     switchboard::ptr<const switchboard::event_wrapper<time_point>> vsync_estimate = vsync_estimate_.get_ro_nullable();
-    // LOGP("GET FAST POSE");
+    // ANDROID_LOG("GET FAST POSE");
     if (vsync_estimate == nullptr) {
-        //LOGP("with clock");
+        //ANDROID_LOG("with clock");
         return get_fast_pose(clock_->now());
     } else {
-        //LOGP("GET FAST POSE");
+        //ANDROID_LOG("GET FAST POSE");
         return get_fast_pose(*vsync_estimate);
     }
 }
@@ -75,7 +75,7 @@ data_format::fast_pose_type pose_prediction_impl::get_fast_pose(time_point futur
     switchboard::ptr<const data_format::imu_raw_type> imu_raw = imu_raw_.get_ro_nullable();
     if (imu_raw == nullptr) {
 #ifndef NDEBUG
-        LOGP("FAST POSE IS SLOW POSE!\n");
+        ANDROID_LOG("FAST POSE IS SLOW POSE!\n");
 #endif
         // No imu_raw, return slow_pose
         return data_format::fast_pose_type{
@@ -143,7 +143,7 @@ data_format::fast_pose_type pose_prediction_impl::get_fast_pose(time_point futur
         }
     }
 
-//        LOGP("POse position = %f %f %f , prediction orientation = %f %f %f %f",
+//        ANDROID_LOG("POse position = %f %f %f , prediction orientation = %f %f %f %f",
 //             predicted_pose.position.x(), predicted_pose.position.y(), predicted_pose.position.z()
 //             ,predicted_pose.orientation.w(), predicted_pose.orientation.x(), predicted_pose.orientation.y(), predicted_pose.orientation.z());
     // Several timestamps are logged:
@@ -181,7 +181,7 @@ Eigen::Quaternionf pose_prediction_impl::apply_offset(const Eigen::Quaternionf& 
 // current Dataset we are using (EuRoC)
 data_format::pose_type pose_prediction_impl::correct_pose(const data_format::pose_type pose) const {
     data_format::pose_type swapped_pose;
-    //LOGP("CORRECT POSE");
+    //ANDROID_LOG("CORRECT POSE");
     // Make any changes to the axes direction below
     // This is a mapping between the coordinate system of the current
     // SLAM (OpenVINS) we are using and the OpenGL system.
@@ -215,7 +215,7 @@ std::pair<Eigen::Matrix<double, 13, 1>, time_point>
 pose_prediction_impl::predict_mean_rk4(double dt) const {
     // Pre-compute things
     switchboard::ptr<const data_format::imu_raw_type> imu_raw = imu_raw_.get_ro();
-    //LOGP("Read imu data ..");
+    //ANDROID_LOG("Read imu data ..");
 
     Eigen::Vector3d w_hat = imu_raw->w_hat;
     Eigen::Vector3d a_hat = imu_raw->a_hat;
