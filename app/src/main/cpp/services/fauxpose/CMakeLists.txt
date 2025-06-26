@@ -1,6 +1,6 @@
 #add_library(faux_pose
 #        SHARED
-#        faux_pose/plugin.cpp
+#        service.cpp
 #        )
 
 #target_include_directories(faux_pose PRIVATE
