@@ -3,6 +3,8 @@
 
 #include "plugin.hpp"
 
+#include "illixr/runge-kutta.hpp"
+
 #include <chrono>
 #include <thread>
 
@@ -180,144 +182,6 @@ data_format::imu_type rk4_integrator::interpolate_imu(const data_format::imu_typ
                     duration_to_double(imu_2.time - imu_1.time);
     return data_format::imu_type{timestamp, (1 - lambda) * imu_1.linear_a + lambda * imu_2.linear_a,
                                  (1 - lambda) * imu_1.angular_v + lambda * imu_2.angular_v};
-}
-
-void
-rk4_integrator::predict_mean_rk4(Eigen::Vector4d quat, Eigen::Vector3d pos, Eigen::Vector3d vel,
-                                 double dt,
-                                 const Eigen::Vector3d &w_hat1, const Eigen::Vector3d &a_hat1,
-                                 const Eigen::Vector3d &w_hat2,
-                                 const Eigen::Vector3d &a_hat2, Eigen::Vector4d &new_q,
-                                 Eigen::Vector3d &new_v,
-                                 Eigen::Vector3d &new_p) {
-    Eigen::Matrix<double, 3, 1> gravity_vec = Eigen::Matrix<double, 3, 1>(0.0, 0.0, 9.81);
-
-    // Pre-compute things
-    Eigen::Vector3d w_hat = w_hat1;
-    Eigen::Vector3d a_hat = a_hat1;
-    Eigen::Vector3d w_alpha = (w_hat2 - w_hat1) / dt;
-    Eigen::Vector3d a_jerk = (a_hat2 - a_hat1) / dt;
-
-    // y0 ================
-    Eigen::Vector4d q_0 = quat;
-    Eigen::Vector3d p_0 = pos;
-    Eigen::Vector3d v_0 = vel;
-
-    // k1 ================
-    Eigen::Vector4d dq_0 = {0, 0, 0, 1};
-    Eigen::Vector4d q0_dot = 0.5 * Omega(w_hat) * dq_0;
-    Eigen::Vector3d p0_dot = v_0;
-    Eigen::Matrix3d R_Gto0 = quat_2_Rot(quat_multiply(dq_0, q_0));
-    Eigen::Vector3d v0_dot = R_Gto0.transpose() * a_hat - gravity_vec;
-
-    Eigen::Vector4d k1_q = q0_dot * dt;
-    Eigen::Vector3d k1_p = p0_dot * dt;
-    Eigen::Vector3d k1_v = v0_dot * dt;
-
-    // k2 ================
-    w_hat += 0.5 * w_alpha * dt;
-    a_hat += 0.5 * a_jerk * dt;
-
-    Eigen::Vector4d dq_1 = quatnorm(dq_0 + 0.5 * k1_q);
-    // Eigen::Vector3d p_1 = p_0+0.5*k1_p;
-    Eigen::Vector3d v_1 = v_0 + 0.5 * k1_v;
-
-    Eigen::Vector4d q1_dot = 0.5 * Omega(w_hat) * dq_1;
-    Eigen::Vector3d p1_dot = v_1;
-    Eigen::Matrix3d R_Gto1 = quat_2_Rot(quat_multiply(dq_1, q_0));
-    Eigen::Vector3d v1_dot = R_Gto1.transpose() * a_hat - gravity_vec;
-
-    Eigen::Vector4d k2_q = q1_dot * dt;
-    Eigen::Vector3d k2_p = p1_dot * dt;
-    Eigen::Vector3d k2_v = v1_dot * dt;
-
-    // k3 ================
-    Eigen::Vector4d dq_2 = quatnorm(dq_0 + 0.5 * k2_q);
-    // Eigen::Vector3d p_2 = p_0+0.5*k2_p;
-    Eigen::Vector3d v_2 = v_0 + 0.5 * k2_v;
-
-    Eigen::Vector4d q2_dot = 0.5 * Omega(w_hat) * dq_2;
-    Eigen::Vector3d p2_dot = v_2;
-    Eigen::Matrix3d R_Gto2 = quat_2_Rot(quat_multiply(dq_2, q_0));
-    Eigen::Vector3d v2_dot = R_Gto2.transpose() * a_hat - gravity_vec;
-
-    Eigen::Vector4d k3_q = q2_dot * dt;
-    Eigen::Vector3d k3_p = p2_dot * dt;
-    Eigen::Vector3d k3_v = v2_dot * dt;
-
-    // k4 ================
-    w_hat += 0.5 * w_alpha * dt;
-    a_hat += 0.5 * a_jerk * dt;
-
-    Eigen::Vector4d dq_3 = quatnorm(dq_0 + k3_q);
-    // Eigen::Vector3d p_3 = p_0+k3_p;
-    Eigen::Vector3d v_3 = v_0 + k3_v;
-
-    Eigen::Vector4d q3_dot = 0.5 * Omega(w_hat) * dq_3;
-    Eigen::Vector3d p3_dot = v_3;
-    Eigen::Matrix3d R_Gto3 = quat_2_Rot(quat_multiply(dq_3, q_0));
-    Eigen::Vector3d v3_dot = R_Gto3.transpose() * a_hat - gravity_vec;
-
-    Eigen::Vector4d k4_q = q3_dot * dt;
-    Eigen::Vector3d k4_p = p3_dot * dt;
-    Eigen::Vector3d k4_v = v3_dot * dt;
-
-    // y+dt ================
-    Eigen::Vector4d dq = quatnorm(
-            dq_0 + (1.0 / 6.0) * k1_q + (1.0 / 3.0) * k2_q + (1.0 / 3.0) * k3_q +
-            (1.0 / 6.0) * k4_q);
-    new_q = quat_multiply(dq, q_0);
-    new_p = p_0 + (1.0 / 6.0) * k1_p + (1.0 / 3.0) * k2_p + (1.0 / 3.0) * k3_p + (1.0 / 6.0) * k4_p;
-    new_v = v_0 + (1.0 / 6.0) * k1_v + (1.0 / 3.0) * k2_v + (1.0 / 3.0) * k3_v + (1.0 / 6.0) * k4_v;
-}
-
-const Eigen::Matrix<double, 4, 4> rk4_integrator::Omega(Eigen::Matrix<double, 3, 1> w) {
-    Eigen::Matrix<double, 4, 4> mat;
-    mat.block(0, 0, 3, 3) = -skew_x(w);
-    mat.block(3, 0, 1, 3) = -w.transpose();
-    mat.block(0, 3, 3, 1) = w;
-    mat(3, 3) = 0;
-    return mat;
-}
-
-const Eigen::Matrix<double, 4, 1> rk4_integrator::quatnorm(Eigen::Matrix<double, 4, 1> q_t) {
-    if (q_t(3, 0) < 0) {
-        q_t *= -1;
-    }
-    return q_t / q_t.norm();
-}
-
-const Eigen::Matrix<double, 3, 3> rk4_integrator::skew_x(const Eigen::Matrix<double, 3, 1> &w) {
-    Eigen::Matrix<double, 3, 3> w_x;
-    w_x << 0, -w(2), w(1), w(2), 0, -w(0), -w(1), w(0), 0;
-    return w_x;
-}
-
-const Eigen::Matrix<double, 3, 3> rk4_integrator::quat_2_Rot(const Eigen::Matrix<double, 4, 1> &q) {
-    Eigen::Matrix<double, 3, 3> q_x = skew_x(q.block(0, 0, 3, 1));
-    Eigen::MatrixXd Rot =
-            (2 * std::pow(q(3, 0), 2) - 1) * Eigen::MatrixXd::Identity(3, 3) - 2 * q(3, 0) * q_x +
-            2 * q.block(0, 0, 3, 1) * (q.block(0, 0, 3, 1).transpose());
-    return Rot;
-}
-
-const Eigen::Matrix<double, 4, 1>
-rk4_integrator::quat_multiply(const Eigen::Matrix<double, 4, 1> &q,
-                              const Eigen::Matrix<double, 4, 1> &p) {
-    Eigen::Matrix<double, 4, 1> q_t;
-    Eigen::Matrix<double, 4, 4> Qm;
-    // create big L matrix
-    Qm.block(0, 0, 3, 3) = q(3, 0) * Eigen::MatrixXd::Identity(3, 3) - skew_x(q.block(0, 0, 3, 1));
-    Qm.block(0, 3, 3, 1) = q.block(0, 0, 3, 1);
-    Qm.block(3, 0, 1, 3) = -q.block(0, 0, 3, 1).transpose();
-    Qm(3, 3) = q(3, 0);
-    q_t = Qm * p;
-    // ensure unique by forcing q_4 to be >0
-    if (q_t(3, 0) < 0) {
-        q_t *= -1;
-    }
-    // normalize and return
-    return q_t / q_t.norm();
 }
 
 PLUGIN_MAIN(rk4_integrator)

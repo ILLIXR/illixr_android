@@ -69,77 +69,8 @@ private:
     mutable Eigen::Quaternionf offset_{Eigen::Quaternionf::Identity()};
     mutable std::shared_mutex offset_mutex_;
 
-    // Slightly modified copy of OpenVINS method found in propagator.cpp
-    // Returns a pair of the predictor state_plus and the time associated with the
-    // most recent imu reading used to perform this prediction.
-    std::pair<Eigen::Matrix<double, 13, 1>, time_point> predict_mean_rk4(double dt) const;
-
-    /**
-     * @brief Integrated quaternion from angular velocity
-     *
-     * See equation (48) of trawny tech report [Indirect Kalman Filter for 3D Attitude
-     * Estimation](http://mars.cs.umn.edu/tr/reports/Trawny05b.pdf).
-     *
-     */
-    static const inline Eigen::Matrix<double, 4, 4> Omega(Eigen::Matrix<double, 3, 1> w);
-
-    /**
-     * @brief Normalizes a quaternion to make sure it is unit norm
-     * @param q_t Quaternion to normalized
-     * @return Normalized quaterion
-     */
-    static const inline Eigen::Matrix<double, 4, 1> quatnorm(Eigen::Matrix<double, 4, 1> q_t);
-
-    /**
-     * @brief Skew-symmetric matrix from a given 3x1 vector
-     *
-     * This is based on equation 6 in [Indirect Kalman Filter for 3D Attitude
-     * Estimation](http://mars.cs.umn.edu/tr/reports/Trawny05b.pdf): \f{align*}{ \lfloor\mathbf{v}\times\rfloor =
-     *  \begin{bmatrix}
-     *  0 & -v_3 & v_2 \\ v_3 & 0 & -v_1 \\ -v_2 & v_1 & 0
-     *  \end{bmatrix}
-     * @f}
-     *
-     * @param[in] w 3x1 vector to be made a skew-symmetric
-     * @return 3x3 skew-symmetric matrix
-     */
-    static const inline Eigen::Matrix<double, 3, 3> skew_x(const Eigen::Matrix<double, 3, 1>& w);
-
-    /**
-     * @brief Converts JPL quaterion to SO(3) rotation matrix
-     *
-     * This is based on equation 62 in [Indirect Kalman Filter for 3D Attitude
-     * Estimation](http://mars.cs.umn.edu/tr/reports/Trawny05b.pdf): \f{align*}{ \mathbf{R} =
-     * (2q_4^2-1)\mathbf{I}_3-2q_4\lfloor\mathbf{q}\times\rfloor+2\mathbf{q}^\top\mathbf{q}
-     * @f}
-     *
-     * @param[in] q JPL quaternion
-     * @return 3x3 SO(3) rotation matrix
-     */
-    static const inline Eigen::Matrix<double, 3, 3>
-    quat_2_Rot(const Eigen::Matrix<double, 4, 1>& q);
-
-    /**
-     * @brief Multiply two JPL quaternions
-     *
-     * This is based on equation 9 in [Indirect Kalman Filter for 3D Attitude
-     * Estimation](http://mars.cs.umn.edu/tr/reports/Trawny05b.pdf). We also enforce that the quaternion is unique by having q_4
-     * be greater than zero. \f{align*}{ \bar{q}\otimes\bar{p}= \mathcal{L}(\bar{q})\bar{p}= \begin{bmatrix}
-     *  q_4\mathbf{I}_3+\lfloor\mathbf{q}\times\rfloor & \mathbf{q} \\
-     *  -\mathbf{q}^\top & q_4
-     *  \end{bmatrix}
-     *  \begin{bmatrix}
-     *  \mathbf{p} \\ p_4
-     *  \end{bmatrix}
-     * @f}
-     *
-     * @param[in] q First JPL quaternion
-     * @param[in] p Second JPL quaternion
-     * @return 4x1 resulting p*q quaternion
-     */
-    static const inline Eigen::Matrix<double, 4, 1>
-    quat_multiply(const Eigen::Matrix<double, 4, 1>& q,
-                  const Eigen::Matrix<double, 4, 1>& p);
 };
+
+} // namespace ILLIXR
 
 }
