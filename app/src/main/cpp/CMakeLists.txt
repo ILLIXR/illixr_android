@@ -45,7 +45,6 @@ include(cmake/Getspdlog.cmake)
 
 add_subdirectory(services/extended_window)
 add_subdirectory(services/common_lock)
-add_subdirectory(services/log_service)
 add_subdirectory(services/pose_prediction)
 add_subdirectory(services/pose_lookup)
 #add_subdirectory(services/fauxpose)
