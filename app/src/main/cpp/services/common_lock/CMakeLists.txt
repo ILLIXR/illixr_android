@@ -1,4 +1,6 @@
-add_library(common_lock SHARED
+set(PLUGIN_NAME plugin.common_lock${ILLIXR_BUILD_SUFFIX})
+
+add_library(${PLUGIN_NAME} SHARED
         service.cpp
         service.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/common_lock.hpp
@@ -6,15 +8,14 @@ add_library(common_lock SHARED
         ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
 )
 
-target_include_directories(common_lock PRIVATE
+target_include_directories(${PLUGIN_NAME} PRIVATE
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
-target_link_libraries(common_lock
+target_link_libraries(${PLUGIN_NAME}
         EGL
         GLESv3
-        log
         Eigen3::Eigen
         spdlog::spdlog_android
 )
