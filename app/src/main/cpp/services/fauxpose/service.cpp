@@ -22,7 +22,6 @@
 
 #include "illixr/threadloop.hpp"
 
-#define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "fauxpose", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -31,7 +30,7 @@ faux_pose_impl::faux_pose_impl(const phonebook* const pb)
 #ifndef NDEBUG
         std::cout << "[fauxpose] Starting Service\n";
 #endif
-        ANDROID_LOG("Started faux_pose");
+        spdlog::get("illixr")->debug("Started faux_pose");
         // Store the initial time
         auto now       = std::chrono::system_clock::now();
     sim_start_time_ = (time_point)std::chrono::time_point_cast<std::chrono::microseconds>(now);
@@ -108,7 +107,7 @@ public:
             : plugin{name, pb} {
         // "pose_prediction" is a class inheriting from "phonebook::service"
         //   It is described in "pose_prediction.hpp"
-        ANDROID_LOG("Started faux_pose ... actual");
+        spdlog::get("illixr")->debug("Started faux_pose ... actual");
 
         pb->register_impl<data_format::pose_prediction>(std::static_pointer_cast<data_format::pose_prediction>(std::make_shared<faux_pose_impl>(pb)));
 #ifndef NDEBUG
@@ -121,7 +120,7 @@ public:
 #ifndef NDEBUG
         std::cout << "[fauxpose] Ending Plugin\n";
 #endif
-        ANDROID_LOG("end faux_pose ... actual");
+        spdlog::get("illixr")->debug("end faux_pose ... actual");
 
     }
 };

@@ -23,4 +23,6 @@ target_link_libraries(gldemo
         GLESv3
         log
         Eigen3::Eigen
+        Boost::serialization
+        spdlog::spdlog_android
 )

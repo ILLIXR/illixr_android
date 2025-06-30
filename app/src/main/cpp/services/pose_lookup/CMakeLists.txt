@@ -17,5 +17,6 @@ target_link_libraries(pose_lookup
         GLESv3
         log
         Eigen3::Eigen
+        spdlog::spdlog_android
 )
 

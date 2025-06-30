@@ -39,7 +39,7 @@ private:
     const std::shared_ptr<switchboard> switchboard_;
     const std::shared_ptr<data_format::pose_prediction> pose_prediction_;
     const std::shared_ptr<common_lock> lock_;
-    const std::shared_ptr<const RelativeClock> clock_;
+    const std::shared_ptr<const relative_clock> clock_;
     // OpenGL objects
     EGLDisplay display_;
 #ifndef ILLIXR_MONADO

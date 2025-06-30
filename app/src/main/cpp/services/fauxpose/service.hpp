@@ -26,7 +26,7 @@ public:
     correct_pose([[maybe_unused]] const data_format::pose_type pose) const override;
 
     Eigen::Quaternionf get_offset() override {
-        return offset;
+        return offset_;
     }
 
     void set_offset(const Eigen::Quaternionf& raw_o_times_offset) override;

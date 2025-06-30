@@ -21,8 +21,8 @@ using ImuBias = gtsam::imuBias::ConstantBias;
 
 [[maybe_unused]] gtsam_integrator::gtsam_integrator(const std::string& name_, phonebook* pb_)
         : plugin{name_, pb_}
-        , switchboard_{pb->lookup_impl<switchboard>()}
-        , clock_{pb->lookup_impl<RelativeClock>()}
+        , switchboard_{pb_->lookup_impl<switchboard>()}
+        , clock_{pb_->lookup_impl<relative_clock>()}
         , imu_integrator_input_{switchboard_->get_reader<data_format::imu_integrator_input>("imu_integrator_input")}
         , imu_raw_{switchboard_->get_writer<data_format::imu_raw_type>("imu_raw")} {
     switchboard_->schedule<data_format::imu_type>(id, "imu",
@@ -47,7 +47,7 @@ void gtsam_integrator::callback(switchboard::ptr<const data_format::imu_type> da
  */
 
 gtsam_integrator::PimObject::PimObject(const imu_int_t& imu_int_input)
-        : _imu_bias{imu_int_input.biasAcc, imu_int_input.biasGyro}, _pim{nullptr} {
+        : _imu_bias{imu_int_input.bias_acc, imu_int_input.bias_gyro}, _pim{nullptr} {
     pim_t::Params _params{imu_int_input.params.n_gravity};
     _params.setGyroscopeCovariance(
             std::pow(imu_int_input.params.gyro_noise, 2.0) * Eigen::Matrix3d::Identity());
@@ -92,7 +92,7 @@ void gtsam_integrator::PimObject::integrateMeasurement(const imu_t& imu_input,
 
     duration delta_t = imu_input_next.time - imu_input.time;
 
-    pim_->integrateMeasurement(measured_acc, measured_omega, duration2double(delta_t));
+    pim_->integrateMeasurement(measured_acc, measured_omega, duration_to_double(delta_t));
 }
 
 bias_t gtsam_integrator::PimObject::biasHat() const noexcept {
@@ -247,10 +247,9 @@ data_format::imu_type gtsam_integrator::interpolate_imu(const data_format::imu_t
                                                         const data_format::imu_type& imu_2,
                                                         time_point timestamp) {
     double lambda =
-            duration2double(timestamp - imu_1.time) / duration2double(imu_2.time - imu_1.time);
+            duration_to_double(timestamp - imu_1.time) / duration_to_double(imu_2.time - imu_1.time);
     return data_format::imu_type{timestamp, (1 - lambda) * imu_1.linear_a + lambda * imu_2.linear_a,
                                  (1 - lambda) * imu_1.angular_v + lambda * imu_2.angular_v};
 }
-
 
 PLUGIN_MAIN(gtsam_integrator)

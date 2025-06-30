@@ -8,10 +8,9 @@ add_library(offline_imu SHARED
 )
 
 target_link_libraries(offline_imu
-        EGL
-        GLESv3
         log
         Eigen3::Eigen
+        spdlog::spdlog_android
 )
 
 target_include_directories(offline_imu PRIVATE

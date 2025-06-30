@@ -21,4 +21,5 @@ target_link_libraries(offline_cam
         opencv_highgui
         opencv_imgcodecs
         Eigen3::Eigen
+        spdlog::spdlog_android
 )

@@ -35,5 +35,6 @@ target_link_libraries(timewarp_gl
         log
         android
         Eigen3::Eigen
+        Boost::serialization
 )
 

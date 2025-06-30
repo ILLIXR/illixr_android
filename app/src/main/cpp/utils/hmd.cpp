@@ -2,18 +2,18 @@
 
 #include <cmath>
 
-float HMD::MaxFloat(const float x, const float y) {
+float HMD::max_float(const float x, const float y) {
     return (x > y) ? x : y;
 }
 
-float HMD::MinFloat(const float x, const float y) {
+float HMD::min_float(const float x, const float y) {
     return (x < y) ? x : y;
 }
 
 // A Catmull-Rom spline through the values K[0], K[1], K[2] ... K[numKnots-1] evenly spaced from 0.0 to 1.0
-float HMD::EvaluateCatmullRomSpline(float value, float* K, int numKnots) {
+[[maybe_unused]] float HMD::evaluate_catmull_rom_spline(float value, const float* K, int numKnots) {
     const float scaledValue      = (float) (numKnots - 1) * value;
-    const float scaledValueFloor = MaxFloat(0.0f, MinFloat((float) (numKnots - 1), floorf(scaledValue)));
+    const float scaledValueFloor = max_float(0.0f, min_float((float) (numKnots - 1), floorf(scaledValue)));
     const float t                = scaledValue - scaledValueFloor;
     const int   k                = (int) scaledValueFloor;
 
@@ -49,7 +49,7 @@ float HMD::EvaluateCatmullRomSpline(float value, float* K, int numKnots) {
     return res;
 }
 
-void HMD::BuildDistortionMeshes(
+void HMD::build_distortion_meshes(
     std::array<std::array<std::vector<mesh_coord2d_t>, NUM_COLOR_CHANNELS>, NUM_EYES>& distort_coords, hmd_info_t& hmdInfo) {
     const float horizontalShiftMeters = (hmdInfo.lensSeparationInMeters / 2) - (hmdInfo.visibleMetersWide / 4);
     const float horizontalShiftView   = horizontalShiftMeters / (hmdInfo.visibleMetersWide / 2);
@@ -77,7 +77,7 @@ void HMD::BuildDistortionMeshes(
                 }
 
                 const float rsq           = theta[0] * theta[0] + theta[1] * theta[1];
-                const float scale         = HMD::EvaluateCatmullRomSpline(rsq, hmdInfo.K, hmdInfo.numKnots);
+                const float scale         = HMD::evaluate_catmull_rom_spline(rsq, hmdInfo.K, hmdInfo.numKnots);
                 const float chromaScale[] = {
                     scale * (1.0f + hmdInfo.chromaticAberration[0] + rsq * hmdInfo.chromaticAberration[1]), scale,
                     scale * (1.0f + hmdInfo.chromaticAberration[2] + rsq * hmdInfo.chromaticAberration[3])};
@@ -92,7 +92,7 @@ void HMD::BuildDistortionMeshes(
     }
 }
 
-void HMD::GetDefaultHmdInfo(const int displayPixelsWide, const int displayPixelsHigh, const float displayMetersWide,
+void HMD::get_default_hmd_info(const int displayPixelsWide, const int displayPixelsHigh, const float displayMetersWide,
                             const float displayMetersHigh, const float lensSeparation, const float metersPerTanAngle,
                             const float aberration[4], hmd_info_t& hmd_info) {
     hmd_info.displayPixelsWide = displayPixelsWide;

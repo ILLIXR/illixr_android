@@ -9,9 +9,6 @@
 #include "illixr/log_service.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
-#include <android/log.h>
-
-#define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "gldemo", __VA_ARGS__))
 
 namespace ILLIXR {
 
@@ -44,7 +41,7 @@ private:
     const std::shared_ptr<log_service> log_service_;
     const std::shared_ptr<data_format::pose_prediction> pose_prediction_;
     const std::shared_ptr<common_lock> lock_;
-    const std::shared_ptr<const RelativeClock> clock_;
+    const std::shared_ptr<const relative_clock> clock_;
     const switchboard::reader<switchboard::event_wrapper<time_point>> vsync_;
 
     // Switchboard plug for application eye buffer.

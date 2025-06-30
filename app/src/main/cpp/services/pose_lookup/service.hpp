@@ -39,7 +39,7 @@ public:
 
 private:
     const std::shared_ptr<switchboard>         switchboard_;
-    const std::shared_ptr<const RelativeClock> clock_;
+    const std::shared_ptr<const relative_clock> clock_;
     mutable Eigen::Quaternionf                 offset_{Eigen::Quaternionf::Identity()};
     mutable std::shared_mutex                  offset_mutex_;
 

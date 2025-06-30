@@ -16,5 +16,6 @@ target_link_libraries(rk4_integrator
         GLESv3
         log
         Eigen3::Eigen
+        spdlog::spdlog_android
 )
 

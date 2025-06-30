@@ -10,7 +10,7 @@ class rk4_integrator : public plugin {
 public:
     [[maybe_unused]] rk4_integrator(const std::string& name_, phonebook* pb_);
 
-    void callback(switchboard::ptr<const data_format::imu_cam_type> datum);
+    void callback(switchboard::ptr<const data_format::imu_type> datum);
 
 private:
     const std::shared_ptr<switchboard> switchboard_;

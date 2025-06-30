@@ -49,7 +49,7 @@ public:
 
     static float min_float(float x, float y);
 
-    static float evaluate_catmull_rom_spline(float value, const float* K, int num_knots);
+    [[maybe_unused]] static float evaluate_catmull_rom_spline(float value, const float* K, int num_knots);
 
     [[maybe_unused]] static void
     get_default_hmd_info(const int display_pixels_wide, const int display_pixels_high,

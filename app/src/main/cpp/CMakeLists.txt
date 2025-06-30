@@ -14,7 +14,12 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH})
 
 set(ILLIXR_INTEGRATION 1)
 find_package(OpenCV 4.5.5 REQUIRED CONFIG COMPONENTS opencv_java)
-find_package(Boost 1.72 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic iostreams serialization)
+if (CMAKE_VERSION VERSION_LESS "3.30.0")
+    find_package(Boost 1.72 REQUIRED COMPONENTS chrono thread filesystem atomic iostreams serialization)
+else()
+    find_package(Boost 1.72 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic iostreams serialization)
+endif()
+include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 #set(CMAKE_BUILD_TYPE "Release")
 find_package(Eigen3 REQUIRED)
@@ -34,12 +39,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Refer to: https://github.com/android-ndk/ndk/issues/381.
 set(CMAKE_SHARED_LINKER_FLAGS
         "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate -v -fvisibility=hidden")
+include(cmake/Getspdlog.cmake)
 
 add_subdirectory(services/extended_window)
 add_subdirectory(services/common_lock)
 add_subdirectory(services/log_service)
 add_subdirectory(services/pose_prediction)
-#add_subdirectory(services/pose_lookup)
+add_subdirectory(services/pose_lookup)
 #add_subdirectory(services/fauxpose)
 
 add_subdirectory(utils)

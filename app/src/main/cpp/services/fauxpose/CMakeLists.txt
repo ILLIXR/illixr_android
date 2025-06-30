@@ -14,4 +14,5 @@ target_link_libraries(faux_pose
         EGL
         GLESv3
         log
+        spdlog::spdlog_android
 )

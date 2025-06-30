@@ -1,14 +1,10 @@
 #include "service.hpp"
 
-#include <android/log.h>
-
-#define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "common-lock", __VA_ARGS__))
-
 common_lock_impl::common_lock_impl(const phonebook* const pb)
         : switchboard_{pb->lookup_impl<switchboard>()} {
     int ret1 = sem_init(&sem_monado, pshared, value);
     int ret2 = sem_init(&sem_illixr, pshared, value);
-    ANDROID_LOG("Semaphore initialized ret1 = %d ret2 = %d", ret1, ret2);
+    spdlog::get("illixr")->debug("Semaphore initialized ret1 = %d ret2 = %d", ret1, ret2);
 }
 
 void common_lock_impl::get_lock() {

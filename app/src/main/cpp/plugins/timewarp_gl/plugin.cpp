@@ -22,9 +22,6 @@
 #include <thread>
 #include <vector>
 #include <vulkan/vulkan.h>
-#include <android/log.h>
-
-#define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "timewarp", __VA_ARGS__))
 
 using namespace ILLIXR;
 
@@ -49,34 +46,33 @@ const record_header mtp_record{"mtp_record",
                                }};
 
 timewarp_gl::timewarp_gl(const std::string& name_, phonebook* pb_)
-        : threadloop{name_, pb_}, switchboard_{pb->lookup_impl<switchboard>()},
-          pose_prediction_{pb->lookup_impl<data_format::pose_prediction>()},
-          lock_{pb->lookup_impl<common_lock>()}, clock_{pb->lookup_impl<RelativeClock>()},
-          eyebuffer_{switchboard_->get_reader<ILLIXR::data_format::rendered_frame>("eyebuffer")},
-          illixr_signal_{switchboard_->get_writer<data_format::illixr_signal>("illixr_signal")},
-          hologram_{switchboard_->get_writer<data_format::hologram_input>("hologram_in")},
-          vsync_estimate_{
-                  switchboard_->get_writer<switchboard::event_wrapper<time_point>>(
-                          "vsync_estimate")},
-          offload_data_{switchboard_->get_writer<data_format::texture_pose>("texture_pose")},
-          timewarp_gpu_logger_{record_logger_}, mtp_logger_{record_logger_}
+        : threadloop{name_, pb_}
+        , switchboard_{pb_->lookup_impl<switchboard>()}
+        , pose_prediction_{pb_->lookup_impl<data_format::pose_prediction>()}
+        , lock_{pb_->lookup_impl<common_lock>()}
+        , clock_{pb_->lookup_impl<relative_clock>()}
+        , eyebuffer_{switchboard_->get_reader<ILLIXR::data_format::rendered_frame>("eyebuffer")}
+        , illixr_signal_{switchboard_->get_writer<data_format::illixr_signal>("illixr_signal")}
+        , hologram_{switchboard_->get_writer<data_format::hologram_input>("hologram_in")}
+        , vsync_estimate_{switchboard_->get_writer<switchboard::event_wrapper<time_point>>("vsync_estimate")}
+        , offload_data_{switchboard_->get_writer<data_format::texture_pose>("texture_pose")}
+        , timewarp_gpu_logger_{record_logger_}, mtp_logger_{record_logger_}
         // TODO: Use #198 to configure this. Delete getenv_or.
         // This is useful for experiments which seek to evaluate the end-effect of timewarp vs no-timewarp.
         // Timewarp poses a "second channel" by which pose data can correct the video stream,
         // which results in a "multipath" between the pose and the video stream.
         // In production systems, this is certainly a good thing, but it makes the system harder to analyze.
-        , disable_warp_{ILLIXR::str_to_bool(ILLIXR::getenv_or("ILLIXR_TIMEWARP_DISABLE", "False"))},
-          enable_offload_{
-                  ILLIXR::str_to_bool(ILLIXR::getenv_or("ILLIXR_OFFLOAD_ENABLE", "False"))} {
+        , disable_warp_{switchboard_->get_env_bool("ILLIXR_TIMEWARP_DISABLE", "False")}
+        , enable_offload_{switchboard_->get_env_bool("ILLIXR_OFFLOAD_ENABLE", "False")} {
 #ifndef ILLIXR_MONADO
-    const std::shared_ptr<xlib_gl_extended_window> xwin = pb->lookup_impl<xlib_gl_extended_window>();
+    const std::shared_ptr<xlib_gl_extended_window> xwin = pb_->lookup_impl<xlib_gl_extended_window>();
     display_ = xwin->display_;
     window_ = xwin->my_window_;
     surface_ = xwin->surface_;
     glcontext_ = xwin->context_;
-    ANDROID_LOG("NOT ILLIXR_MONADO ..");
+    spdlog::get("illixr")->debug("NOT ILLIXR_MONADO ..");
 #else
-    LOGT("ILLIXR_MONADO ..");
+    spdlog::get("illixr")->debug("ILLIXR_MONADO ..");
     // If we use Monado, timewarp_gl must create its own GL context because the extended window isn't used
     dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     EGLint major_version, minor_version;
@@ -159,7 +155,7 @@ timewarp_gl::timewarp_gl(const std::string& name_, phonebook* pb_)
 #else
     semaphore_handles_ready_ = true;
 #endif
-    switchboard_->schedule<data_format::image_handle>(id, "image_handle",
+    switchboard_->schedule<data_format::image_handle>(id_, "image_handle",
                                                       [this](switchboard::ptr<const data_format::image_handle> handle,
                                                              std::size_t) {
                                                           // only 2 swapchains (for the left and right eye) are supported for now.
@@ -170,13 +166,13 @@ timewarp_gl::timewarp_gl(const std::string& name_, phonebook* pb_)
 //            } else {
 //                return;
 //            }
-                                                          ANDROID_LOG("SCHEDULE STARTED");
+                                                          spdlog::get("illixr")->debug("SCHEDULE STARTED");
 #ifdef ILLIXR_MONADO
                                                           static bool left_output_ready = false, right_output_ready = false;
 #else
                                                           static bool left_output_ready = true, right_output_ready = true;
 #endif
-                                                          ANDROID_LOG("handle.. %d", handle->usage);
+                                                          spdlog::get("illixr")->debug("handle.. %d", handle->usage);
                                                           switch (handle->usage) {
                                                               case data_format::swapchain_usage::LEFT_SWAPCHAIN: {
                                                                   this->eye_image_handles_[0].push_back(
@@ -210,7 +206,7 @@ timewarp_gl::timewarp_gl(const std::string& name_, phonebook* pb_)
                                                                   break;
                                                               }
                                                           }
-                                                          ANDROID_LOG("SWITCH DONE");
+                                                          spdlog::get("illixr")->debug("SWITCH DONE");
 //            assert(handle->swapchain_index == 0 || handle->swapchain_index == 1);
 //            this->_m_image_handles[handle->swapchain_index].push_back(*handle);
                                                           if (client_backend_ ==
@@ -222,14 +218,14 @@ timewarp_gl::timewarp_gl(const std::string& name_, phonebook* pb_)
                                                           }
                                                           if (this->eye_image_handles_[0].size() ==
                                                               this->eye_swapchains_size_[0])
-                                                              ANDROID_LOG("condition 1");
+                                                              spdlog::get("illixr")->debug("condition 1");
                                                           if (this->eye_image_handles_[1].size() ==
                                                               this->eye_swapchains_size_[1])
-                                                              ANDROID_LOG("confition 2");
+                                                              spdlog::get("illixr")->debug("confition 2");
                                                           if (left_output_ready)
-                                                              ANDROID_LOG("CONDITION 3");
+                                                              spdlog::get("illixr")->debug("CONDITION 3");
                                                           if (right_output_ready)
-                                                              ANDROID_LOG("condition 4");
+                                                              spdlog::get("illixr")->debug("condition 4");
                                                           if (this->eye_image_handles_[0].size() ==
                                                               this->eye_swapchains_size_[0] &&
                                                               this->eye_image_handles_[1].size() ==
@@ -238,9 +234,9 @@ timewarp_gl::timewarp_gl(const std::string& name_, phonebook* pb_)
                                                               right_output_ready) {
                                                               this->image_handles_ready_ = true;
                                                               //std::cout << "IMAGES READY" << std::endl;
-                                                              ANDROID_LOG("IMAGES READY");
+                                                              spdlog::get("illixr")->debug("IMAGES READY");
                                                           }
-                                                          ANDROID_LOG("NOT READY");
+                                                          spdlog::get("illixr")->debug("NOT READY");
                                                       });
 
 #ifdef ILLIXR_MONADO
@@ -302,7 +298,7 @@ GLubyte* timewarp_gl::read_texture_image() {
     offload_duration_ = clock_->now() - startGetTexTime;
 
 #ifndef NDEBUG
-    double time = duration2double<std::milli>(offload_duration_);
+    double time = duration_to_double<std::milli>(offload_duration_);
     std::cout << "Texture image collecting time: " << time << "ms" << std::endl;
 #endif
 
@@ -430,10 +426,10 @@ void timewarp_gl::vulkanGL_interop_buffer(const data_format::vk_buffer_handle& v
     assert(gl_result && "glXMakeCurrent should not fail");
     EGLClientBuffer native_buffer = NULL;
     if (vk_buffer_handle.ahardware_buffer == NULL)
-        ANDROID_LOG("NULL ahardware buffer ..");
+        spdlog::get("illixr")->debug("NULL ahardware buffer ..");
     native_buffer = eglGetNativeClientBufferANDROID(vk_buffer_handle.ahardware_buffer);
     if (native_buffer == NULL)
-        ANDROID_LOG("NATIVE BUFFER IS NULL");
+        spdlog::get("illixr")->debug("NATIVE BUFFER IS NULL");
     AHardwareBuffer_Desc desc;
     AHardwareBuffer_describe(vk_buffer_handle.ahardware_buffer, &desc);
     EGLint attrs[] = {
@@ -450,7 +446,7 @@ void timewarp_gl::vulkanGL_interop_buffer(const data_format::vk_buffer_handle& v
     GLint swizzle_mask[4] = {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA};
     GLuint format = convert_vk_format_to_gl(vk_buffer_handle.format, swizzle_mask);
     assert(format != 0 && "Given VK format not handled!");
-    ANDROID_LOG("Format : %d", format);
+    spdlog::get("illixr")->debug("Format : %d", format);
     GLuint image_handle;
     glGenTextures(1, &image_handle);
     glBindTexture(GL_TEXTURE_2D, image_handle);
@@ -463,8 +459,8 @@ void timewarp_gl::vulkanGL_interop_buffer(const data_format::vk_buffer_handle& v
     GLenum err;
     err = glGetError();
     if (err != GL_NO_ERROR)
-        ANDROID_LOG("error %d", err);
-    ANDROID_LOG("NO ERROR");
+        spdlog::get("illixr")->debug("error %d", err);
+    spdlog::get("illixr")->debug("NO ERROR");
     //Alternate GL_TEXTURE_2D
     //glTextureStorageMem2DEXT(image_handle, 1, format, vk_buffer_handle.width, vk_buffer_handle.height, native_buffer, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swizzle_mask[0]);
@@ -472,25 +468,25 @@ void timewarp_gl::vulkanGL_interop_buffer(const data_format::vk_buffer_handle& v
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swizzle_mask[2]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swizzle_mask[3]);
 //        _m_swapchain[swapchain_index].push_back(image_handle);
-    ANDROID_LOG("SWITCH");
+    spdlog::get("illixr")->debug("SWITCH");
     switch (usage) {
         case data_format::swapchain_usage::LEFT_SWAPCHAIN: {
-            ANDROID_LOG("Pushed LEFT_SWAPCHAIN");
+            spdlog::get("illixr")->debug("Pushed LEFT_SWAPCHAIN");
             eye_swapchains_[0].push_back(image_handle);
             break;
         }
         case data_format::swapchain_usage::RIGHT_SWAPCHAIN: {
-            ANDROID_LOG("Pushed RIGHT_SWAPCHAIN");
+            spdlog::get("illixr")->debug("Pushed RIGHT_SWAPCHAIN");
             eye_swapchains_[1].push_back(image_handle);
             break;
         }
         case data_format::swapchain_usage::LEFT_RENDER: {
-            ANDROID_LOG("Pushed LEFT_RENDER");
+            spdlog::get("illixr")->debug("Pushed LEFT_RENDER");
             eye_output_textures_[0] = image_handle;
             break;
         }
         case data_format::swapchain_usage::RIGHT_RENDER: {
-            ANDROID_LOG("Pushed RIGHT_RENDER");
+            spdlog::get("illixr")->debug("Pushed RIGHT_RENDER");
             eye_output_textures_[1] = image_handle;
             break;
         }
@@ -568,7 +564,7 @@ void timewarp_gl::build_timewarp(HMD::hmd_info_t& hmdInfo) {
             channel_coords.resize(num_distortion_vertices_);
         }
     }
-    HMD::BuildDistortionMeshes(distort_coords, hmdInfo);
+    HMD::build_distortion_meshes(distort_coords, hmdInfo);
 
     // Allocate memory for position and UV CPU buffers.
     const std::size_t num_elems_pos_uv = HMD::NUM_EYES * num_distortion_vertices_;
@@ -687,11 +683,11 @@ void timewarp_gl::_p_thread_setup() {
     time_last_swap_ = clock_->now() + display_params::period;
 
 // Generate reference HMD and physical body dimensions
-    HMD::GetDefaultHmdInfo(display_params::width_pixels, display_params::height_pixels,
-                           display_params::width_meters,
-                           display_params::height_meters, display_params::lens_separation,
-                           display_params::meters_per_tan_angle, display_params::aberration,
-                           hmd_info_
+    HMD::get_default_hmd_info(display_params::width_pixels, display_params::height_pixels,
+                              display_params::width_meters,
+                              display_params::height_meters, display_params::lens_separation,
+                              display_params::meters_per_tan_angle, display_params::aberration,
+                              hmd_info_
     );
 
 // Construct timewarp meshes and other data
@@ -832,7 +828,7 @@ void timewarp_gl::_p_thread_setup() {
     [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(display_, NULL, NULL,
                                                                                nullptr));
     assert(gl_result_1 && "eglMakeCurrent should not fail");
-    ANDROID_LOG("Android api level : %d", __ANDROID_API__);
+    spdlog::get("illixr")->debug("Android api level : %d", __ANDROID_API__);
 
 #ifdef ILLIXR_MONADO
     sem_post(&cl->sem_illixr);
@@ -866,7 +862,7 @@ void timewarp_gl::_p_one_iteration() {
 //LOGT("not ready now ..");
         while (!image_handles_ready_);
         assert(image_handles_ready_);
-        ANDROID_LOG("ready now ..");
+        spdlog::get("illixr")->debug("ready now ..");
 //           client_backend = _m_image_handles[0][0].type;
         for (int eye = 0; eye < 2; eye++) {
             uint32_t num_images = eye_image_handles_[eye][0].num_images;
@@ -875,7 +871,7 @@ void timewarp_gl::_p_one_iteration() {
                 if (client_backend_ == data_format::graphics_api::OPENGL) {
                     eye_swapchains_[eye].push_back(image.gl_handle);
                 } else {
-                    ANDROID_LOG("CONVERTING IMAGES TO GL");
+                    spdlog::get("illixr")->debug("CONVERTING IMAGES TO GL");
 //VulkanGLInterop(_m_image_handles[eye][image_index].vk_handle, eye);
 //ImportVulkanImage(image.vk_handle, image.usage);
                     vulkanGL_interop_buffer(image.vk_buffer_handle, image.usage);
@@ -920,7 +916,7 @@ void timewarp_gl::_p_one_iteration() {
             uint32_t attachment = GL_COLOR_ATTACHMENT0;
             glDrawBuffers(1, &attachment);
         }
-        ANDROID_LOG("Rendering ready");
+        spdlog::get("illixr")->debug("Rendering ready");
         rendering_ready_ = true;
     }
 
@@ -1068,7 +1064,7 @@ void timewarp_gl::_p_one_iteration() {
     const duration time_since_render = clock_->now() - most_recent_frame->render_time;
 
     if (log_count > LOG_PERIOD) {
-        const double time_since_render_ms_d = duration2double<std::milli>(time_since_render);
+        const double time_since_render_ms_d = duration_to_double<std::milli>(time_since_render);
         std::cout << "\033[1;36m[TIMEWARP]\033[0m Time since render: " << time_since_render_ms_d
                   << "ms" << std::endl;
     }
@@ -1120,7 +1116,7 @@ void timewarp_gl::_p_one_iteration() {
     std::chrono::nanoseconds imu_to_display =
             time_last_swap_.time_since_epoch() - latest_pose.pose.sensor_time.time_since_epoch();
 //        auto duration_mtp =  std::chrono::duration_cast<std::chrono::microseconds>(time_last_swap.time_since_epoch() - latest_pose.pose.sensor_time.time_since_epoch());
-//        sl->write_duration("mtp", duration2double(duration_mtp));
+//        sl->write_duration("mtp", duration_to_double(duration_mtp));
     std::chrono::nanoseconds predict_to_display =
             time_last_swap_ - latest_pose.predict_computed_time;
     std::chrono::nanoseconds render_to_display = time_last_swap_ - most_recent_frame->render_time;
@@ -1147,12 +1143,12 @@ void timewarp_gl::_p_one_iteration() {
 
 #ifndef NDEBUG
     if (log_count > LOG_PERIOD) {
-        const double time_swap = duration2double<std::milli>(time_after_swap - time_before_swap);
-        const double latency_mtd = duration2double<std::milli>(imu_to_display);
-        const double latency_ptd = duration2double<std::milli>(predict_to_display);
-        const double latency_rtd = duration2double<std::milli>(render_to_display);
+        const double time_swap = duration_to_double<std::milli>(time_after_swap - time_before_swap);
+        const double latency_mtd = duration_to_double<std::milli>(imu_to_display);
+        const double latency_ptd = duration_to_double<std::milli>(predict_to_display);
+        const double latency_rtd = duration_to_double<std::milli>(render_to_display);
         const time_point time_next_swap = get_next_swap_time_estimate();
-        const double timewarp_estimate = duration2double<std::milli>(
+        const double timewarp_estimate = duration_to_double<std::milli>(
                 time_next_swap - time_last_swap_);
 
         std::cout << "\033[1;36m[TIMEWARP]\033[0m Swap time: " << time_swap << "ms" << std::endl
@@ -1191,8 +1187,8 @@ void timewarp_gl::_p_one_iteration() {
 #endif
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    ANDROID_LOG("duration: %f", duration2double(duration));
-//        sl->write_duration("timewarp", duration2double(duration));
+    spdlog::get("illixr")->debug("duration: %f", duration_to_double(duration));
+//        sl->write_duration("timewarp", duration_to_double(duration));
     //LOGT("Lock released ..");
     timewarp_gpu_logger_.log(record{timewarp_gpu_record,
                                     {

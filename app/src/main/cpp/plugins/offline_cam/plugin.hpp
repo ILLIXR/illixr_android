@@ -16,13 +16,14 @@ public:
     void _p_one_iteration() override;
 
 private:
-    const std::shared_ptr<switchboard> switchboard_;
-    switchboard::writer<data_format::cam_type> cam_publisher_;
     const std::map<ullong, sensor_types> sensor_data_;
+    std::map<ullong, sensor_types>::const_iterator sensor_data_it_;
+    const std::shared_ptr<switchboard> switchboard_;
+    std::shared_ptr<relative_clock> clock_;
+    switchboard::writer<data_format::binocular_cam_type> cam_publisher_;
     ullong dataset_first_time_;
-    ullong last_ts_;
-    std::shared_ptr<RelativeClock> clock_;
-    std::map<ullong, sensor_types>::const_iterator next_row_;
+    ullong dataset_now_;
+
 };
 
 }

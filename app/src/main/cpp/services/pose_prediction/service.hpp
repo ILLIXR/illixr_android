@@ -60,7 +60,7 @@ public:
 private:
     mutable std::atomic<bool> first_time_{true};
     const std::shared_ptr<switchboard> switchboard_;
-    const std::shared_ptr<const RelativeClock> clock_;
+    const std::shared_ptr<const relative_clock> clock_;
     switchboard::reader<data_format::pose_type> slow_pose_;
     switchboard::reader<data_format::imu_raw_type> imu_raw_;
     switchboard::reader<data_format::pose_type> true_pose_;

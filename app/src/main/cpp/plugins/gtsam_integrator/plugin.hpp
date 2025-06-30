@@ -15,7 +15,7 @@ public:
 
 private:
     const std::shared_ptr<switchboard>   switchboard_;
-    const std::shared_ptr<RelativeClock> clock_;
+    const std::shared_ptr<relative_clock> clock_;
 
     // IMU Data, Sequence Flag, and State Vars Needed
     switchboard::reader<data_format::imu_integrator_input> imu_integrator_input_;

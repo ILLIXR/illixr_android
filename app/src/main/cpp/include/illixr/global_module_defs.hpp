@@ -46,7 +46,7 @@ struct display_params {
     static constexpr float frequency = 120.0f;
 
     // Display period in nanoseconds
-    static constexpr duration period = freq2period(frequency);
+    static constexpr duration period = freq_to_period(frequency);
 
     // Chromatic aberration constants
     static constexpr float aberration[4] = {-0.016f, 0.0f, 0.024f, 0.0f};
@@ -62,15 +62,6 @@ struct rendering_params {
 
     static constexpr bool reverse_z = true;
 };
-
-/**
- * @brief Convert a string containing a (python) boolean to the bool type
- */
-inline bool str_to_bool(std::string var) {
-    return (var == "True") ? true
-        : (var == "False") ? false
-                           : throw std::runtime_error("Invalid conversion from std::string to bool");
-}
 
 // Offloading parameters - this really should be extended to everything though
 constexpr float server_fov = 0.99;

@@ -12,5 +12,6 @@ target_link_libraries(runtime
         GLESv3
         log
         Eigen3::Eigen
+        Boost::serialization
 )
 

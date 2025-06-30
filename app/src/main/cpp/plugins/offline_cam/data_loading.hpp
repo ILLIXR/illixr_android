@@ -1,3 +1,6 @@
+#pragma once
+
+#include "illixr/data_format/misc.hpp"
 #include "illixr/csv_iterator.hpp"
 #include "illixr/error_util.hpp"
 
@@ -13,7 +16,6 @@
 #include <optional>
 #include <string>
 
-typedef unsigned long long ullong;
 
 /*
  * Uncommenting this preprocessor macro makes the offline_cam load each data from the disk as it is needed.
@@ -25,27 +27,18 @@ typedef unsigned long long ullong;
 
 class lazy_load_image {
 public:
-    lazy_load_image() { }
-
     lazy_load_image(const std::string& path)
         : _m_path(path) {
-#ifndef LAZY
-        _m_mat = cv::imread(_m_path, cv::IMREAD_GRAYSCALE);
-#endif
     }
 
-    cv::Mat load() const {
-#ifdef LAZY
-        cv::Mat _m_mat = cv::imread(_m_path, cv::IMREAD_GRAYSCALE);
-    #error "Linux scheduler cannot interrupt IO work, so lazy-loading is unadvisable."
-#endif
-        assert(!_m_mat.empty());
-        return _m_mat;
+    std::unique_ptr<cv::Mat> load() const {
+        auto img = std::unique_ptr<cv::Mat>{new cv::Mat{cv::imread(_m_path, cv::IMREAD_GRAYSCALE)}};
+        assert(!img->empty());
+        return img;
     }
 
 private:
     std::string _m_path;
-    cv::Mat     _m_mat;
 };
 
 typedef struct {

@@ -5,31 +5,29 @@
 
 #include <chrono>
 #include <thread>
-#include <android/log.h>
 
 using namespace ILLIXR;
 
 constexpr duration IMU_SAMPLE_LIFETIME{std::chrono::seconds{2}};
 
-#define ANDROID_LOG(...) ((void)__android_log_print(ANDROID_LOG_INFO, "rk4", __VA_ARGS__))
-
 
 [[maybe_unused]] rk4_integrator::rk4_integrator(const std::string &name_, phonebook *pb_)
-        : plugin{name_, pb_}, switchboard_{pb->lookup_impl<switchboard>()}
+        : plugin{name_, pb_}
+        , switchboard_{pb_->lookup_impl<switchboard>()}
 //            , sl{pb->lookup_impl<log_service>()}
         , imu_integrator_input_{
                 switchboard_->get_reader<data_format::imu_integrator_input>(
                         "imu_integrator_input")},
           imu_raw_{switchboard_->get_writer<data_format::imu_raw_type>("imu_raw")} {
     ANDROID_LOG("RK4 INTEGRATOR");
-    switchboard_->schedule<data_format::imu_cam_type>(id, "imu_cam",
-                                                      [&](switchboard::ptr<const data_format::imu_cam_type> datum,
+    switchboard_->schedule<data_format::imu_type>(id_, "imu_cam",
+                                                      [&](switchboard::ptr<const data_format::imu_type> datum,
                                                           size_t) {
                                                           callback(datum);
                                                       });
 }
 
-void rk4_integrator::callback(switchboard::ptr<const data_format::imu_cam_type> datum) {
+void rk4_integrator::callback(switchboard::ptr<const data_format::imu_type> datum) {
     imu_vec_.emplace_back(datum->time, datum->angular_v.cast<double>(),
                           datum->linear_a.cast<double>());
 
@@ -38,7 +36,7 @@ void rk4_integrator::callback(switchboard::ptr<const data_format::imu_cam_type> 
     propagate_imu_values(datum->time);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    ANDROID_LOG("duration: %f", duration2double(duration));
+    ANDROID_LOG("duration: %f", duration_to_double(duration));
 //        sl->write_duration("rk4", duration2double(duration));
     RAC_ERRNO_MSG("rk4_integrator");
 }
@@ -47,7 +45,7 @@ void rk4_integrator::callback(switchboard::ptr<const data_format::imu_cam_type> 
 void rk4_integrator::clean_imu_vec(time_point timestamp) {
     auto it0 = imu_vec_.begin();
     while (it0 != imu_vec_.end()) {
-        if (timestamp - it0->timestamp < IMU_SAMPLE_LIFETIME) {
+        if (timestamp - it0->time < IMU_SAMPLE_LIFETIME) {
             break;
         }
         it0 = imu_vec_.erase(it0);
@@ -103,13 +101,13 @@ void rk4_integrator::propagate_imu_values(time_point real_time) {
     if (prop_data.size() > 1) {
         for (size_t i = 0; i < prop_data.size() - 1; i++) {
             // Time elapsed over interval
-            double dt = duration2double(prop_data[i + 1].timestamp - prop_data[i].timestamp);
+            double dt = duration_to_double(prop_data[i + 1].time - prop_data[i].time);
 
             // Corrected imu measurements
-            w_hat = prop_data[i].wm - input_values->biasGyro;
-            a_hat = prop_data[i].am - input_values->biasAcc;
-            w_hat2 = prop_data[i + 1].wm - input_values->biasGyro;
-            a_hat2 = prop_data[i + 1].am - input_values->biasAcc;
+            w_hat = prop_data[i].angular_v - input_values->bias_gyro;
+            a_hat = prop_data[i].linear_a - input_values->bias_acc;
+            w_hat2 = prop_data[i + 1].angular_v - input_values->bias_gyro;
+            a_hat2 = prop_data[i + 1].linear_a - input_values->bias_acc;
 
             // Compute the new state mean value
             Eigen::Vector4d new_quat;
@@ -141,20 +139,20 @@ rk4_integrator::select_imu_readings(const std::vector<data_format::imu_type> &im
 
     for (size_t i = 0; i < imu_data.size() - 1; i++) {
         // If time_begin comes inbetween two IMUs (A and B), interpolate A forward to time_begin
-        if (imu_data[i + 1].timestamp > time_begin && imu_data[i].timestamp < time_begin) {
+        if (imu_data[i + 1].time > time_begin && imu_data[i].time < time_begin) {
             data_format::imu_type data = interpolate_imu(imu_data[i], imu_data[i + 1], time_begin);
             prop_data.push_back(data);
             continue;
         }
 
         // IMU is within time_begin and time_end
-        if (imu_data[i].timestamp >= time_begin && imu_data[i + 1].timestamp <= time_end) {
+        if (imu_data[i].time >= time_begin && imu_data[i + 1].time <= time_end) {
             prop_data.push_back(imu_data[i]);
             continue;
         }
 
         // IMU is past time_end
-        if (imu_data[i + 1].timestamp > time_end) {
+        if (imu_data[i + 1].time > time_end) {
             data_format::imu_type data = interpolate_imu(imu_data[i], imu_data[i + 1], time_end);
             prop_data.push_back(data);
             break;
@@ -164,7 +162,7 @@ rk4_integrator::select_imu_readings(const std::vector<data_format::imu_type> &im
     // Loop through and ensure we do not have an zero dt values
     // This would cause the noise covariance to be Infinity
     for (int i = 0; i < int(prop_data.size()) - 1; i++) {
-        if (std::chrono::abs(prop_data[i + 1].timestamp - prop_data[i].timestamp) <
+        if (std::chrono::abs(prop_data[i + 1].time - prop_data[i].time) <
             std::chrono::nanoseconds{1}) {
             prop_data.erase(prop_data.begin() + i);
             i--; // i can be negative, so use type int
@@ -178,10 +176,10 @@ rk4_integrator::select_imu_readings(const std::vector<data_format::imu_type> &im
 data_format::imu_type rk4_integrator::interpolate_imu(const data_format::imu_type &imu_1,
                                                       const data_format::imu_type &imu_2,
                                                       time_point timestamp) {
-    double lambda = duration2double(timestamp - imu_1.timestamp) /
-                    duration2double(imu_2.timestamp - imu_1.timestamp);
-    return data_format::imu_type{timestamp, (1 - lambda) * imu_1.am + lambda * imu_2.am,
-                                 (1 - lambda) * imu_1.wm + lambda * imu_2.wm};
+    double lambda = duration_to_double(timestamp - imu_1.time) /
+                    duration_to_double(imu_2.time - imu_1.time);
+    return data_format::imu_type{timestamp, (1 - lambda) * imu_1.linear_a + lambda * imu_2.linear_a,
+                                 (1 - lambda) * imu_1.angular_v + lambda * imu_2.angular_v};
 }
 
 void

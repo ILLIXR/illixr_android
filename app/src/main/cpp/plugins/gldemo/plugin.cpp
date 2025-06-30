@@ -23,12 +23,12 @@ const Eigen::Quaternionf INIT = {0.9238795, 0., 0.3826834, 0.};
 
 
 [[maybe_unused]] gldemo::gldemo(const std::string &name_, phonebook *pb_)
-        : threadloop{name_, pb_}, xwin_{pb->lookup_impl<xlib_gl_extended_window>()},
-          switchboard_{pb->lookup_impl<switchboard>()},
-          log_service_{pb->lookup_impl<log_service>()},
-          pose_prediction_{pb->lookup_impl<data_format::pose_prediction>()},
-          lock_{pb->lookup_impl<common_lock>()},
-          clock_{pb->lookup_impl<RelativeClock>()},
+        : threadloop{name_, pb_}, xwin_{pb_->lookup_impl<xlib_gl_extended_window>()},
+          switchboard_{pb_->lookup_impl<switchboard>()},
+          log_service_{pb_->lookup_impl<log_service>()},
+          pose_prediction_{pb_->lookup_impl<data_format::pose_prediction>()},
+          lock_{pb_->lookup_impl<common_lock>()},
+          clock_{pb_->lookup_impl<relative_clock>()},
           vsync_{switchboard_->get_reader<switchboard::event_wrapper<time_point>>(
                   "vsync_estimate")},
           image_handle_{switchboard_->get_writer<data_format::image_handle>("image_handle")},
@@ -49,7 +49,7 @@ void gldemo::wait_vsync() {
 
 #ifndef NDEBUG
     if (log_count > LOG_PERIOD) {
-        double vsync_in = duration2double<std::milli>(**next_vsync - now);
+        double vsync_in = duration_to_double<std::milli>(**next_vsync - now);
         std::cout << "\033[1;32m[GL DEMO APP]\033[0m First vsync is in " << vsync_in << "ms"
                   << std::endl;
     }
@@ -71,7 +71,7 @@ void gldemo::wait_vsync() {
 
 #ifndef NDEBUG
         if (log_count > LOG_PERIOD) {
-            double wait_in = duration2double<std::milli>(wait_time - now);
+            double wait_in = duration_to_double<std::milli>(wait_time - now);
             std::cout << "\033[1;32m[GL DEMO APP]\033[0m Waiting until next vsync, in "
                       << wait_in << "ms" << std::endl;
         }
@@ -131,7 +131,7 @@ void gldemo::_p_one_iteration() {
     data_format::pose_type pose = fast_pose.pose;
 
     Eigen::Matrix3f head_rotation_matrix = pose.orientation.toRotationMatrix();
-    ANDROID_LOG("Pose3: %f %f %f %f %f %f %f", pose.position.x(), pose.position.y(),
+    spdlog::get("illixr")->debug("Pose3: %f %f %f %f %f %f %f", pose.position.x(), pose.position.y(),
                 pose.position.z(),
                 pose.orientation.w(), pose.orientation.x(), pose.orientation.y(),
                 pose.orientation.z());
@@ -179,7 +179,7 @@ void gldemo::_p_one_iteration() {
     glFinish();
 
 #ifndef NDEBUG
-    const double frame_duration_s = duration2double(clock_->now() - last_time_);
+    const double frame_duration_s = duration_to_double(clock_->now() - last_time_);
     const double fps = 1.0 / frame_duration_s;
 
     if (log_count > LOG_PERIOD) {
@@ -220,8 +220,8 @@ void gldemo::_p_one_iteration() {
     lock_->release_lock();
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    ANDROID_LOG("duration: %f", duration2double(duration));
-    log_service_->write_duration("gldemo", duration2double(duration));
+    spdlog::get("illixr")->debug("duration: %f", duration_to_double(duration));
+    log_service_->write_duration("gldemo", duration_to_double(duration));
 #ifndef NDEBUG
     if (log_count > LOG_PERIOD) {
         log_count = 0;
