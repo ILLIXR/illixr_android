@@ -1,15 +1,12 @@
-#include "illixr/global_module_defs.hpp"
-#include "runtime_impl.hpp"
-#include "main.h"
+#include "illixr.hpp"
+#include <android_native_app_glue.h>
+#include <EGL/egl.h>
 
+#include <thread>
+#include <vector>
 #include <csignal>
-#include <unistd.h> /// Not portable
+
 //#define ILLIXR_MONADO 1
-
-constexpr std::chrono::seconds          ILLIXR_RUN_DURATION_DEFAULT{60};
-[[maybe_unused]] constexpr unsigned int ILLIXR_PRE_SLEEP_DURATION{10};
-
-ILLIXR::runtime* r;
 
 #ifndef NDEBUG
 /**
@@ -42,86 +39,77 @@ static void sigabrt_handler(int sig) {
  */
 static void sigint_handler([[maybe_unused]] int sig) {
     assert(sig == SIGINT && "sigint_handler is for SIGINT");
-    if (r) {
-        r->stop();
+    if (runtime_) {
+        runtime_->stop();
     }
 }
 
-class cancellable_sleep {
-public:
-    template<typename T, typename R>
-    bool sleep(std::chrono::duration<T, R> duration) {
-        auto wake_up_time = std::chrono::system_clock::now() + duration;
-        while (!_m_terminate.load() && std::chrono::system_clock::now() < wake_up_time) {
-            std::this_thread::sleep_for(std::chrono::milliseconds{100});
-        }
-        return _m_terminate.load();
+using namespace ILLIXR;
+
+extern "C" {
+    // called from Java after permission is granted
+    JNIEXPORT void JNICALL Java_com_example_ILLIXR_ILLIXRNativeActivity_nativeOnPermissionGranted(JNIEnv* env, jobject activity) {
+
     }
+}
 
-    void cancel() {
-        _m_terminate.store(true);
-    }
 
-private:
-    std::atomic<bool> _m_terminate{false};
-};
+static void handle_cmd(struct android_app* app, int32_t cmd) {
+    if (cmd == APP_CMD_INIT_WINDOW) {
+//            std::vector<std::string> arguments = { "", "libandroid_imu_cam.so"};
+//            std::vector<std::string> arguments = { "", "libslam.so" ,"librk4_integrator.so",
+//                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
+//            std::vector<std::string> arguments = { "",
+//                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
+        const std::vector<std::string> plugins = { "slam", "offline_imu", "offline_cam" ,"rk4_integrator",
+                                             "pose_prediction",  "common_lock", "timewarp_gl", "gldemo"};
 
-int runtime_main(int argc, char* const* argv, ANativeWindow* window) {
-#ifdef ILLIXR_MONADO
-    r = ILLIXR::runtime_factory();
-#else
-    r = ILLIXR::runtime_factory(EGL_NO_CONTEXT, window);
-#endif /// ILLIXR_MONADO_MAINLINE
+        //EuRoC
+        setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
+        setenv("ILLIXR_LOG", "/sdcard/Android/data/com.example.native_activity/log.txt", true);
 
+            //Android
+//            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/android_new", true);
+        setenv("ILLIXR_DEMO_DATA", "/sdcard/Android/data/com.example.native_activity/demo_data", true);
+        setenv("ILLIXR_OFFLOAD_ENABLE", "False", true);
+        setenv("ILLIXR_ALIGNMENT_ENABLE", "False", true);
+        setenv("ILLIXR_ENABLE_VERBOSE_ERRORS", "False", true);
+        setenv("ILLIXR_RUN_DURATION", "1000000", true);
+        setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
+        setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
 #ifndef NDEBUG
-    /// When debugging, register the SIGILL and SIGABRT handlers for capturing more info
-    std::signal(SIGILL, sigill_handler);
-    std::signal(SIGABRT, sigabrt_handler);
+        /// When debugging, register the SIGILL and SIGABRT handlers for capturing more info
+        std::signal(SIGILL, sigill_handler);
+        std::signal(SIGABRT, sigabrt_handler);
 #endif /// NDEBUG
 
-    /// Shutting down method 1: Ctrl+C
-    std::signal(SIGINT, sigint_handler);
+        /// Shutting down method 1: Ctrl+C
+        std::signal(SIGINT, sigint_handler);
 
-#ifndef NDEBUG
-    /// Activate sleeping at application start for attaching gdb. Disables 'catchsegv'.
-    /// Enable using the ILLIXR_ENABLE_PRE_SLEEP environment variable (see 'runner/runner/main.py:load_tests')
-    const bool enable_pre_sleep = ILLIXR::str_to_bool(getenv_or("ILLIXR_ENABLE_PRE_SLEEP", "False"));
-    if (enable_pre_sleep) {
-        const pid_t pid = getpid();
-        std::cout << "[main] Pre-sleep enabled." << std::endl
-                  << "[main] PID: " << pid << std::endl
-                  << "[main] Sleeping for " << ILLIXR_PRE_SLEEP_DURATION << " seconds ..." << std::endl;
-        sleep(ILLIXR_PRE_SLEEP_DURATION);
-        std::cout << "[main] Resuming ..." << std::endl;
+        std::thread runtime_thread(run, plugins, app->window);
+        runtime_thread.join();
     }
-#endif /// NDEBUG
+}
 
-    /// Shutting down method 2: Run timer
-    std::chrono::seconds run_duration = getenv("ILLIXR_RUN_DURATION")
-        ? std::chrono::seconds{std::stol(std::string{getenv("ILLIXR_RUN_DURATION")})}
-        : ILLIXR_RUN_DURATION_DEFAULT;
+void android_main(struct android_app* state) {
+    state->onAppCmd = handle_cmd;
+    while(true) {
+        int ident;
+        int events;
+        struct android_poll_source* source;
 
-    RAC_ERRNO_MSG("main after creating runtime");
-
-    std::vector<std::string> lib_paths;
-    std::transform(argv + 1, argv + argc, std::back_inserter(lib_paths), [](const char* arg) {
-        return std::string{arg};
-    });
-    RAC_ERRNO_MSG("main before loading dynamic libraries");
-    r->load_so(lib_paths);
-
-    cancellable_sleep cs;
-    std::thread       th{[&] {
-        cs.sleep(run_duration);
-        r->stop();
-    }};
-
-    r->wait(); // blocks until shutdown is r->stop()
-
-    // cancel our sleep, so we can join the other thread
-    cs.cancel();
-    th.join();
-
-    delete r;
-    return 0;
+        // If not animating, we will block forever waiting for events.
+        // If animating, we loop until all events are read, then continue
+        // to draw the next frame of animation.
+        do {
+            ident = ALooper_pollOnce(0, nullptr, &events,
+                                     (void**)&source);
+            if (ident >= 0) {
+                // Process this event.
+                if (source != nullptr) {
+                    source->process(state, source);
+                }
+            }
+        } while (ident >= 0);
+    }
 }
