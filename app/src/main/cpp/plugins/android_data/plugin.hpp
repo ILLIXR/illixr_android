@@ -24,34 +24,21 @@ struct android_imu_struct {
 class android_data : public threadloop {
 public:
     [[maybe_unused]] android_data(const std::string& name_, phonebook *pb_);
-
     ~android_data() override;
-
     [[maybe_unused]] static int android_sensor_callback(int fd, int events, void *data);
-
     static void *android_run_thread(void *ptr);
-
     //Reference: https://github.com/sixo/native-camera/tree/93b05aec6d05604a314dc822b6b09a4cbc3d5104
     static void image_callback(void *context, AImageReader *reader);
-
     AImageReader *create_jpeg_reader();
-
     ANativeWindow *create_surface(AImageReader *reader);
-
     //Camera callbacks
     static void on_disconnected(void *context, ACameraDevice *device);
-
     static void on_error(void *context, ACameraDevice *device, int error);
-
     static void on_session_active(void *context, ACameraCaptureSession *session);
-
     static void on_session_ready(void *context, ACameraCaptureSession *session);
-
     static void on_session_closed(void *context, ACameraCaptureSession *session);
-
     static void on_capture_failed(void *context, ACameraCaptureSession *session,
                                   ACaptureRequest *request, ACameraCaptureFailure *failure);
-
     static void on_capture_sequence_completed(void *context, ACameraCaptureSession *session,
                                               int sequenceId, int64_t frameNumber) {
         (void)context;
@@ -60,14 +47,12 @@ public:
         (void)frameNumber;
     }
 
-
     static void on_capture_sequence_aborted(void *context, ACameraCaptureSession *session,
                                             int sequenceId) {
         (void)context;
         (void)session;
         (void)sequenceId;
     }
-
 
     static void on_capture_completed(void *context, ACameraCaptureSession *session,
             ACaptureRequest *request, const ACameraMetadata *result) {
@@ -76,7 +61,6 @@ public:
         (void)request;
         (void)result;
     }
-
 
     std::string get_back_facing_cam_id();
 

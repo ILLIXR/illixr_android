@@ -6,7 +6,6 @@
 // ILLIXR includes
 #include <chrono>
 #include <thread>
-#include <mutex>
 #include <fstream>
 #include <camera/NdkCameraMetadata.h>
 #include <android/native_window_jni.h>
