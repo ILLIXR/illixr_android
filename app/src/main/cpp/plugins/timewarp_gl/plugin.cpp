@@ -4,13 +4,15 @@
 #include "plugin.hpp"
 
 #include "illixr/extended_window.hpp"
+#include "illixr/error_util.hpp"
 #include "illixr/global_module_defs.hpp"
 #include "illixr/math_util.hpp"
 #include "illixr/shader_util.hpp"
-#include "shaders/basic_shader.hpp"
 #include "shaders/timewarp_shader.hpp"
 
 
+#include <atomic>
+#include <cassert>
 #include <EGL/eglext.h>
 
 //#define GL_GLEXT_PROTOTYPES
@@ -19,60 +21,63 @@
 
 #include <chrono>
 #include <iostream>
+#include <memory>
 #include <thread>
 #include <vector>
 #include <vulkan/vulkan.h>
 
 using namespace ILLIXR;
+using namespace ILLIXR::data_format;
 
 //typedef void (*glXSwapIntervalEXTProc)(EGLDisplay *dpy, EGLSurface drawable, int interval);
 
 const record_header timewarp_gpu_record{"timewarp_gpu",
                                         {
-                                                {"iteration_no", typeid(std::size_t)},
-                                                {"wall_time_start", typeid(time_point)},
-                                                {"wall_time_stop", typeid(time_point)},
-                                                {"gpu_time_duration",
-                                                 typeid(std::chrono::nanoseconds)},
+                                            {"iteration_no", typeid(std::size_t)},
+                                            {"wall_time_start", typeid(time_point)},
+                                            {"wall_time_stop", typeid(time_point)},
+                                            {"gpu_time_duration", typeid(std::chrono::nanoseconds)},
                                         }};
 
 const record_header mtp_record{"mtp_record",
                                {
-                                       {"iteration_no", typeid(std::size_t)},
-                                       {"vsync", typeid(time_point)},
-                                       {"imu_to_display", typeid(std::chrono::nanoseconds)},
-                                       {"predict_to_display", typeid(std::chrono::nanoseconds)},
-                                       {"render_to_display", typeid(std::chrono::nanoseconds)},
+                                   {"iteration_no", typeid(std::size_t)},
+                                   {"vsync", typeid(time_point)},
+                                   {"imu_to_display", typeid(std::chrono::nanoseconds)},
+                                   {"predict_to_display", typeid(std::chrono::nanoseconds)},
+                                   {"render_to_display", typeid(std::chrono::nanoseconds)},
                                }};
 
-timewarp_gl::timewarp_gl(const std::string& name_, phonebook* pb_)
-        : threadloop{name_, pb_}
-        , switchboard_{pb_->lookup_impl<switchboard>()}
-        , pose_prediction_{pb_->lookup_impl<data_format::pose_prediction>()}
-        , lock_{pb_->lookup_impl<common_lock>()}
-        , clock_{pb_->lookup_impl<relative_clock>()}
-        , eyebuffer_{switchboard_->get_reader<ILLIXR::data_format::rendered_frame>("eyebuffer")}
-        , illixr_signal_{switchboard_->get_writer<data_format::illixr_signal>("illixr_signal")}
-        , hologram_{switchboard_->get_writer<data_format::hologram_input>("hologram_in")}
-        , vsync_estimate_{switchboard_->get_writer<switchboard::event_wrapper<time_point>>("vsync_estimate")}
-        , offload_data_{switchboard_->get_writer<data_format::texture_pose>("texture_pose")}
-        , timewarp_gpu_logger_{record_logger_}, mtp_logger_{record_logger_}
-        // TODO: Use #198 to configure this. Delete getenv_or.
-        // This is useful for experiments which seek to evaluate the end-effect of timewarp vs no-timewarp.
-        // Timewarp poses a "second channel" by which pose data can correct the video stream,
-        // which results in a "multipath" between the pose and the video stream.
-        // In production systems, this is certainly a good thing, but it makes the system harder to analyze.
-        , disable_warp_{switchboard_->get_env_bool("ILLIXR_TIMEWARP_DISABLE", "False")}
-        , enable_offload_{switchboard_->get_env_bool("ILLIXR_OFFLOAD_ENABLE", "False")} {
-#ifndef ILLIXR_MONADO
-    const std::shared_ptr<xlib_gl_extended_window> xwin = pb_->lookup_impl<xlib_gl_extended_window>();
-    display_ = xwin->display_;
-    window_ = xwin->my_window_;
-    surface_ = xwin->surface_;
-    glcontext_ = xwin->context_;
-    spdlog::get("illixr")->debug("NOT ILLIXR_MONADO ..");
+timewarp_gl::timewarp_gl(const std::string& name, phonebook* pb)
+    : timewarp_type{name, pb}
+    , switchboard_{phonebook_->lookup_impl<switchboard>()}
+    , pose_prediction_{phonebook_->lookup_impl<pose_prediction>()}
+    , lock_{phonebook_->lookup_impl<common_lock>()}
+    , clock_{phonebook_->lookup_impl<relative_clock>()}
+#ifndef ENABLE_MONADO
+    , eyebuffer_{switchboard_->get_reader<rendered_frame>("eyebuffer")}
+    , vsync_estimate_{switchboard_->get_writer<switchboard::event_wrapper<time_point>>("vsync_estimate")}
+    , offload_data_{switchboard_->get_writer<texture_pose>("texture_pose")}
+    , mtp_logger_{record_logger_}
+    // TODO: Use #198 to configure this.
+    // This is useful for experiments which seek to evaluate the end-effect of timewarp vs no-timewarp.
+    // Timewarp poses a "second channel" by which pose data can correct the video stream,
+    // which results in a "multipath" between the pose and the video stream.
+    // In production systems, this is certainly a good thing, but it makes the system harder to analyze.
+    , disable_warp_{switchboard_->get_env_bool("ILLIXR_TIMEWARP_DISABLE", "False")}
+    , enable_offload_{switchboard_->get_env_bool("ILLIXR_OFFLOAD_ENABLE", "False")}
 #else
-    spdlog::get("illixr")->debug("ILLIXR_MONADO ..");
+    , signal_quad_{switchboard_->get_writer<signal_to_quad>("signal_quad")}
+#endif
+    , timewarp_gpu_logger_{record_logger_}
+    , hologram_{switchboard_->get_writer<hologram_input>("hologram_in")} {
+    spdlogger(switchboard_->get_env_char("TIMEWARP_GL_LOG_LEVEL"));
+#ifndef ENABLE_MONADO
+    const std::shared_ptr<xlib_gl_extended_window> x_win = phonebook_->lookup_impl<xlib_gl_extended_window>();
+    display_                                             = x_win->display_;
+    root_window_                                         = x_win->window_;
+    context_                                             = x_win->context_;
+#else
     // If we use Monado, timewarp_gl must create its own GL context because the extended window isn't used
     dpy = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     EGLint major_version, minor_version;
