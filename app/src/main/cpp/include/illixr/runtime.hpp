@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <EGL/egl.h>
 //#define ILLIXR_MONADO 1
 
 namespace ILLIXR {
