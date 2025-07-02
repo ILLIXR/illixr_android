@@ -42,12 +42,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_SHARED_LINKER_FLAGS
         "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate -v -fvisibility=hidden")
 include(cmake/Getspdlog.cmake)
-
+link_libraries(Boost::serialization)
 add_subdirectory(services/extended_window)
 add_subdirectory(services/common_lock)
 add_subdirectory(services/pose_prediction)
 add_subdirectory(services/pose_lookup)
-#add_subdirectory(services/fauxpose)
+add_subdirectory(services/fauxpose)
 
 add_subdirectory(utils)
 
@@ -55,7 +55,6 @@ add_subdirectory(utils)
 if (ILLIXR_CAM)
     add_subdirectory(plugins/offline_cam)
     add_subdirectory(plugins/offline_imu)
-    #add_subdirectory(plugins/offline_imu_cam)
 endif ()
 
 add_subdirectory(plugins/openvins)

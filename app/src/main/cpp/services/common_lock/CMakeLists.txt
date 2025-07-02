@@ -18,5 +18,6 @@ target_link_libraries(${PLUGIN_NAME}
         GLESv3
         Eigen3::Eigen
         spdlog::spdlog_android
+        Boost::serialization
 )
 
