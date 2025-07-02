@@ -25,7 +25,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_link_libraries(${PLUGIN_NAME}
-        extended_window
+        plugin.extended_window${ILLIXR_BUILD_SUFFIX}
         EGL
         GLESv3
         Eigen3::Eigen

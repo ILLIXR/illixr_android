@@ -22,7 +22,7 @@ target_include_directories(native-activity PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_link_libraries(native-activity
-        extended_window
+        plugin.extended_window${ILLIXR_BUILD_SUFFIX}
         android
         native_app_glue
         EGL
