@@ -7,10 +7,10 @@ set(PLUGIN_NAME "plugin.timewarp_gl${ILLIXR_BUILD_SUFFIX}")
 
 # source files, listed individually so that any changes will trigger a rebuild
 add_library(${PLUGIN_NAME} SHARED
-            plugin.cpp
-            plugin.hpp
-            shaders/timewarp_shader.hpp
-            $<TARGET_OBJECTS:illixr_hmd>
+        plugin.cpp
+        plugin.hpp
+        shaders/timewarp_shader.hpp
+        $<TARGET_OBJECTS:illixr_hmd>
             ${CMAKE_SOURCE_DIR}/include/illixr/data_format/frame.hpp
             ${CMAKE_SOURCE_DIR}/include/illixr/data_format/misc.hpp
             ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose.hpp
@@ -32,7 +32,8 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue)
 
 target_link_libraries(${PLUGIN_NAME}
-        extended_window
+        plugin.extended_window${ILLIXR_BUILD_SUFFIX}
+        vulkan
         EGL
         GLESv3
         android
@@ -41,7 +42,7 @@ target_link_libraries(${PLUGIN_NAME}
         spdlog::spdlog_android
 )
 
-if(Vulkan_EXTERNAL)
-    add_dependencies(${PLUGIN_NAME} ${Vulkan_DEP_STR})
-endif()
+#if (Vulkan_EXTERNAL)
+#    add_dependencies(${PLUGIN_NAME} ${Vulkan_DEP_STR})
+#endif ()
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)

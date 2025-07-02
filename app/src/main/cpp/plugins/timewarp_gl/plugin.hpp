@@ -11,13 +11,23 @@
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
 
-#define EGL_EGLEXT_PROTOTYPES 1
-#define GL_GLEXT_PROTOTYPES
-//#define ILLIXR_MONADO 1
-
-#include <EGL/egl.h>
+//#define ENABLE_MONADO 1
 
 namespace ILLIXR {
+
+#ifdef ILLIXR_ANDROID_BUILD
+#define EGL_EGLEXT_PROTOTYPES 1
+#define GL_GLEXT_PROTOTYPES
+#include <EGL/egl.h>
+
+typedef EGLDisplay TW_DISPLAY;
+typedef ANativeWindow* TW_WINDOW;
+typedef EGLContext TW_GL_CONTEXT;
+#else
+typedef Display* TW_DISPLAY;
+typedef Window TW_WINDOW;
+typedef GLXContext TW_GL_CONTEXT;
+#endif
 
 #ifdef ENABLE_MONADO
 typedef plugin timewarp_type;
@@ -43,8 +53,9 @@ public:
 
 private:
     GLubyte*      read_texture_image();
-    static GLuint convert_vk_format_to_GL(int64_t vk_format);
-    void          import_vulkan_image(const data_format::vk_image_handle& vk_handle, data_format::swapchain_usage usage);
+    void vulkanGL_interop_buffer(const data_format::vk_buffer_handle& vk_buffer_handle,
+                                 data_format::swapchain_usage usage);
+    static GLuint convert_vk_format_to_gl(int64_t vk_format, GLint swizzle_mask[]);
     void          build_timewarp(HMD::hmd_info_t& hmd_info);
     static void   calculate_time_warp_transform(Eigen::Matrix4f& transform, const Eigen::Matrix4f& render_projection_matrix,
                                                 const Eigen::Matrix4f& render_view_matrix,
@@ -52,26 +63,28 @@ private:
 #ifndef ENABLE_MONADO
     [[nodiscard]] time_point                get_next_swap_time_estimate() const;
     [[maybe_unused]] [[nodiscard]] duration estimate_time_to_sleep(double frame_percentage) const;
+#else
+    void import_vulkan_semaphore(const semaphore_handle& vk_handle);
 #endif
 
     const std::shared_ptr<switchboard>                  switchboard_;
     const std::shared_ptr<data_format::pose_prediction> pose_prediction_;
-    const std::shared_ptr<common_lock> lock_;
-    const std::shared_ptr<const relative_clock> clock_;
+    const std::shared_ptr<const relative_clock>         clock_;
+    const std::shared_ptr<common_lock>                  lock_;
     // OpenGL objects
-    EGLDisplay display_;
-#ifndef ILLIXR_MONADO
-    ANativeWindow* window_;
+    TW_DISPLAY display_;
+#ifndef ENABLE_MONADO
+    TW_WINDOW root_window_;
 #endif
+#ifdef ILLIXR_ANDROID_BUILD
     EGLSurface surface_;
-    EGLContext glcontext_;
-    // Note: 0.9 works fine without hologram, but we need a larger safety net with hologram enabled
-    static constexpr double DELAY_FRACTION = 0.9;
+#endif
+    TW_GL_CONTEXT context_;
+
     // Shared objects between ILLIXR and the application (either gldemo or Monado)
     bool                      rendering_ready_;
     data_format::graphics_api client_backend_;
     std::atomic<bool>         image_handles_ready_{};
-    std::atomic<bool>         semaphore_handles_ready_{};
 
     // Left and right eye images
     std::array<std::vector<data_format::image_handle>, 2> eye_image_handles_;
@@ -96,10 +109,6 @@ private:
 
     // Switchboard plug for application eye buffer.
     switchboard::reader<data_format::rendered_frame> eyebuffer_;
-    //?switchboard::writer<data_format::illixr_signal> illixr_signal_;
-
-    // Switchboard plug for sending hologram calls
-    //?switchboard::writer<data_format::hologram_input> hologram_;
 
     // Switchboard plug for publishing vsync estimates
     switchboard::writer<switchboard::event_wrapper<time_point>> vsync_estimate_;
@@ -159,8 +168,7 @@ private:
 
     // Hologram call data
     ullong hologram_seq_{0};
-    int prev_counter_ = 0;
-    ullong signal_quad_seq_{0};
+    //ullong signal_quad_seq_{0};
 
     bool disable_warp_;
 
@@ -178,37 +186,6 @@ private:
     size_t log_count_  = 0;
     size_t LOG_PERIOD_ = 20;
 #endif
-
-    GLubyte* read_texture_image();
-
-    GLuint convert_vk_format_to_gl(int64_t vk_format, GLint swizzle_mask[]);
-
-//    void vulkanGL_interop(const vk_image_handle& vk_handle, int swapchain_index);
-
-//    void import_vulkan_image(const vk_image_handle& vk_handle, swapchain_usage usage);
-
-    void vulkanGL_interop_buffer(const data_format::vk_buffer_handle& vk_buffer_handle,
-                                 data_format::swapchain_usage usage);
-
-#ifdef ILLIXR_MONADO
-    void import_vulkan_semaphore(const semaphore_handle& vk_handle);
-#endif
-
-    void build_timewarp(HMD::hmd_info_t& hmdInfo);
-
-    /* Calculate timewarm transform from projection matrix, view matrix, etc */
-    void calculate_timeWarp_transform(Eigen::Matrix4f& transform,
-                                      const Eigen::Matrix4f& renderProjectionMatrix,
-                                      const Eigen::Matrix4f& renderViewMatrix,
-                                      const Eigen::Matrix4f& newViewMatrix);
-
-    // Get the estimated time of the next swap/next Vsync.
-    // This is an estimate, used to wait until *just* before vsync.
-    time_point get_next_swap_time_estimate();
-
-    // Get the estimated amount of time to put the CPU thread to sleep,
-    // given a specified percentage of the total Vsync period to delay.
-    duration estimate_time_to_sleep(double framePercentage);
 };
 
 } // namespace ILLIXR
