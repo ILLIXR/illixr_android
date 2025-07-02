@@ -86,7 +86,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
         /// Shutting down method 1: Ctrl+C
         std::signal(SIGINT, sigint_handler);
 
-        std::thread runtime_thread(run, plugins, app->window);
+        std::thread runtime_thread(ILLIXR::run, plugins, app->window);
         runtime_thread.join();
     }
 }
