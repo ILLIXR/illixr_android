@@ -31,6 +31,8 @@ add_library(native_app_glue STATIC
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
 )
 
+add_definitions(-DVK_USE_PLATFORM_ANDROID_KHR=1)
+
 add_compile_definitions(ILLIXR_ANDROID_BUILD)
 find_package(PkgConfig REQUIRED)
 # now build app's shared lib
