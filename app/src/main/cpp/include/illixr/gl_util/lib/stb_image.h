@@ -652,7 +652,7 @@ typedef unsigned char validate_uint32[sizeof(stbi__uint32)==4 ? 1 : -1];
 #endif
 
 #ifndef STBI_REALLOC_SIZED
-#define STBI_REALLOC_SIZED(p,oldsz,newsz) STBI_REALLOC(p,newsz)
+#define STBI_REALLOC_SIZED(p,newsz) STBI_REALLOC(p,newsz)
 #endif
 
 // x86/x64 detection
@@ -4159,7 +4159,7 @@ static int stbi__zexpand(stbi__zbuf *z, char *zout, int n)  // need to make room
       if(limit > UINT_MAX / 2) return stbi__err("outofmem", "Out of memory");
       limit *= 2;
    }
-   q = (char *) STBI_REALLOC_SIZED(z->zout_start, old_limit, limit);
+   q = (char *) STBI_REALLOC_SIZED(z->zout_start, limit);
    STBI_NOTUSED(old_limit);
    if (q == NULL) return stbi__err("outofmem", "Out of memory");
    z->zout_start = q;
@@ -5041,7 +5041,7 @@ static int stbi__parse_png_file(stbi__png *z, int scan, int req_comp)
                while (ioff + c.length > idata_limit)
                   idata_limit *= 2;
                STBI_NOTUSED(idata_limit_old);
-               p = (stbi_uc *) STBI_REALLOC_SIZED(z->idata, idata_limit_old, idata_limit); if (p == NULL) return stbi__err("outofmem", "Out of memory");
+               p = (stbi_uc *) STBI_REALLOC_SIZED(z->idata, idata_limit); if (p == NULL) return stbi__err("outofmem", "Out of memory");
                z->idata = p;
             }
             if (!stbi__getn(s, z->idata+ioff,c.length)) return stbi__err("outofdata","Corrupt PNG");
@@ -6775,8 +6775,6 @@ static void *stbi__load_gif_main(stbi__context *s, int **delays, int *x, int *y,
       stbi_uc *two_back = 0;
       stbi__gif g;
       int stride;
-      int out_size = 0;
-      int delays_size = 0;
       memset(&g, 0, sizeof(g));
       if (delays) {
          *delays = 0;
@@ -6793,7 +6791,7 @@ static void *stbi__load_gif_main(stbi__context *s, int **delays, int *x, int *y,
             stride = g.w * g.h * 4;
 
             if (out) {
-               void *tmp = (stbi_uc*) STBI_REALLOC_SIZED( out, out_size, layers * stride );
+               void *tmp = (stbi_uc*) STBI_REALLOC_SIZED( out, layers * stride );
                if (NULL == tmp) {
                   STBI_FREE(g.out);
                   STBI_FREE(g.history);
@@ -6802,19 +6800,15 @@ static void *stbi__load_gif_main(stbi__context *s, int **delays, int *x, int *y,
                }
                else {
                    out = (stbi_uc*) tmp;
-                   out_size = layers * stride;
                }
 
                if (delays) {
-                  *delays = (int*) STBI_REALLOC_SIZED( *delays, delays_size, sizeof(int) * layers );
-                  delays_size = layers * sizeof(int);
+                  *delays = (int*) STBI_REALLOC_SIZED( *delays, sizeof(int) * layers );
                }
             } else {
                out = (stbi_uc*)stbi__malloc( layers * stride );
-               out_size = layers * stride;
                if (delays) {
                   *delays = (int*) stbi__malloc( layers * sizeof(int) );
-                  delays_size = layers * sizeof(int);
                }
             }
             memcpy( out + ((layers - 1) * stride), u, stride );
