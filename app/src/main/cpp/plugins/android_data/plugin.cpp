@@ -371,12 +371,12 @@ std::string android_data::get_back_facing_cam_id() {
 
         if (res != ACAMERA_OK)
             continue;
+#ifndef NDEBUG
         auto pose_ref = static_cast<acamera_metadata_enum_acamera_lens_pose_reference>(
                 pose_reference.data.u8[0]);
 
-//#ifndef NDEBUG
-//        spdlog::get("illixr")->debug("Pose reference is = %d and facing = %d", pose_ref, facing);
-//#endif
+        spdlog::get("illixr")->debug("Pose reference is = %d and facing = %d", static_cast<int>(pose_ref), static_cast<int>(facing));
+#endif
         // Found a back-facing camera?
         if (facing == ACAMERA_LENS_FACING_BACK) {
             backId = id;
@@ -455,12 +455,12 @@ void android_data::init_cam() {
     // Create the session
     ACameraDevice_createCaptureSession(camera_device_, outputs_, &session_state_callbacks_,
                                        &capture_session_);
+#ifndef NDEBUG
     camera_status_t status = ACameraCaptureSession_setRepeatingRequest(capture_session_,
                                                                        &capture_callbacks_, 1,
                                                                        &request_, nullptr);
-//#ifndef NDEBUG
-//    spdlog::get("illixr")->debug("ACameraCaptureSession_setRepeatingRequest status = %d", status);
-//#endif
+    spdlog::get("illixr")->debug("ACameraCaptureSession_setRepeatingRequest status = %d", static_cast<int>(status));
+#endif
 }
 
 /// For `threadloop` style plugins, do not override the start() method unless you know what you're doing!
