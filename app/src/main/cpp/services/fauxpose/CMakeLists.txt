@@ -20,7 +20,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
 target_link_libraries(${PLUGIN_NAME}
         EGL
         GLESv3
-        log
+        Eigen3::Eigen
         spdlog::spdlog_android
 )
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)

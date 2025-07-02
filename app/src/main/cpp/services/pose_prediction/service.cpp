@@ -2,7 +2,7 @@
 
 #include "illixr/runge-kutta.hpp"
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 #include <filesystem>
 #include <shared_mutex>
 
