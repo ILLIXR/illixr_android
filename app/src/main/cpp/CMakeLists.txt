@@ -37,6 +37,7 @@ elseif(lower_type MATCHES "relwithdebinfo")
 endif()
 add_definitions(-DILLIXR_BUILD_SUFFIX=${ILLIXR_BUILD_SUFFIX})
 
+#add_definitions(-DENABLE_MONADO=1)
 
 add_library(native_app_glue STATIC
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c

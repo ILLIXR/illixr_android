@@ -21,7 +21,6 @@
 #include <spdlog/sinks/android_sink.h>
 #include <string>
 #include <vector>
-//#define ENABLE_MONADO 1
 
 using namespace ILLIXR;
 
@@ -52,7 +51,7 @@ public:
 #ifndef ENABLE_MONADO
         phonebook_.register_impl<xlib_gl_extended_window>(
                 std::make_shared<xlib_gl_extended_window>(display_params::width_pixels, display_params::height_pixels, appGLCtx, window));
-#endif /// ILLIXR_MONADO
+#endif /// ENABLE_MONADO
         switchboard_   = phonebook_.lookup_impl<switchboard>();
         phonebook_.register_impl<stoplight>(std::make_shared<stoplight>());
         phonebook_.register_impl<relative_clock>(std::make_shared<relative_clock>());
@@ -159,7 +158,7 @@ private:
 };
 
 
-#ifdef ILLIXR_MONADO
+#ifdef ENABLE_MONADO
 extern "C" runtime* runtime_factory() {
         RAC_ERRNO_MSG("runtime_impl before creating the runtime");
         return new runtime_impl{};
@@ -169,4 +168,4 @@ extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window) 
     RAC_ERRNO_MSG("runtime_impl before creating the runtime");
     return new runtime_impl{appGLCtx, window};
 }
-#endif /// ILLIXR_MONADO_MAINLINE
+#endif /// ENABLE_MONADO

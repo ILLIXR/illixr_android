@@ -2,6 +2,20 @@
 
 ## Setup Instructions
 
+Depending on which NDK, SDK, and API versions you are using, you may need to change the version of Java you have. Java-21 is not supported for may of the common
+combinations of these versions, but Java-17 is widely supported.
+
+### Generate a Keystore
+
+This is for signing the App
+
+``` bash
+$JAVA_HOME/bin/keytool -genkeypair -v -keystore /home/friedel/illixr.keystore -alias illixr -keyalg RSA -keysize 2048 -validity 10000
+```
+
+For any passwords, use `illixr`, most other questions are optional. If you want a different password, you will need to change a few lines
+in `app/build.gradle`.
+
 ### Android Studio
 
 1. Download Android Studio from [here][1].
@@ -35,6 +49,10 @@
 For this project, we only built for the `arm64-v8a` architecture, as it is the architecture of our test device.
 If your has a different architecture, you will need to make changes to some of the commands below, as well as
 some lines in a `build.gradle` file.
+
+We leave it up to the user to connect their Android device to Android Studio. Instructions on this and
+how to build a run an App can be found on the Android documentation [pages][2].
+
 
 ### Dependencies
 
@@ -137,15 +155,16 @@ ILLIXR uses sdplog for its logging framework. This library is automatically buil
    cd ${ROOT_DIR}
    git clone https://github.com/ILLIXR/illixr_android.git
    ```
+2. Re-open Android Studio so it can pick up any new environment variables.
 
-2. Open it in Android Studio
+3. Open it in Android Studio
     1. `File -> Open`
     2. Navigate the repo you just cloned
     3. Click `Open`
 
-3. Wait for the Gradle Sync to finish. 
+4. Wait for the Gradle Sync to finish. 
 
-4. If you need to build for a different architecture or for different SDK versions, edit the necessary lines in `${ROOT_DIR}/illixr_android/app/build.gradle`
+5. If you need to build for a different architecture or for different SDK versions, edit the necessary lines in `${ROOT_DIR}/illixr_android/app/build.gradle`
  
 ### Install Application Data
 
@@ -168,6 +187,43 @@ ILLIXR uses sdplog for its logging framework. This library is automatically buil
 
 Now we have everything we need to run GlDemo on an Android Phone. Hit the run button, it should open the application and you can see the GlDemo scene.
 
+## Running with OpenXR
+
+We use a version of Monado to act as an OpenXR interface.
+
+### Get Monado
+
+1. Clone the repo
+
+   ``` bash
+   git clone https://github.com/ILLIXR/Illixr_Monado_Android.git
+   ```
+2. Open Android Studio
+
+3. Update the tools (these choices are much less flexible than for ILLIXR)
+   1. Open the `SDK Manager` `Tools -> SDK Manager`
+   2. Under `Android SDK Build-Tools` check 31.0.0 if it is not already
+   3. Scroll down to the `NDK` section and check `21.4.7075529` if it is not already checked
+   4. Scroll down to the `CMake` section and check the entry for `3.10.2` if it is not already checked
+
+4. Open the ILLIXR for Android project
+
+5. Edit `app/src/main/cpp/CMakeLists.txt`, by uncommenting the `add_definitions(-DENABLE_MONADO=1)` line
+6. Rebuild ILLIXR for Android
+7. Copy the libraries into the Monado build
+ 
+   ``` bash
+   mkdir -p ${ROOT_DIR}/Illixr_Monado_Android/src/xrt/targets/openxr_android/src/main/jniLibs/arm64-v8a
+   cp ${ROOT_DIR}/illixr_android/app/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a/*.so ${ROOT_DIR}/Illixr_Monado_Android/src/xrt/targets/openxr_android/src/main/jniLibs/arm64-v8a/.
+   ```
+
+8. Open the ILLIXR_Monado_Android project in Android Studio
+
+9. Configure and build
+
+10. You can now run Monado on your phone in the background and connect to it via OpenXR enabled Apps.
+
 [//]: (- references -)
 
 [1]:   https://developer.android.com/studio
+[2]:   https://developer.android.com/studio/intro

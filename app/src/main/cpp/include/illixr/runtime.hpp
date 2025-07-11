@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 #include <EGL/egl.h>
-//#define ENABLE_MONADO 1
 
 namespace ILLIXR {
 class plugin;
@@ -49,6 +48,6 @@ protected:
 extern "C" runtime* runtime_factory();
 #else
 extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window);
-#endif /// ILLIXR_MONADO_MAINLINE
+#endif /// ENABLE_MONADO_MAINLINE
 
 } // namespace ILLIXR

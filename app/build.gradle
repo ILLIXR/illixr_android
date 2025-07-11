@@ -5,20 +5,20 @@ plugins {
 android {
     signingConfigs {
         debug {
-            storeFile file('/home/friedel/illixr.keystore')
+            storeFile file('~/illixr.keystore')
             storePassword 'illixr'
             keyAlias 'illixr'
             keyPassword 'illixr'
         }
         release {
-            storeFile file('/home/friedel/illixr.keystore')
+            storeFile file('~/illixr.keystore')
             storePassword 'illixr'
             keyAlias 'illixr'
             keyPassword 'illixr'
         }
     }
     compileSdkVersion 33
-    ndkVersion '27.2.12479018'
+    ndkVersion '27.0.12077973'
 
     defaultConfig {
         applicationId = 'com.example.native_activity'
