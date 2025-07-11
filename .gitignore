@@ -8,3 +8,5 @@
 build/reports/problems/problems-report.html
 
 *.so
+
+local.properties
