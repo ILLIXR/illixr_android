@@ -182,9 +182,14 @@ public:
 
         return registry_.count(type_index.name()) == 1;
     }
-
+    size_t get_next_id() {
+        size_t val = current_id_;
+        current_id_++;
+        return val;
+    }
 private:
     std::unordered_map<std::string, const std::shared_ptr<service>> registry_;
     mutable std::shared_mutex                                       mutex_;
+    size_t                                                          current_id_ = 0;
 };
 } // namespace ILLIXR

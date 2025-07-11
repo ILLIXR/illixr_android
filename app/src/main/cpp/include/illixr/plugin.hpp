@@ -46,9 +46,8 @@ public:
     plugin(std::string name, phonebook* pb)
         : name_{std::move(name)}
         , phonebook_{pb}
-        , record_logger_{phonebook_->lookup_impl<record_logger>()}
-        , gen_guid_{phonebook_->lookup_impl<gen_guid>()}
-        , id_{gen_guid_->get()} { }
+        , record_logger_{pb->lookup_impl<record_logger>()}
+        , id_{pb->get_next_id()} { }
 
     virtual ~plugin() = default;
 
@@ -123,7 +122,6 @@ protected:
     std::string                          name_;
     const phonebook*                     phonebook_;
     const std::shared_ptr<record_logger> record_logger_;
-    const std::shared_ptr<gen_guid>      gen_guid_;
     const std::size_t                    id_;
     std::shared_ptr<spdlog::logger>      plugin_logger_;
 };
