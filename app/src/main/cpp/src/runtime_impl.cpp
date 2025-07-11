@@ -53,6 +53,7 @@ public:
         phonebook_.register_impl<xlib_gl_extended_window>(
                 std::make_shared<xlib_gl_extended_window>(display_params::width_pixels, display_params::height_pixels, appGLCtx, window));
 #endif /// ILLIXR_MONADO
+        switchboard_   = phonebook_.lookup_impl<switchboard>();
         phonebook_.register_impl<stoplight>(std::make_shared<stoplight>());
         phonebook_.register_impl<relative_clock>(std::make_shared<relative_clock>());
     }
