@@ -137,8 +137,8 @@ public:
 #ifndef NDEBUG
         spdlog::get("illixr")->debug("[phonebook] Register {}", type_index.name());
 #endif
-        assert(registry_.count(type_index) == 0);
-        registry_.try_emplace(type_index, impl);
+        assert(registry_.count(type_index.name()) == 0);
+        registry_.try_emplace(type_index.name(), impl);
     }
 
     /**
@@ -158,17 +158,17 @@ public:
 
 #ifndef NDEBUG
         // if this fails, and there are no duplicate base classes, ensure the hash_code's are unique.
-        if (registry_.count(type_index) != 1) {
+        if (registry_.count(type_index.name()) != 1) {
             throw std::runtime_error{"Attempted to lookup an unregistered implementation " + std::string{type_index.name()}};
         }
 #endif
 
-        std::shared_ptr<service> this_service = registry_.at(type_index);
+        std::shared_ptr<service> this_service = registry_.at(type_index.name());
         if (!static_cast<bool>(this_service))
             throw std::runtime_error{"Could not find " + std::string{type_index.name()}};
 
         std::shared_ptr<Specific_service> this_specific_service = std::dynamic_pointer_cast<Specific_service>(this_service);
-        if (!static_cast<bool>(this_service))
+        if (!static_cast<bool>(this_service) || this_specific_service == nullptr)
             throw std::runtime_error{"Could not find specific " + std::string{type_index.name()}};
 
         return this_specific_service;
@@ -180,11 +180,11 @@ public:
 
         const std::type_index type_index = std::type_index(typeid(specific_service));
 
-        return registry_.count(type_index) == 1;
+        return registry_.count(type_index.name()) == 1;
     }
 
 private:
-    std::unordered_map<std::type_index, const std::shared_ptr<service>> registry_;
-    mutable std::shared_mutex                                           mutex_;
+    std::unordered_map<std::string, const std::shared_ptr<service>> registry_;
+    mutable std::shared_mutex                                       mutex_;
 };
 } // namespace ILLIXR
