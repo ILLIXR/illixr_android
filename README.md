@@ -25,7 +25,7 @@
         2. our testbed is running Android 13.0, so we will use API level 33 in this example
     3. Switch to the `SDK Tools` tab
     4. Under `Android SDK Build-Tools` check 33.0.0 if it is not already
-    5. Scroll down to the `NDK` section and check `27.2.12479018` if it is not already checked
+    5. Scroll down to the `NDK` section and check `27.0.12077973` if it is not already checked
     6. Scroll down to the `Android SDK Command-line Tools` section and check the entry for 13.0, if it is not already checked
     7. Scroll down to the `CMake` section and check the entry for `3.22.1` if it is not already checked
     8. Click `OK`
@@ -69,7 +69,7 @@ replace the `<>` above with your working directory.
    cd opencv-4.5.5
    mkdir build
    cd build
-   ~/Android/Sdk/cmake/3.22.1/bin/cmake -DANDROID_ABI=arm64-v8a -DBUILD_DOCS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${ROOT_DIR} -DCMAKE_TOOLCHAIN_FILE=~/Android/Sdk/ndk/21.4.7075529/build/cmake/android.toolchain.cmake -DENABLE_PIC=ON -DOPENCV_EXTRA_MODULES_PATH=${ROOT_DIR}/opencv_contrib-4.5.5/modules -DANDROID_SDK_TOOLS=~/Android/Sdk/build-tools/33.0.0 -DANDROID_SDK_BUILD_TOOLS_VERSION=33.0.0 ..
+   ~/Android/Sdk/cmake/3.22.1/bin/cmake -DANDROID_ABI=arm64-v8a -DBUILD_DOCS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${ROOT_DIR} -DCMAKE_TOOLCHAIN_FILE=~/Android/Sdk/ndk/27.0.12077973/build/cmake/android.toolchain.cmake -DENABLE_PIC=ON -DOPENCV_EXTRA_MODULES_PATH=${ROOT_DIR}/opencv_contrib-4.5.5/modules -DANDROID_SDK_TOOLS=~/Android/Sdk/build-tools/33.0.0 -DANDROID_SDK_BUILD_TOOLS_VERSION=33.0.0 ..
    make -j4
    make install
    ```
@@ -101,7 +101,7 @@ replace the `<>` above with your working directory.
    ``` bash
    cd Boost-for-Android
    export BOOST_DIR=${ROOT_DIR}/boost_1_87_0
-   export NDK_DIR=~/Android/Sdk/ndk/27.2.12479018
+   export NDK_DIR=~/Android/Sdk/ndk/27.0.12077973
    export ABI_NAMES="arm64-v8a"
    export LINKAGES="shared static"
    ./__build.sh
