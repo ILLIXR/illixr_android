@@ -12,14 +12,14 @@
 
 namespace ILLIXR {
 
-typedef struct {
+struct raw_imu_type {
     Eigen::Vector3d angular_v;
     Eigen::Vector3d linear_a;
-} raw_imu_type;
+};
 
-typedef struct {
+struct sensor_types {
     raw_imu_type imu0;
-} sensor_types;
+};
 
 class offline_imu : public threadloop {
 public:
@@ -39,8 +39,6 @@ private:
     ullong dataset_first_time_;
     // Current IMU timestamp
     ullong dataset_now_;
-
-    record_coalescer imu_cam_log_;
 
     std::shared_ptr<relative_clock> clock_;
 };
