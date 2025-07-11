@@ -19,18 +19,18 @@
    ```
 
 4. Configure the build system
-    a. Open the `SDK Manager` `Tools -> SDK Manager`
-    b. Select the platform version to use (in the `SDK Platforms` tab)
-        i. this should be the Android version of your device, at minimum
-        ii. our testbed is running Android 13.0, so we will use API level 33 in this example
-    c. Switch to the `SDK Tools` tab
-    d. Under `Android SDK Build-Tools` check 33.0.0 if it is not already
-    e. Scroll down to the `NDK` section and check `27.2.12479018` if it is not already checked
-    f. Scroll down to the `Android SDK Command-line Tools` section and check the entry for 13.0, if it is not already checked
-    g. Scroll down to the `CMake` section and check the entry for `3.22.1` if it is not already checked
-    h. Click `OK`
-    i. Android Studio will download and install the requested components, this may take a while
-    g. The installed components should be in `~/Android/Sdk`
+    1. Open the `SDK Manager` `Tools -> SDK Manager`
+    2. Select the platform version to use (in the `SDK Platforms` tab)
+        1. this should be the Android version of your device, at minimum
+        2. our testbed is running Android 13.0, so we will use API level 33 in this example
+    3. Switch to the `SDK Tools` tab
+    4. Under `Android SDK Build-Tools` check 33.0.0 if it is not already
+    5. Scroll down to the `NDK` section and check `27.2.12479018` if it is not already checked
+    6. Scroll down to the `Android SDK Command-line Tools` section and check the entry for 13.0, if it is not already checked
+    7. Scroll down to the `CMake` section and check the entry for `3.22.1` if it is not already checked
+    8. Click `OK`
+    9. Android Studio will download and install the requested components, this may take a while
+    10. The installed components should be in `~/Android/Sdk`
 
 For this project, we only built for the `arm64-v8a` architecture, as it is the architecture of our test device.
 If your has a different architecture, you will need to make changes to some of the commands below, as well as
@@ -139,9 +139,9 @@ ILLIXR uses sdplog for its logging framework. This library is automatically buil
    ```
 
 2. Open it in Android Studio
-   a. `File -> Open`
-   b. Navigate the repo you just cloned
-   c. Click `Open`
+    1. `File -> Open`
+    2. Navigate the repo you just cloned
+    3. Click `Open`
 
 3. Wait for the Gradle Sync to finish. 
 
