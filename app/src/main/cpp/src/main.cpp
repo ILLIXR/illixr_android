@@ -61,7 +61,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
 //                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
 //            std::vector<std::string> arguments = { "",
 //                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
-        const std::vector<std::string> plugins = { "slam", "offline_imu", "offline_cam" ,"rk4_integrator",
+        const std::vector<std::string> plugins = { "openvins", "offline_cam", "offline_imu" ,"rk4_integrator",
                                              "pose_prediction",  "common_lock", "timewarp_gl", "gldemo"};
 
         //EuRoC
