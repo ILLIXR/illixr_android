@@ -73,6 +73,7 @@ public:
         });
 
         RAC_ERRNO_MSG("runtime_impl after generating plugin factories");
+        phonebook_.lookup_impl<relative_clock>()->start();
 
         std::transform(plugin_factories.cbegin(), plugin_factories.cend(), std::back_inserter(plugins_),
                        [this](const auto& plugin_factory) {
@@ -86,7 +87,6 @@ public:
         });
 
         // This actually kicks off the plugins
-        phonebook_.lookup_impl<relative_clock>()->start();
         phonebook_.lookup_impl<stoplight>()->signal_ready();
     }
 
