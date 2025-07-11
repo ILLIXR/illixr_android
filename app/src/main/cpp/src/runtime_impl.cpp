@@ -11,12 +11,12 @@
 #include "illixr/switchboard.hpp"
 
 #include "noop_record_logger.hpp"
-#include "sqlite_record_logger.hpp"
-#include "stdout_record_logger.hpp"
+//#include "sqlite_record_logger.hpp"
+//#include "stdout_record_logger.hpp"
 
 #include <algorithm>
 #include <memory>
-#include <set>
+//#include <set>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/android_sink.h>
 #include <string>
@@ -79,7 +79,12 @@ public:
         std::transform(plugin_factories.cbegin(), plugin_factories.cend(), std::back_inserter(plugins_),
                        [this](const auto& plugin_factory) {
                            RAC_ERRNO_MSG("runtime_impl before building the plugin");
-                           return std::unique_ptr<plugin>{plugin_factory(&phonebook_)};
+                           try {
+                               return std::unique_ptr<plugin>{plugin_factory(&phonebook_)};
+                           } catch (std::exception& ex) {
+                               spdlog::get("illixr")->error(ex.what());
+                               throw;
+                           }
                        });
 
         std::for_each(plugins_.cbegin(), plugins_.cend(), [](const auto& plugin) {
