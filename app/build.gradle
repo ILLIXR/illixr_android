@@ -59,6 +59,7 @@ android {
 
         }
     }
+    namespace 'com.example.ILLIXR'
 }
 
 dependencies {
