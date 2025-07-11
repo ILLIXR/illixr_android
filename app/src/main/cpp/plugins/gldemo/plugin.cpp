@@ -1,14 +1,15 @@
+#include <EGL/egl.h>
 #include "plugin.hpp"
 
 #include "illixr/error_util.hpp"
 #include "illixr/global_module_defs.hpp"
 #include "illixr/math_util.hpp"
 
-#include <EGL/egl.h>
-
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <Eigen/Core>
+#include <future>
 #include <thread>
 
 using namespace ILLIXR;
@@ -17,7 +18,6 @@ using namespace ILLIXR::data_format;
 // Wake up 1 ms after vsync instead of exactly at vsync to account for scheduling uncertainty
 static constexpr std::chrono::milliseconds VSYNC_SAFETY_DELAY{1};
 
-const Eigen::Quaternionf INIT = {0.9238795, 0., 0.3826834, 0.};
 
 
 [[maybe_unused]] gldemo::gldemo(const std::string& name, phonebook* pb)
@@ -91,6 +91,9 @@ void gldemo::_p_thread_setup() {
 
     // Note: glXMakeContextCurrent must be called from the thread which will be using it.
 
+    [[maybe_unused]] const bool gl_result = 
+        static_cast<bool>(eglMakeCurrent(ext_window_->display_, ext_window_->surface_, ext_window_->surface_, ext_window_->context_));
+    assert(gl_result && "eglMakeCurrent should not fail");
 }
 
 void gldemo::_p_one_iteration() {
@@ -123,18 +126,14 @@ void gldemo::_p_one_iteration() {
     pose_type            pose      = fast_pose.pose;
 
     Eigen::Matrix3f head_rotation_matrix = pose.orientation.toRotationMatrix();
-    spdlog::get("illixr")->debug("Pose3: %f %f %f %f %f %f %f", pose.position.x(), pose.position.y(),
-                pose.position.z(),
-                pose.orientation.w(), pose.orientation.x(), pose.orientation.y(),
-                pose.orientation.z());
+
     // Excessive? Maybe.
     constexpr int LEFT_EYE = 0;
 
     for (auto eye_idx = 0; eye_idx < 2; eye_idx++) {
         // Offset of eyeball from pose
         auto eyeball =
-                Eigen::Vector3f((eye_idx == LEFT_EYE ? -display_params::ipd / 2.0f :
-                                 display_params::ipd / 2.0f), 1.5, 4.0);
+                Eigen::Vector3f((eye_idx == LEFT_EYE ? -display_params::ipd / 2.0f : display_params::ipd / 2.0f), 0, 0);
 
         // Apply head rotation to eyeball offset vector
         eyeball = head_rotation_matrix * eyeball;
@@ -145,8 +144,7 @@ void gldemo::_p_one_iteration() {
         // Build our eye matrix from the pose's position + orientation.
         Eigen::Matrix4f eye_matrix   = Eigen::Matrix4f::Identity();
         eye_matrix.block<3, 1>(0, 3) = eyeball; // Set position to eyeball's position
-        Eigen::Quaternionf rot = INIT * pose.orientation;
-        eye_matrix.block<3, 3>(0, 0) = rot.toRotationMatrix();
+        eye_matrix.block<3, 3>(0, 0) = pose.orientation.toRotationMatrix();
 
         // Objects' "view matrix" is inverse of eye matrix.
         auto view_matrix = eye_matrix.inverse();
@@ -158,8 +156,7 @@ void gldemo::_p_one_iteration() {
         glUniformMatrix4fv(static_cast<GLint>(projection_), 1, GL_FALSE, (GLfloat*) (basic_projection_.data()));
 
         glBindTexture(GL_TEXTURE_2D, eye_textures_[eye_idx]);
-        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                               eye_textures_[eye_idx], 0);
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, eye_textures_[eye_idx], 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
 
@@ -169,7 +166,6 @@ void gldemo::_p_one_iteration() {
 
         demo_scene_.Draw();
     }
-
     glFinish();
 
 #ifndef NDEBUG
@@ -211,6 +207,7 @@ void gldemo::_p_one_iteration() {
 #endif
 }
 
+// We override start() to control our own lifecycle
 void gldemo::start() {
     lock_->get_lock();
     [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(ext_window_->display_,
@@ -237,7 +234,6 @@ void gldemo::start() {
     create_shared_eyebuffer(&(eye_textures_[1]));
     image_handle_.put(
         image_handle_.allocate<image_handle>(image_handle{eye_textures_[1], 1, swapchain_usage::RIGHT_SWAPCHAIN}));
-
     // Initialize FBO and depth targets, attaching to the frame handle
     create_FBO(&(eye_textures_[0]), &eye_texture_FBO_, &eye_texture_depth_target_);
 
@@ -307,7 +303,7 @@ void gldemo::create_FBO(const GLuint* texture_handle, GLuint* fbo, GLuint* depth
     glBindFramebuffer(GL_FRAMEBUFFER, *fbo);
     glGenRenderbuffers(1, depth_target);
     glBindRenderbuffer(GL_RENDERBUFFER, *depth_target);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, display_params::width_pixels, display_params::height_pixels);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, display_params::width_pixels, display_params::height_pixels);
     // glRenderbufferStorageMultisample(GL_RENDERBUFFER, fboSampleCount, GL_DEPTH_COMPONENT, display_params::width_pixels,
     // display_params::height_pixels);
 
@@ -317,8 +313,7 @@ void gldemo::create_FBO(const GLuint* texture_handle, GLuint* fbo, GLuint* depth
     spdlog::get(name_)->info("About to bind eyebuffer texture, texture handle: {}", *texture_handle);
 
     glBindTexture(GL_TEXTURE_2D, *texture_handle);
-    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-                           *texture_handle, 0);
+    glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *texture_handle, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // attach a renderbuffer to depth attachment point
