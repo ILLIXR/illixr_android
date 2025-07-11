@@ -61,16 +61,16 @@ private:
                                                 const Eigen::Matrix4f& render_view_matrix,
                                                 const Eigen::Matrix4f& new_view_matrix);
 #ifndef ENABLE_MONADO
-    [[nodiscard]] time_point                get_next_swap_time_estimate() const;
-    [[maybe_unused]] [[nodiscard]] duration estimate_time_to_sleep(double frame_percentage) const;
+    [[nodiscard]] time_point                get_next_swap_time_estimate();
+    [[nodiscard]] duration estimate_time_to_sleep(double frame_percentage);
 #else
     void import_vulkan_semaphore(const semaphore_handle& vk_handle);
 #endif
 
     const std::shared_ptr<switchboard>                  switchboard_;
     const std::shared_ptr<data_format::pose_prediction> pose_prediction_;
-    const std::shared_ptr<const relative_clock>         clock_;
     const std::shared_ptr<common_lock>                  lock_;
+    const std::shared_ptr<const relative_clock>         clock_;
     // OpenGL objects
     TW_DISPLAY display_;
 #ifndef ENABLE_MONADO
@@ -115,6 +115,7 @@ private:
 
     // Switchboard plug for publishing offloaded data
     switchboard::writer<data_format::texture_pose> offload_data_;
+
     // Timewarp only has vsync estimates with native-gl
     record_coalescer mtp_logger_;
 #endif
