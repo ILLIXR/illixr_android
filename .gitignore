@@ -4,3 +4,9 @@
 /app/build/
 /app/build/intermediates/javac/debug/classes/
 .idea
+
+build/reports/problems/problems-report.html
+
+*.so
+
+local.properties
