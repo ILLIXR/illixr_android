@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 #include <EGL/egl.h>
-//#define ILLIXR_MONADO 1
+//#define ENABLE_MONADO 1
 
 namespace ILLIXR {
 class plugin;
@@ -45,7 +45,7 @@ protected:
     std::shared_ptr<switchboard> switchboard_;
 };
 
-#ifdef ILLIXR_MONADO
+#ifdef ENABLE_MONADO
 extern "C" runtime* runtime_factory();
 #else
 extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window);

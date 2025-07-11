@@ -1,9 +1,12 @@
+#include "illixr/runtime.hpp"
+
 #include "illixr/dynamic_lib.hpp"
 #include "illixr/error_util.hpp"
 #include "illixr/extended_window.hpp"
+#include "illixr/global_module_defs.hpp"
+#include "illixr/phonebook.hpp"
 #include "illixr/plugin.hpp"
-#include "illixr/relative_clock.hpp"
-#include "illixr/runtime.hpp"
+#include "illixr/record_logger.hpp"
 #include "illixr/stoplight.hpp"
 #include "illixr/switchboard.hpp"
 
@@ -11,10 +14,14 @@
 #include "sqlite_record_logger.hpp"
 #include "stdout_record_logger.hpp"
 
+#include <algorithm>
+#include <memory>
+#include <set>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/android_sink.h>
-
-//#define ILLIXR_MONADO 1
+#include <string>
+#include <vector>
+//#define ENABLE_MONADO 1
 
 using namespace ILLIXR;
 
@@ -34,16 +41,15 @@ void spdlogger(const std::string& name) {
 class runtime_impl : public runtime {
 public:
     runtime_impl(
-#ifndef ILLIXR_MONADO
+#ifndef ENABLE_MONADO
             EGLContext appGLCtx,
             ANativeWindow *window
 #endif
     ) {
         spdlogger("illixr");
         phonebook_.register_impl<record_logger>(std::make_shared<noop_record_logger>());
-        phonebook_.register_impl<gen_guid>(std::make_shared<gen_guid>());
         phonebook_.register_impl<switchboard>(std::make_shared<switchboard>(&phonebook_));
-#ifndef ILLIXR_MONADO
+#ifndef ENABLE_MONADO
         phonebook_.register_impl<xlib_gl_extended_window>(
                 std::make_shared<xlib_gl_extended_window>(display_params::width_pixels, display_params::height_pixels, appGLCtx, window));
 #endif /// ILLIXR_MONADO
@@ -75,7 +81,7 @@ public:
                        });
 
         std::for_each(plugins_.cbegin(), plugins_.cend(), [](const auto& plugin) {
-            // Well-behaved plugins (any derived from threadloop) start there threads here, and then wait on the stoplight.
+            // Well-behaved plugins_ (any derived from threadloop) start there threads here, and then wait on the Stoplight.
             plugin->start();
         });
 
@@ -85,7 +91,7 @@ public:
     }
 
     void load_so(const std::string_view& so) override {
-        auto           lib                 = dynamic_lib::create(so);
+        auto lib                 = dynamic_lib::create(so);
         auto this_plugin_factory = lib.get<plugin* (*) (phonebook*)>("this_plugin_factory");
         load_plugin_factory(this_plugin_factory);
         libraries_.push_back(std::move(lib));
@@ -140,7 +146,7 @@ public:
     }
 
 private:
-    // I have to keep the dynamic libs in scope until the program is dead
+    // I have to keep the dynamic libraries in scope until the program is dead
     std::vector<dynamic_lib>             libraries_;
     phonebook                            phonebook_;
     std::vector<std::unique_ptr<plugin>> plugins_;

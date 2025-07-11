@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <spdlog/common.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/android_sink.h>
 #include <spdlog/spdlog.h>
 #include <string>
@@ -59,10 +60,10 @@ public:
      * this use-case.
      */
     virtual void start() {
-//        record_logger_->log(record{__plugin_start_header,
+//        record_logger_->log(record{_plugin_start_header,
 //                                   {
-//                                       {id},
-//                                       {name},
+//                                       {id_},
+//                                       {name_},
 //                                   }});
     }
 
@@ -78,7 +79,10 @@ public:
      *
      * Concrete plugins are responsible for initializing their specific logger and sinks.
      */
-    virtual void stop() { }
+    virtual void stop() {
+//        if (plugin_logger_)
+//            plugin_logger_->flush();
+    }
 
     [[maybe_unused]] [[nodiscard]] std::string get_name() const noexcept {
         return name_;
@@ -105,7 +109,7 @@ public:
         return plugin_logger_;
     }
 
-    /*[[maybe_unused]] void spd_add_file_sink(const std::string& file_name, const std::string& extension,
+    [[maybe_unused]] void spd_add_file_sink(const std::string& file_name, const std::string& extension,
                                             const std::string& log_level) {
         if (!plugin_logger_) {
             throw std::runtime_error("Logger not found");
@@ -116,7 +120,7 @@ public:
         plugin_logger_->sinks().push_back(file_sink);
         size_t sink_count = plugin_logger_->sinks().size();
         plugin_logger_->sinks()[sink_count - 1]->set_pattern("%v");
-    }*/
+    }
 
 protected:
     std::string                          name_;

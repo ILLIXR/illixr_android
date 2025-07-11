@@ -5,9 +5,6 @@
 
 #include <cassert>
 #include <cstring>
-#include <fstream>
-#include <iostream>
-#include <sstream>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
@@ -16,31 +13,10 @@ using namespace ILLIXR;
 
 static constexpr std::size_t GL_MAX_LOG_LENGTH = 4096U;
 
-/*
-static void GLAPIENTRY message_callback([[maybe_unused]] GLenum source, [[maybe_unused]] GLenum type,
-                                        [[maybe_unused]] GLuint id, [[maybe_unused]] GLenum severity,
-                                        [[maybe_unused]] GLsizei length, [[maybe_unused]] const GLchar* message,
-                                        [[maybe_unused]] const void* user_param) {
-#ifndef NDEBUG
-    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) {
-        /// Don't show message if severity level is notification. Non-fatal.
-        return;
-    }
-    std::string type_error = (type == GL_DEBUG_TYPE_ERROR) ? "** GL ERROR **" : "";
-    spdlog::get("illixr")->warn("[shader_util] GL CALLBACK: {} type = {:x}, severity = {:x}, message = {}", type_error, type,
-                                severity, message);
-    // https://www.khronos.org/opengl/wiki/Debug_Output#Message_Components
-    if (severity == GL_DEBUG_SEVERITY_HIGH) {
-        /// Fatal error if severity level is high.
-        ILLIXR::abort();
-    } /// else => severity level low and medium are non-fatal.
-#endif
-}*/
-
 static GLuint init_and_link(const char* vertex_shader, const char* fragment_shader) {
     // GL handles for intermediary objects.
-    GLint result, vertex_shader_handle, fragment_shader_handle, shader_program;
-
+    GLint result;
+    GLuint fragment_shader_handle, vertex_shader_handle, shader_program;
     vertex_shader_handle = glCreateShader(GL_VERTEX_SHADER);
     auto vert_shader_len = static_cast<GLint>(strlen(vertex_shader));
     glShaderSource(vertex_shader_handle, 1, &vertex_shader, &vert_shader_len);
@@ -53,7 +29,7 @@ static GLuint init_and_link(const char* vertex_shader, const char* fragment_shad
 
         glGetShaderInfoLog(vertex_shader_handle, GL_MAX_LOG_LENGTH * sizeof(GLchar), &length, gl_buf_log.data());
         const std::string msg{gl_buf_log.begin(), gl_buf_log.end()};
-        assert(length == static_cast<GLsizei>(msg.size()) && "Length of log should match GLchar vector contents");
+        //assert(length == static_cast<GLsizei>(msg.size()) && "Length of log should match GLchar vector contents");
         ILLIXR::abort("[shader_util] Failed to get vertex_shader_handle: " + msg);
     }
 
@@ -85,8 +61,8 @@ static GLuint init_and_link(const char* vertex_shader, const char* fragment_shad
 
     ///////////////////
     // Link and verify
-    glBindAttribLocation(shader_program, 0, "in_position");
-    glBindAttribLocation(shader_program, 1, "in_uv");
+    //glBindAttribLocation(shader_program, 0, "in_position");
+    //glBindAttribLocation(shader_program, 1, "in_uv");
     glLinkProgram(shader_program);
 
     const GLenum gl_err_link = glGetError();
