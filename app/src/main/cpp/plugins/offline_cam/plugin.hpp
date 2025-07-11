@@ -44,9 +44,14 @@ private:
 };
 
 typedef struct {
-    lazy_load_image cam0;
-    lazy_load_image cam1;
-} sensor_types;
+    lazy_load_image* cam0 = nullptr;
+    lazy_load_image* cam1 = nullptr;
+
+    ~sensor_types() {
+        delete cam0;
+        delete cam1;
+    }
+};
 
 class offline_cam : public threadloop {
 public:

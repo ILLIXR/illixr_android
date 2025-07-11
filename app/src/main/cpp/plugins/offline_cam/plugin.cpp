@@ -2,7 +2,6 @@
 
 #include "illixr/data_loading.hpp"
 
-#include <chrono>
 #include <regex>
 #include <thread>
 
@@ -10,8 +9,8 @@ using namespace ILLIXR;
 using namespace ILLIXR::data_format;
 
 // combine two maps into one
-std::map<ullong, sensor_types> make_map(const std::map<ullong, lazy_load_image>& cam0,
-                                        const std::map<ullong, lazy_load_image>& cam1) {
+std::map<ullong, sensor_types> make_map(const std::map<ullong, lazy_load_image*>& cam0,
+                                        const std::map<ullong, lazy_load_image*>& cam1) {
     std::map<ullong, sensor_types> data;
     for (auto& it : cam0) {
         data[it.first].cam0 = it.second;
@@ -21,23 +20,23 @@ std::map<ullong, sensor_types> make_map(const std::map<ullong, lazy_load_image>&
     }
     return data;
 }
-
-inline std::map<ullong, lazy_load_image> read_data(std::ifstream& gt_file, const std::string& file_name) {
-    std::map<ullong, lazy_load_image> data;
-    auto                              name = std::regex_replace(file_name, std::regex("\\.csv"), "/");
+namespace cam_data {
+std::map<ullong, lazy_load_image*> read_data(std::ifstream& gt_file, const std::string& file_name) {
+    std::map<ullong, lazy_load_image*> data;
+    auto name = std::regex_replace(file_name, std::regex("\\.csv"), "/");
     for (csv_iterator row{gt_file, 1}; row != csv_iterator{}; ++row) {
         ullong t = std::stoull(row[0]);
-        data[t]  = lazy_load_image{name + row[1]};
+        data[t]  = new lazy_load_image(name + row[1]);
     }
     return data;
 }
-
+}
 [[maybe_unused]] offline_cam::offline_cam(const std::string& name, phonebook* pb)
     : threadloop{name, pb}
     , switchboard_{phonebook_->lookup_impl<switchboard>()}
     , cam_publisher_{switchboard_->get_writer<binocular_cam_type>("cam")}
-    , sensor_data_{make_map(load_data<lazy_load_image>("cam0", "offline_cam", &read_data, switchboard_),
-                            load_data<lazy_load_image>("cam1", "offline_cam", &read_data, switchboard_))}
+    , sensor_data_{make_map(load_data<lazy_load_image*>("cam0", "offline_cam", &cam_data::read_data, switchboard_),
+                            load_data<lazy_load_image*>("cam1", "offline_cam", &cam_data::read_data, switchboard_))}
     , dataset_first_time_{sensor_data_.cbegin()->first}
     , last_timestamp_{0}
     , clock_{phonebook_->lookup_impl<relative_clock>()}
@@ -87,8 +86,8 @@ void offline_cam::_p_one_iteration() {
     if (last_timestamp_ != nearest_row->first) {
         last_timestamp_ = nearest_row->first;
 
-        auto img0 = nearest_row->second.cam0.load();
-        auto img1 = nearest_row->second.cam1.load();
+        auto img0 = nearest_row->second.cam0->load();
+        auto img1 = nearest_row->second.cam1->load();
 
         time_point expected_real_time_given_dataset_time(
             std::chrono::duration<long, std::nano>{nearest_row->first - dataset_first_time_});

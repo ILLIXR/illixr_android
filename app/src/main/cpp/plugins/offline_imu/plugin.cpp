@@ -7,8 +7,8 @@
 using namespace ILLIXR;
 using namespace ILLIXR::data_format;
 
-inline std::map<ullong, sensor_types> read_data(std::ifstream& gt_file, const std::string& file_name) {
-    (void) file_name;
+namespace imu_data {
+std::map<ullong, sensor_types> read_data(std::ifstream& gt_file, const std::string& file_name) {
     std::map<ullong, sensor_types> data;
 
     for (csv_iterator row{gt_file, 1}; row != csv_iterator{}; ++row) {
@@ -19,11 +19,12 @@ inline std::map<ullong, sensor_types> read_data(std::ifstream& gt_file, const st
     }
     return data;
 }
+}
 
 [[maybe_unused]] offline_imu::offline_imu(const std::string& name, phonebook* pb)
     : threadloop{name, pb}
     , switchboard_{phonebook_->lookup_impl<switchboard>()}
-    , sensor_data_{load_data<sensor_types>("imu0", "offline_imu", &read_data, switchboard_)}
+    , sensor_data_{load_data<sensor_types>("imu0", "offline_imu", &imu_data::read_data, switchboard_)}
     , sensor_data_it_{sensor_data_.cbegin()}
     , imu_{switchboard_->get_writer<imu_type>("imu")}
     , dataset_first_time_{sensor_data_it_->first}
