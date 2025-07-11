@@ -22,7 +22,7 @@ const Eigen::Quaternionf INIT = {0.9238795, 0., 0.3826834, 0.};
 
 [[maybe_unused]] gldemo::gldemo(const std::string& name, phonebook* pb)
     : threadloop{name, pb}
-    , ext_window_{new xlib_gl_extended_window{1, 1, phonebook_->lookup_impl<xlib_gl_extended_window>()->context_}}
+    , ext_window_{phonebook_->lookup_impl<xlib_gl_extended_window>()}
     , switchboard_{phonebook_->lookup_impl<switchboard>()}
     , pose_prediction_{phonebook_->lookup_impl<pose_prediction>()}
     , lock_{phonebook_->lookup_impl<common_lock>()}

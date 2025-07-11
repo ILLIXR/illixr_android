@@ -35,7 +35,7 @@ private:
     static void create_shared_eyebuffer(GLuint* texture_handle);
     void        create_FBO(const GLuint* texture_handle, GLuint* fbo, GLuint* depth_target);
 
-    const std::unique_ptr<const xlib_gl_extended_window>              ext_window_;
+    const std::shared_ptr<const xlib_gl_extended_window>              ext_window_;
     const std::shared_ptr<switchboard>                                switchboard_;
     const std::shared_ptr<data_format::pose_prediction>               pose_prediction_;
     const std::shared_ptr<common_lock>                                lock_;

@@ -116,7 +116,7 @@ public:
         phonebook_.lookup_impl<switchboard>()->stop();
         // After this point, Switchboard's internal thread-workers which power synchronous callbacks are stopped and joined.
 
-        for (const std::unique_ptr<plugin>& plugin : plugins_) {
+        for (const std::shared_ptr<plugin>& plugin : plugins_) {
             plugin->stop();
             // Each plugin gets joined in its stop
         }
@@ -149,7 +149,7 @@ private:
     // I have to keep the dynamic libraries in scope until the program is dead
     std::vector<dynamic_lib>             libraries_;
     phonebook                            phonebook_;
-    std::vector<std::unique_ptr<plugin>> plugins_;
+    std::vector<std::shared_ptr<plugin>> plugins_;
 };
 
 
