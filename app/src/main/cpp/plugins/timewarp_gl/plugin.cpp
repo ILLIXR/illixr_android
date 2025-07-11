@@ -26,45 +26,45 @@ using namespace ILLIXR::data_format;
 
 const record_header timewarp_gpu_record{"timewarp_gpu",
                                         {
-                                                {"iteration_no", typeid(std::size_t)},
-                                                {"wall_time_start", typeid(time_point)},
-                                                {"wall_time_stop", typeid(time_point)},
-                                                {"gpu_time_duration", typeid(std::chrono::nanoseconds)},
+                                            {"iteration_no", typeid(std::size_t)},
+                                            {"wall_time_start", typeid(time_point)},
+                                            {"wall_time_stop", typeid(time_point)},
+                                            {"gpu_time_duration", typeid(std::chrono::nanoseconds)},
                                         }};
 
 const record_header mtp_record{"mtp_record",
                                {
-                                       {"iteration_no", typeid(std::size_t)},
-                                       {"vsync", typeid(time_point)},
-                                       {"imu_to_display", typeid(std::chrono::nanoseconds)},
-                                       {"predict_to_display", typeid(std::chrono::nanoseconds)},
-                                       {"render_to_display", typeid(std::chrono::nanoseconds)},
+                                   {"iteration_no", typeid(std::size_t)},
+                                   {"vsync", typeid(time_point)},
+                                   {"imu_to_display", typeid(std::chrono::nanoseconds)},
+                                   {"predict_to_display", typeid(std::chrono::nanoseconds)},
+                                   {"render_to_display", typeid(std::chrono::nanoseconds)},
                                }};
 
 
 timewarp_gl::timewarp_gl(const std::string& name, phonebook* pb)
-        : timewarp_type{name, pb}
-        , switchboard_{phonebook_->lookup_impl<switchboard>()}
-        , pose_prediction_{phonebook_->lookup_impl<pose_prediction>()}
-        , lock_{phonebook_->lookup_impl<common_lock>()}
-        , clock_{phonebook_->lookup_impl<relative_clock>()}
+    : timewarp_type{name, pb}
+    , switchboard_{phonebook_->lookup_impl<switchboard>()}
+    , pose_prediction_{phonebook_->lookup_impl<pose_prediction>()}
+    , lock_{phonebook_->lookup_impl<common_lock>()}
+    , clock_{phonebook_->lookup_impl<relative_clock>()}
 #ifndef ENABLE_MONADO
-        , eyebuffer_{switchboard_->get_reader<rendered_frame>("eyebuffer")}
-        , vsync_estimate_{switchboard_->get_writer<switchboard::event_wrapper<time_point>>("vsync_estimate")}
-        , offload_data_{switchboard_->get_writer<texture_pose>("texture_pose")}
-        , mtp_logger_{record_logger_}
-        // TODO: Use #198 to configure this.
-        // This is useful for experiments which seek to evaluate the end-effect of timewarp vs no-timewarp.
-        // Timewarp poses a "second channel" by which pose data can correct the video stream,
-        // which results in a "multipath" between the pose and the video stream.
-        // In production systems, this is certainly a good thing, but it makes the system harder to analyze.
-        , disable_warp_{switchboard_->get_env_bool("ILLIXR_TIMEWARP_DISABLE", "False")}
-        , enable_offload_{switchboard_->get_env_bool("ILLIXR_OFFLOAD_ENABLE", "False")}
+    , eyebuffer_{switchboard_->get_reader<rendered_frame>("eyebuffer")}
+    , vsync_estimate_{switchboard_->get_writer<switchboard::event_wrapper<time_point>>("vsync_estimate")}
+    , offload_data_{switchboard_->get_writer<texture_pose>("texture_pose")}
+    , mtp_logger_{record_logger_}
+    // TODO: Use #198 to configure this.
+    // This is useful for experiments which seek to evaluate the end-effect of timewarp vs no-timewarp.
+    // Timewarp poses a "second channel" by which pose data can correct the video stream,
+    // which results in a "multipath" between the pose and the video stream.
+    // In production systems, this is certainly a good thing, but it makes the system harder to analyze.
+    , disable_warp_{switchboard_->get_env_bool("ILLIXR_TIMEWARP_DISABLE", "False")}
+    , enable_offload_{switchboard_->get_env_bool("ILLIXR_OFFLOAD_ENABLE", "False")}
 #else
-        , signal_quad_{switchboard_->get_writer<signal_to_quad>("signal_quad")}
+    , signal_quad_{switchboard_->get_writer<signal_to_quad>("signal_quad")}
 #endif
-        , timewarp_gpu_logger_{record_logger_}
-        , hologram_{switchboard_->get_writer<hologram_input>("hologram_in")} {
+    , timewarp_gpu_logger_{record_logger_}
+    , hologram_{switchboard_->get_writer<hologram_input>("hologram_in")} {
     spdlogger(switchboard_->get_env_char("TIMEWARP_GL_LOG_LEVEL"));
 #ifndef ENABLE_MONADO
     const std::shared_ptr<xlib_gl_extended_window> x_win = phonebook_->lookup_impl<xlib_gl_extended_window>();
@@ -158,7 +158,7 @@ timewarp_gl::timewarp_gl(const std::string& name, phonebook* pb)
 #endif
 
     switchboard_->schedule<image_handle>(id_, "image_handle", [this](switchboard::ptr<const image_handle> handle, std::size_t) {
-        // only 2 swapchains (for the left and right eye) are supported for now.
+    // only 2 swapchains (for the left and right eye) are supported for now.
 
 
 #ifdef ENABLE_MONADO
@@ -168,18 +168,18 @@ timewarp_gl::timewarp_gl(const std::string& name, phonebook* pb)
 #endif
 
         switch (handle->usage) {
-            case swapchain_usage::LEFT_SWAPCHAIN: {
-                this->eye_image_handles_[0].push_back(*handle);
-                this->eye_swapchains_size_[0] = handle->num_images;
-                break;
-            }
-            case swapchain_usage::RIGHT_SWAPCHAIN: {
-                this->eye_image_handles_[1].push_back(*handle);
-                this->eye_swapchains_size_[1] = handle->num_images;
-                break;
-            }
+        case swapchain_usage::LEFT_SWAPCHAIN: {
+            this->eye_image_handles_[0].push_back(*handle);
+            this->eye_swapchains_size_[0] = handle->num_images;
+            break;
+        }
+        case swapchain_usage::RIGHT_SWAPCHAIN: {
+            this->eye_image_handles_[1].push_back(*handle);
+            this->eye_swapchains_size_[1] = handle->num_images;
+            break;
+        }
 #ifdef ENABLE_MONADO
-                case swapchain_usage::LEFT_RENDER: {
+        case swapchain_usage::LEFT_RENDER: {
             this->eye_output_handles_[0] = *handle;
             left_output_ready            = true;
             break;
@@ -190,10 +190,10 @@ timewarp_gl::timewarp_gl(const std::string& name, phonebook* pb)
             break;
         }
 #endif
-            default: {
-                spdlog::get(name_)->warn("Invalid swapchain usage provided");
-                break;
-            }
+        default: {
+            spdlog::get(name_)->warn("Invalid swapchain usage provided");
+            break;
+        }
         }
 
         if (client_backend_ == graphics_api::TBD) {
@@ -442,7 +442,7 @@ void timewarp_gl::_setup() {
 
 #ifdef USE_ALT_EYE_FORMAT
     timewarp_shader_program_ =
-            init_and_link(time_warp_chromatic_vertex_program_GLSL, time_warp_chromatic_fragment_program_GLSL_alternative);
+        init_and_link(time_warp_chromatic_vertex_program_GLSL, time_warp_chromatic_fragment_program_GLSL_alternative);
 #else
     timewarp_shader_program_ =
         init_and_link(time_warp_chromatic_vertex_program_GLSL, time_warp_chromatic_fragment_program_GLSL);
@@ -751,7 +751,7 @@ void timewarp_gl::warp(const switchboard::ptr<const rendered_frame>& most_recent
 
     // Now that we have the most recent swap time, we can publish the new estimate.
     vsync_estimate_.put(vsync_estimate_.allocate<switchboard::event_wrapper<time_point>>(
-            switchboard::event_wrapper<time_point>(get_next_swap_time_estimate())));
+        switchboard::event_wrapper<time_point>(get_next_swap_time_estimate())));
 
     std::chrono::nanoseconds imu_to_display     = time_last_swap_ - latest_pose.pose.sensor_time;
     std::chrono::nanoseconds predict_to_display = time_last_swap_ - latest_pose.predict_computed_time;
@@ -759,11 +759,11 @@ void timewarp_gl::warp(const switchboard::ptr<const rendered_frame>& most_recent
 
     mtp_logger_.log(record{mtp_record,
                            {
-                                   {iteration_no},
-                                   {time_last_swap_},
-                                   {imu_to_display},
-                                   {predict_to_display},
-                                   {render_to_display},
+                               {iteration_no},
+                               {time_last_swap_},
+                               {imu_to_display},
+                               {predict_to_display},
+                               {render_to_display},
                            }});
 
 #ifndef NDEBUG // Timewarp only has vsync estimates if we're running with native-gl
@@ -792,8 +792,8 @@ void timewarp_gl::warp(const switchboard::ptr<const rendered_frame>& most_recent
 
         // Publish image and pose
         offload_data_.put(offload_data_.allocate<texture_pose>(
-                texture_pose{offload_duration_, image, time_last_swap_, latest_pose.pose.position, latest_pose.pose.orientation,
-                             most_recent_frame->render_pose.pose.orientation}));
+            texture_pose{offload_duration_, image, time_last_swap_, latest_pose.pose.position, latest_pose.pose.orientation,
+                         most_recent_frame->render_pose.pose.orientation}));
     }
 
 #endif
@@ -827,10 +827,10 @@ void timewarp_gl::warp(const switchboard::ptr<const rendered_frame>& most_recent
     //LOGT("Lock released ..");
     timewarp_gpu_logger_.log(record{timewarp_gpu_record,
                                     {
-                                            {iteration_no},
-                                            {gpu_start_wall_time},
-                                            {clock_->now()},
-                                            {std::chrono::nanoseconds(elapsed_time)},
+                                        {iteration_no},
+                                        {gpu_start_wall_time},
+                                        {clock_->now()},
+                                        {std::chrono::nanoseconds(elapsed_time)},
                                     }});
 #ifdef ENABLE_MONADO
     // Manually increment the iteration number if timewarp is running as a plugin
