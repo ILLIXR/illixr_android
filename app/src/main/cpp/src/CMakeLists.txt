@@ -23,6 +23,18 @@ target_include_directories(native-activity PRIVATE
 
 target_link_libraries(native-activity
         plugin.extended_window${ILLIXR_BUILD_SUFFIX}
+        OpenVINS_plugin
+        plugin.pose_prediction${ILLIXR_BUILD_SUFFIX}
+        plugin.pose_lookup${ILLIXR_BUILD_SUFFIX}
+        plugin.fauxpose${ILLIXR_BUILD_SUFFIX}
+        plugin.common_lock${ILLIXR_BUILD_SUFFIX}
+        plugin.timewarp_gl${ILLIXR_BUILD_SUFFIX}
+        plugin.rk4_integrator${ILLIXR_BUILD_SUFFIX}
+        plugin.offline_imu${ILLIXR_BUILD_SUFFIX}
+        plugin.offline_cam${ILLIXR_BUILD_SUFFIX}
+        #plugin.gtsam_integrator${ILLIXR_BUILD_SUFFIX}
+        plugin.gldemo${ILLIXR_BUILD_SUFFIX}
+        plugin.android_data${ILLIXR_BUILD_SUFFIX}
         android
         native_app_glue
         EGL
