@@ -25,6 +25,19 @@ find_package(Eigen3 REQUIRED)
 
 include_directories(include)
 set(${CMAKE_C_FLAGS} "${CMAKE_C_FLAGS}")
+string(TOLOWER "${CMAKE_BUILD_TYPE}" lower_type)
+if(lower_type MATCHES "debug")
+    set(DO_DEBUG Yes)
+    set(ILLIXR_BUILD_SUFFIX ".dbg")
+elseif(lower_type MATCHES "release")
+    set(ILLIXR_BUILD_SUFFIX ".opt")
+elseif(lower_type MATCHES "relwithdebinfo")
+    set(DO_DEBUG Yes)
+    set(ILLIXR_BUILD_SUFFIX ".optdbg")
+endif()
+add_definitions(-DILLIXR_BUILD_SUFFIX=${ILLIXR_BUILD_SUFFIX})
+
+
 add_library(native_app_glue STATIC
         ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c
 )
@@ -51,12 +64,8 @@ add_subdirectory(services/fauxpose)
 
 add_subdirectory(utils)
 
-
-if (ILLIXR_CAM)
-    add_subdirectory(plugins/offline_cam)
-    add_subdirectory(plugins/offline_imu)
-endif ()
-
+add_subdirectory(plugins/offline_cam)
+add_subdirectory(plugins/offline_imu)
 add_subdirectory(plugins/openvins)
 add_subdirectory(plugins/android_data)
 add_subdirectory(plugins/gldemo)
