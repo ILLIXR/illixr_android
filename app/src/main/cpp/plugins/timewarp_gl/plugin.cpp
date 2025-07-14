@@ -68,10 +68,10 @@ timewarp_gl::timewarp_gl(const std::string& name, phonebook* pb)
     spdlogger(switchboard_->get_env_char("TIMEWARP_GL_LOG_LEVEL"));
 #ifndef ENABLE_MONADO
     const std::shared_ptr<xlib_gl_extended_window> x_win = phonebook_->lookup_impl<xlib_gl_extended_window>();
-    display_                                             = x_win->display_;
-    root_window_                                         = x_win->my_window_;
-    context_                                             = x_win->context_;
-    surface_                                             = x_win->surface_;
+    display_                                             = x_win->display;
+    root_window_                                         = x_win->my_window;
+    context_                                             = x_win->context;
+    surface_                                             = x_win->surface;
 #else
     spdlog::get("illixr")->debug("ILLIXR_MONADO ..");
     // If we use Monado, timewarp_gl must create its own GL context because the extended window isn't used

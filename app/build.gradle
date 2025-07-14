@@ -32,7 +32,7 @@ android {
             cmake {
                 version '3.22.1'
                 cppFlags '-std=c++17', '-frtti', '-fexceptions'
-                arguments "-DOpenCV_DIR=${System.getenv('OPENCV_ANDROID_ROOT')}/sdk/native/jni", "-DBoost_DIR=${System.getenv('BOOST_ANDROID_ROOT')}/libs/arm64-v8a/cmake/Boost-1.72.0"
+                arguments "-DOpenCV_DIR=${System.getenv('OPENCV_ANDROID_ROOT')}/sdk/native/jni", "-DBoost_DIR=${System.getenv('BOOST_ANDROID_ROOT')}/libs/arm64-v8a/cmake/Boost-1.72.0", "-Dspdlog_android_DIR=${System.getenv('SPDLOG_ANDROID_ROOT')}/lib/cmake/spdlog_android"
             }
         }
     }

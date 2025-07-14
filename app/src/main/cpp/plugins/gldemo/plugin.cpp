@@ -92,7 +92,7 @@ void gldemo::_p_thread_setup() {
     // Note: glXMakeContextCurrent must be called from the thread which will be using it.
 
     [[maybe_unused]] const bool gl_result = 
-        static_cast<bool>(eglMakeCurrent(ext_window_->display_, ext_window_->surface_, ext_window_->surface_, ext_window_->context_));
+        static_cast<bool>(eglMakeCurrent(ext_window_->display, ext_window_->surface, ext_window_->surface, ext_window_->context));
     assert(gl_result && "eglMakeCurrent should not fail");
 }
 
@@ -102,10 +102,10 @@ void gldemo::_p_one_iteration() {
     wait_vsync();
 
     lock_->get_lock();
-    [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(ext_window_->display_,
-                                                                             ext_window_->surface_,
-                                                                             ext_window_->surface_,
-                                                                             ext_window_->context_));
+    [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(ext_window_->display,
+                                                                             ext_window_->surface,
+                                                                             ext_window_->surface,
+                                                                             ext_window_->context));
     assert(gl_result && "eglMakeCurrent should not fail");
 
     glUseProgram(demo_shader_program_);
@@ -190,7 +190,7 @@ void gldemo::_p_one_iteration() {
     which_buffer_ = !which_buffer_;
 
 
-    [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(ext_window_->display_,
+    [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(ext_window_->display,
                                                                                nullptr, nullptr,
                                                                                nullptr));
     assert(gl_result_1 && "glXMakeCurrent should not fail");
@@ -210,10 +210,10 @@ void gldemo::_p_one_iteration() {
 // We override start() to control our own lifecycle
 void gldemo::start() {
     lock_->get_lock();
-    [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(ext_window_->display_,
-                                                                               ext_window_->surface_,
-                                                                               ext_window_->surface_,
-                                                                               ext_window_->context_));
+    [[maybe_unused]] const bool gl_result_0 = static_cast<bool>(eglMakeCurrent(ext_window_->display,
+                                                                               ext_window_->surface,
+                                                                               ext_window_->surface,
+                                                                               ext_window_->context));
     assert(gl_result_0 && "glXMakeCurrent should not fail");
 
     // Init and verify GLEW
@@ -265,7 +265,7 @@ void gldemo::start() {
                               display_params::fov_y / 2.0f, display_params::fov_y / 2.0f, rendering_params::near_z,
                               rendering_params::far_z);
 
-    [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(ext_window_->display_,
+    [[maybe_unused]] const bool gl_result_1 = static_cast<bool>(eglMakeCurrent(ext_window_->display,
                                                                                nullptr, nullptr,
                                                                                nullptr));
     assert(gl_result_1 && "glXMakeCurrent should not fail");
