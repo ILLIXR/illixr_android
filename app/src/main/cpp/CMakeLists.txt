@@ -14,8 +14,8 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH})
 
 set(ILLIXR_INTEGRATION 1)
 find_package(OpenCV 4.5.5 REQUIRED CONFIG COMPONENTS opencv_java)
-
-find_package(Boost 1.72 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic iostreams serialization)
+set(Boost_COMPILER "clang18;clang")
+find_package(Boost 1.85.0 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic iostreams serialization)
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})

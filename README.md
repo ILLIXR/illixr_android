@@ -44,7 +44,7 @@ in `app/build.gradle`.
     7. Scroll down to the `CMake` section and check the entry for `3.22.1` if it is not already checked
     8. Click `OK`
     9. Android Studio will download and install the requested components, this may take a while
-    10. The installed components should be in `~/Android/Sdk`
+    10. The installed components should be in `${HOME}/Android/Sdk`
 
 For this project, we only built for the `arm64-v8a` architecture, as it is the architecture of our test device.
 If your has a different architecture, you will need to make changes to some of the commands below, as well as
@@ -87,7 +87,7 @@ replace the `<>` above with your working directory.
    cd opencv-4.5.5
    mkdir build
    cd build
-   ~/Android/Sdk/cmake/3.22.1/bin/cmake -DANDROID_ABI=arm64-v8a -DBUILD_DOCS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${ROOT_DIR} -DCMAKE_TOOLCHAIN_FILE=~/Android/Sdk/ndk/27.0.12077973/build/cmake/android.toolchain.cmake -DENABLE_PIC=ON -DOPENCV_EXTRA_MODULES_PATH=${ROOT_DIR}/opencv_contrib-4.5.5/modules -DANDROID_SDK_TOOLS=~/Android/Sdk/build-tools/33.0.0 -DANDROID_SDK_BUILD_TOOLS_VERSION=33.0.0 ..
+   ${HOME}/Android/Sdk/cmake/3.22.1/bin/cmake -DANDROID_ABI=arm64-v8a -DBUILD_DOCS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${ROOT_DIR} -DCMAKE_TOOLCHAIN_FILE=${HOME}/Android/Sdk/ndk/27.0.12077973/build/cmake/android.toolchain.cmake -DENABLE_PIC=ON -DOPENCV_EXTRA_MODULES_PATH=${ROOT_DIR}/opencv_contrib-4.5.5/modules -DANDROID_SDK_TOOLS=${HOME}/Android/Sdk/build-tools/33.0.0 -DANDROID_SDK_BUILD_TOOLS_VERSION=33.0.0 ..
    make -j4
    make install
    ```
@@ -111,26 +111,20 @@ replace the `<>` above with your working directory.
 2. Get the `Boost-for-Android` code
 
    ``` bash
-   git clone -b ndk_27c_boost_1.87.0 --single-branch https://github.com/dec1/Boost-for-Android.git
+   git clone https://github.com/moritz-wundke/Boost-for-Android.git
    ```
 
 3. Configure and build
 
    ``` bash
    cd Boost-for-Android
-   export BOOST_DIR=${ROOT_DIR}/boost_1_87_0
-   export NDK_DIR=~/Android/Sdk/ndk/27.0.12077973
-   export ABI_NAMES="arm64-v8a"
-   export LINKAGES="shared static"
-   ./__build.sh
+   ./build-android.sh --arch=arm64-v8a ${HOME}/Android/Sdk/ndk/27.0.12077973/
    ```
-
-    The build products will be in `${ROOT_DIR}/Boost-for-Android/build/install`
 
 4. Set an environment variable so the ILLIXR Android build can find this
 
    ``` bash
-   export BOOST_ANDROID_ROOT=${ROOT_DIR}/Boost-for-Android/build/install
+   export BOOST_ANDROID_ROOT=${ROOT_DIR}/Boost-for-Android/build/arm64-v8a
    ```
    
 5. If you run into any issues with building Boost. See the `README.md` file in `${ROOT_DIR}/Boost-for-Android`
@@ -145,7 +139,26 @@ sudo apt install libeigen3-dev
 
 #### spdlog
 
-ILLIXR uses sdplog for its logging framework. This library is automatically built as part of the ILLIXR for Android system.
+1. Get the code
+
+   ``` bash
+   git clone -b 24f11060dd018404017f243ddee7cdd72e7d7a96 --single-branch https://github.com/ILLIXR/spdlog.git
+   ```
+
+2. Configure and build
+
+   ``` bash
+   cd spdlog
+   ${HOME}/Android/Sdk/cmake/3.22.1/bin/cmake -DCMAKE_SYSTEM_NAME=Android -DANDROID_ABI=arm64-v8a -DCMAKE_ANDROID_NDK=/home/friedel/Android/Sdk/ndk/21.4.7075529 -DSPDLOG_BUILD_SHARED=ON -DSPDLOG_BUILD_PIC=ON -DCMAKE_INSTALL_PREFIX=${ROOT_DIR} -DCMAKE_TOOLCHAIN_FILE=${HOME}/Android/Sdk/ndk/27.0.12077973/build/cmake/android.toolchain.cmake
+   make -j4
+   make install
+   ```
+
+3. Set an environment variable so the ILLIXR Android build can find this
+
+   ``` bash
+   export SPDLOG_ANDROID_ROOT=${ROOT_DIR}
+   ```
 
 ### ILLIXR
 
