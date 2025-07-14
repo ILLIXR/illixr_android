@@ -151,7 +151,7 @@ timewarp_gl::timewarp_gl(const std::string& name, phonebook* pb)
     rendering_ready_     = false;
     image_handles_ready_ = false;
 //        swapchain_ready     = false;
-#ifdef ILLIXR_MONADO
+#ifdef ENABLE_MONADO
     semaphore_handles_ready    = false;
 #else
     //semaphore_handles_ready    = true;
@@ -533,7 +533,7 @@ void timewarp_gl::_setup() {
     assert(gl_result_1 && "eglMakeCurrent should not fail");
     spdlog::get("illixr")->debug("Android api level : %d", __ANDROID_API__);
 
-#ifdef ILLIXR_MONADO
+#ifdef ENABLE_MONADO
     sem_post(&lock_->sem_illixr);
 #else
     lock_->release_lock();
@@ -594,7 +594,7 @@ void timewarp_gl::_prepare_rendering() {
 
 void timewarp_gl::warp(const switchboard::ptr<const rendered_frame>& most_recent_frame) {
 
-#ifdef ILLIXR_MONADO
+#ifdef ENABLE_MONADO
     sem_wait(&lock_->sem_monado);
 #else
     lock_->get_lock();
@@ -815,7 +815,7 @@ void timewarp_gl::warp(const switchboard::ptr<const rendered_frame>& most_recent
                                                                                nullptr));
     assert(gl_result_1 && "eglMakeCurrent should not fail");
 
-#ifdef ILLIXR_MONADO
+#ifdef ENABLE_MONADO
     sem_post(&lock_->sem_illixr);
 #else
     lock_->release_lock();
@@ -951,7 +951,7 @@ void timewarp_gl::vulkanGL_interop_buffer(const vk_buffer_handle& vk_buffer_hand
     }
 }
 
-#ifdef ILLIXR_MONADO
+#ifdef ENABLE_MONADO
 void timewarp_gl::import_vulkan_semaphore(const semaphore_handle& vk_handle) {
         [[maybe_unused]] const bool gl_result = static_cast<bool>(eglMakeCurrent(display_, surface_, surface_, context_));
         assert(gl_result && "glXMakeCurrent should not fail");

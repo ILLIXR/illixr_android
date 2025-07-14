@@ -5,13 +5,13 @@ plugins {
 android {
     signingConfigs {
         debug {
-            storeFile file('/home/friedel/illixr.keystore')
+            storeFile file("${System.getenv('HOME')}/illixr.keystore")
             storePassword 'illixr'
             keyAlias 'illixr'
             keyPassword 'illixr'
         }
         release {
-            storeFile file('/home/friedel/illixr.keystore')
+            storeFile file("${System.getenv('HOME')}/illixr.keystore")
             storePassword 'illixr'
             keyAlias 'illixr'
             keyPassword 'illixr'

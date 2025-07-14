@@ -6,8 +6,6 @@
 #include <vector>
 #include <csignal>
 
-//#define ILLIXR_MONADO 1
-
 #ifndef NDEBUG
 /**
  * @brief A signal handler for SIGILL.

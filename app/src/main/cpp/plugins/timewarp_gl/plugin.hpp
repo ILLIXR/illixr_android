@@ -11,8 +11,6 @@
 #include "illixr/switchboard.hpp"
 #include "illixr/threadloop.hpp"
 
-//#define ENABLE_MONADO 1
-
 namespace ILLIXR {
 
 #ifdef ILLIXR_ANDROID_BUILD
