@@ -48,6 +48,6 @@ protected:
 extern "C" runtime* runtime_factory();
 #else
 extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window);
-#endif /// ENABLE_MONADO_MAINLINE
+#endif /// ENABLE_MONADO
 
 } // namespace ILLIXR

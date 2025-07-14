@@ -1,5 +1,4 @@
-find_package(spdlog_android 1.15.3 REQUIRED CONFIG)
-
+find_package(spdlog_android 1.15.3 REQUIRED)
 #if(NOT spdlog_android_FOUND)
 #    externalproject_add(spdlog_android
 #            GIT_REPOSITORY https://github.com/ILLIXR/spdlog.git
