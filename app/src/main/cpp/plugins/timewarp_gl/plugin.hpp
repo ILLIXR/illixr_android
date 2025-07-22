@@ -62,7 +62,7 @@ private:
     [[nodiscard]] time_point                get_next_swap_time_estimate();
     [[nodiscard]] duration estimate_time_to_sleep(double frame_percentage);
 #else
-    void import_vulkan_semaphore(const semaphore_handle& vk_handle);
+    void import_vulkan_semaphore(const data_format::semaphore_handle& vk_handle);
 #endif
 
     const std::shared_ptr<switchboard>                  switchboard_;
@@ -98,6 +98,7 @@ private:
 
     // Synchronization helper for Monado
     switchboard::writer<data_format::signal_to_quad> signal_quad_;
+    ullong signal_quad_seq_{0};
 
     // When using Monado, timewarp is a plugin and not a threadloop, but we still keep track of the iteration number
     std::size_t iteration_no = 0;

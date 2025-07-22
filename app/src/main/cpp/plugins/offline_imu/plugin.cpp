@@ -2,8 +2,6 @@
 
 #include "illixr/data_loading.hpp"
 
-#include <chrono>
-
 using namespace ILLIXR;
 using namespace ILLIXR::data_format;
 

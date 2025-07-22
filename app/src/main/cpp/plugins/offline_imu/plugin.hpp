@@ -2,7 +2,6 @@
 
 #include "illixr/data_format/imu.hpp"
 #include "illixr/data_format/misc.hpp"
-#include "illixr/managed_thread.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/relative_clock.hpp"
 #include "illixr/switchboard.hpp"

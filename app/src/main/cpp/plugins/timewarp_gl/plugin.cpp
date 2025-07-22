@@ -152,7 +152,7 @@ timewarp_gl::timewarp_gl(const std::string& name, phonebook* pb)
     image_handles_ready_ = false;
 //        swapchain_ready     = false;
 #ifdef ENABLE_MONADO
-    semaphore_handles_ready    = false;
+    //semaphore_handles_ready_    = false;
 #else
     //semaphore_handles_ready    = true;
 #endif
