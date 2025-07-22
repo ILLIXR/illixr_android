@@ -1,3 +1,4 @@
+#ifndef ENABLE_MONADO
 #include "illixr.hpp"
 #include <android_native_app_glue.h>
 #include <EGL/egl.h>
@@ -50,7 +51,6 @@ extern "C" {
 
     }
 }
-
 
 static void handle_cmd(struct android_app* app, int32_t cmd) {
     if (cmd == APP_CMD_INIT_WINDOW) {
@@ -111,3 +111,4 @@ void android_main(struct android_app* state) {
         } while (ident >= 0);
     }
 }
+#endif

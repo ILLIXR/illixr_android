@@ -58,120 +58,8 @@ how to build a run an App can be found on the Android documentation [pages][2].
 
 ### Dependencies
 
-While ILLIXR for Android
-depends on several common packages, the versions installed by OS packages managers are not compatible with
-the Android architecture and need to be built from source. For the purposes of this example we are calling the directory where we are downloading packages `ROOT_DIR`.
+While ILLIXR for Android depends on several common packages, the versions installed by OS packages managers are not compatible with the Android architecture and need to be built from source. The ILLIXR build system will compile these libraries for you, and store them in the `third_party` folder. Only delete the contents of this folder if you wish to rebuild these external libraries.
 
-``` bash
-export ROOT_DIR=<>
-```
-
-replace the `<>` above with your working directory.
-#### OpenCV
-
-1. Download OpenCV and its extras
-
-   ``` bash
-   wget -O opencv-4.5.5.zip https://github.com/opencv/opencv/archive/4.5.5.zip
-   wget -O opencv_contrib-4.5.5.zip https://github.com/opencv/opencv_contrib/archive/refs/tags/4.5.5.zip
-   ```
-
-2. Unzip the archives
-
-   ``` bash
-   unzip opencv-4.5.5.zip
-   unzip opencv_contrib-4.5.5.zip
-   ```
-
-3. Configure and build. We are installing into `${ROOT_DIR}`, but you can choose any destination
-
-   ``` bash
-   cd opencv-4.5.5
-   mkdir build
-   cd build
-   ${HOME}/Android/Sdk/cmake/3.22.1/bin/cmake -DANDROID_ABI=arm64-v8a -DBUILD_DOCS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${ROOT_DIR} -DCMAKE_TOOLCHAIN_FILE=${HOME}/Android/Sdk/ndk/27.0.12077973/build/cmake/android.toolchain.cmake -DENABLE_PIC=ON -DOPENCV_EXTRA_MODULES_PATH=${ROOT_DIR}/opencv_contrib-4.5.5/modules -DANDROID_SDK_TOOLS=${HOME}/Android/Sdk/build-tools/33.0.0 -DANDROID_SDK_BUILD_TOOLS_VERSION=33.0.0 ..
-   make -j4
-
-   make install
-   ```
-
-4. Set an environment variable so the ILLIXR Android build can find this
-
-   ``` bash
-   export OPENCV_ANDROID_ROOT=${ROOT_DIR}
-   ```
-
-#### Boost
-
-1. Download Boost and unpack
-
-   ``` bash
-   cd ${ROOT_DIR}
-   wget https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz
-   tar xf boost_1_87_0.tar.gz
-   ```
-   
-2. Get the `Boost-for-Android` code
-
-   ``` bash
-   wget https://github.com/dec1/Boost-for-Android/archive/refs/tags/ndk_21_boost_1.72.0.zip
-   unzip ndk_21_boost_1.72.0.zip
-   ```
-
-3. Configure and build
-
-   ``` bash
-   cd Boost-for-Android-ndk_21_boost_1.72.0
-   export BOOST_DIR=${ROOT_DIR}/boost_1_72_0
-   export NDK_DIR=${HOME}/Android/Sdk/ndk/21.4.7075529
-   export ABI_NAMES="arm64-v8a"
-   export LINKAGES="shared static"
-   sh build.sh
-   ```
-
-    The build products will be in `${ROOT_DIR}/Boost-for-Android-ndk_21_boost_1.72.0/build/install`
-
-4. Set an environment variable so the ILLIXR Android build can find this
-
-   ``` bash
-   export BOOST_ANDROID_ROOT=${ROOT_DIR}/Boost-for-Android-ndk_21_boost_1.72.0/build/install
-   ```
-   
-5. If you run into any issues with building Boost. See the `README.md` file in `${ROOT_DIR}/Boost-for-Android-ndk_21_boost_1.72.0`
-
-> [!NOTE]
-> Depending on the specific compiler you are using, you may need to change line 130 of `${ROOT_DIR}/Boost-for-Android-ndk_21_boost_1.72.0/build/install/include/boost/container_has/hash.hpp` to read `std::__unary_function`.
-
-#### Eigen3
-
-Eigen3 does not need special compilation as it is a header-only library, so the system version is all that is needed.
-
-``` bash
-sudo apt install libeigen3-dev
-```
-
-#### spdlog
-
-1. Get the code
-
-   ``` bash
-   git clone -b 24f11060dd018404017f243ddee7cdd72e7d7a96 --single-branch https://github.com/ILLIXR/spdlog.git
-   ```
-
-2. Configure and build
-
-   ``` bash
-   cd spdlog
-   ${HOME}/Android/Sdk/cmake/3.22.1/bin/cmake -DCMAKE_SYSTEM_NAME=Android -DANDROID_ABI=arm64-v8a -DCMAKE_ANDROID_NDK=/home/friedel/Android/Sdk/ndk/21.4.7075529 -DSPDLOG_BUILD_SHARED=ON -DSPDLOG_BUILD_PIC=ON -DCMAKE_INSTALL_PREFIX=${ROOT_DIR} -DCMAKE_TOOLCHAIN_FILE=${HOME}/Android/Sdk/ndk/27.0.12077973/build/cmake/android.toolchain.cmake
-   make -j4
-   make install
-   ```
-
-3. Set an environment variable so the ILLIXR Android build can find this
-
-   ``` bash
-   export SPDLOG_ANDROID_ROOT=${ROOT_DIR}
-   ```
 ### ILLIXR
 
 1. Clone the repository
@@ -277,7 +165,7 @@ We use a version of Monado to act as an OpenXR interface.
 
    ``` bash
    mkdir -p ${ROOT_DIR}/Illixr_Monado_Android/src/xrt/targets/openxr_android/src/main/jniLibs/arm64-v8a
-   cp ${ROOT_DIR}/illixr_android/app/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a/*.so ${ROOT_DIR}/Illixr_Monado_Android/src/xrt/targets/openxr_android/src/main/jniLibs/arm64-v8a/.
+   cp ${ROOT_DIR}/illixr_android/app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/arm64-v8a/*.so ${ROOT_DIR}/Illixr_Monado_Android/src/xrt/targets/openxr_android/src/main/jniLibs/arm64-v8a/.
    ```
 
 8. Open the ILLIXR_Monado_Android project in Android Studio

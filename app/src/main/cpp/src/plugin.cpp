@@ -16,7 +16,7 @@ int ILLIXR::run(const std::vector<std::string>& plugins, ANativeWindow* window) 
     try {
 
 #ifdef ENABLE_MONADO
-        r = ILLIXR::runtime_factory();
+        runtime_ = ILLIXR::runtime_factory();
 #else
         runtime_ = ILLIXR::runtime_factory(EGL_NO_CONTEXT, window);
 #endif /// ENABLE_MONADO
