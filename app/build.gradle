@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
 }
 
+def root_path = rootProject.getLayout().getProjectDirectory().getAsFile().getPath() + "/third_party/"
+
+
 android {
     signingConfigs {
         debug {
@@ -18,7 +21,7 @@ android {
         }
     }
     compileSdkVersion 33
-    ndkVersion '27.0.12077973'
+    ndkVersion '27.2.12479018'
 
     defaultConfig {
         applicationId = 'com.example.native_activity'
@@ -32,7 +35,7 @@ android {
             cmake {
                 version '3.22.1'
                 cppFlags '-std=c++17', '-frtti', '-fexceptions'
-                arguments "-DOpenCV_DIR=${System.getenv('OPENCV_ANDROID_ROOT')}/sdk/native/jni", "-DBoost_DIR=${System.getenv('BOOST_ANDROID_ROOT')}/libs/arm64-v8a/cmake/Boost-1.72.0", "-Dspdlog_android_DIR=${System.getenv('SPDLOG_ANDROID_ROOT')}/lib/cmake/spdlog_android"
+                arguments "-DTHIRD_PARTY_DIR=${root_path}"
             }
         }
     }

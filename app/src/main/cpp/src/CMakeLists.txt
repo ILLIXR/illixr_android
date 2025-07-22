@@ -19,7 +19,8 @@ target_include_directories(native-activity PRIVATE
         ${ILLIXR_SOURCE_DIR}/include
         ${OpenCV_LIBS}
         ${jnigraphics-lib}
-        ${ANDROID_NDK}/sources/android/native_app_glue)
+        ${ANDROID_NDK}/sources/android/native_app_glue
+)
 
 target_link_libraries(native-activity
         plugin.extended_window${ILLIXR_BUILD_SUFFIX}
