@@ -1,10 +1,11 @@
 # Project exclude paths
-/.gradle/
-/app/.cxx/
-/app/build/
-/app/build/intermediates/javac/debug/classes/
+.gradle/
+app/.cxx/
+app/build/
+app/build/intermediates/javac/debug/classes/
 .idea
-
+third_party/
+!third_party/README.md
 build/reports/problems/problems-report.html
 
 *.so
