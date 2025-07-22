@@ -8,6 +8,7 @@ third_party/
 !third_party/README.md
 build/reports/problems/problems-report.html
 
+*.apk
 *.so
 
 local.properties
