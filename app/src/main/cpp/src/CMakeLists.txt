@@ -1,3 +1,26 @@
+if (ANDROID)
+    set(VULKAN_FILES
+            display/android_display.hpp
+            display/android_display.cpp
+            vulkan_display.hpp
+            vulkan_display.cpp
+            ${CMAKE_SOURCE_DIR}/include/illixr/vk/vk_extension_request.hpp
+            ${CMAKE_SOURCE_DIR}/include/illixr/vk/vulkan_objects.hpp
+    )
+else()
+    set(VULKAN_FILES
+            display/x11_direct.hpp
+            display/x11_direct.cpp
+            display/glfw_extended.hpp
+            display/glfw_extended.cpp
+            display/headless.hpp
+            display/headless.cpp
+            display/android_display.hpp
+            display/android_display.cpp
+            ${CMAKE_SOURCE_DIR}/include/illixr/vk/vk_extension_request.hpp
+            ${CMAKE_SOURCE_DIR}/include/illixr/vk/vulkan_objects.hpp
+    )
+endif()
 add_library(native-activity SHARED
         illixr.hpp
         main.cpp
@@ -6,6 +29,7 @@ add_library(native-activity SHARED
         noop_record_logger.hpp
         sqlite_record_logger.hpp
         stdout_record_logger.hpp
+        ${VULKAN_FILES}
         ${CMAKE_SOURCE_DIR}/include/illixr/dynamic_lib.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/error_util.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/extended_window.hpp

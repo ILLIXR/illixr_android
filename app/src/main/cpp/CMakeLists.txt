@@ -23,7 +23,7 @@ set(ILLIXR_INTEGRATION 1)
 include(cmake/GetOpenCV.cmake)
 include(cmake/GetBoost.cmake)
 include(cmake/Getspdlog.cmake)
-
+include(cmake/HelperFunctions.cmake)
 
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -70,6 +70,7 @@ add_subdirectory(services/common_lock)
 add_subdirectory(services/pose_prediction)
 add_subdirectory(services/pose_lookup)
 add_subdirectory(services/fauxpose)
+add_subdirectory(services/vkdemo)
 
 add_subdirectory(utils)
 
@@ -81,6 +82,6 @@ add_subdirectory(plugins/gldemo)
 #add_subdirectory(plugins/gtsam_integrator)
 add_subdirectory(plugins/rk4_integrator)
 add_subdirectory(plugins/timewarp_gl)
-
+add_subdirectory(plugins/timewarp_vk)
 
 add_subdirectory(src)

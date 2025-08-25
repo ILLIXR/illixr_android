@@ -1,0 +1,13 @@
+macro(install_shaders SHADER_LIST PLUG LIB_NAME)
+    foreach(ITEM IN LISTS ${SHADER_LIST})
+        if(DO_DEBUG)
+            set(LOC "Debug")
+        else()
+            set(LOC "Release")
+        endif()
+        set(INST_LOC "${CMAKE_INSTALL_PREFIX}/share/illixr/shaders/${PLUG}/${LOC}")
+        install(FILES "${ITEM}"
+                DESTINATION ${INST_LOC})
+    endforeach()
+    target_compile_definitions(${LIB_NAME} PUBLIC -DSHADER_FOLDER=\"${INST_LOC}\")
+endmacro()
