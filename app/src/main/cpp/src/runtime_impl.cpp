@@ -54,10 +54,11 @@ class runtime_impl : public runtime {
 public:
     explicit runtime_impl(
 #ifndef ENABLE_MONADO
-            EGLContext appGLCtx,
-            ANativeWindow *window
+            ANativeWindow *window) : window_{window} {
+#else
+    () {
 #endif
-            ) {
+
         spdlogger("illixr", std::getenv("ILLIXR_LOG_LEVEL")); // can't use switchboard interface here
         phonebook_.register_impl<relative_clock>(std::make_shared<relative_clock>());
 #ifndef ILLIXR_ANDROID_BUILD
@@ -95,7 +96,11 @@ public:
                 switchboard_->get_env_char("ILLIXR_DISPLAY_MODE") ? switchboard_->get_env_char("ILLIXR_DISPLAY_MODE") : "glfw";
 #endif
             if (display_mode != "none")
-                phonebook_.register_impl<vulkan::display_provider>(std::make_shared<display_vk>(&phonebook_));
+                phonebook_.register_impl<vulkan::display_provider>(std::make_shared<display_vk>(&phonebook_
+#ifdef ILLIXR_ANDROID_BUILD
+, window_
+#endif
+));
         }
 
         RAC_ERRNO_MSG("runtime_impl after generating plugin factories");
@@ -207,6 +212,9 @@ private:
     std::vector<dynamic_lib>             libraries_;
     phonebook                            phonebook_;
     std::vector<std::shared_ptr<plugin>> plugins_;
+#ifndef ENABLE_MONADO
+    ANativeWindow* window_;
+#endif
 };
 
 
@@ -216,8 +224,8 @@ extern "C" runtime* runtime_factory() {
         return new runtime_impl{};
     }
 #else
-extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window) {
+extern "C" runtime* runtime_factory(ANativeWindow *window) {
     RAC_ERRNO_MSG("runtime_impl before creating the runtime");
-    return new runtime_impl{appGLCtx, window};
+    return new runtime_impl{window};
 }
 #endif /// ENABLE_MONADO

@@ -17,13 +17,21 @@
 using namespace ILLIXR;
 class display_vk : public vulkan::display_provider {
 public:
-    explicit display_vk(const phonebook* const pb)
-        : switchboard_{pb->lookup_impl<switchboard>()}
-        , clock_{pb->lookup_impl<relative_clock>()} {
-        // ILLIXR_DISPLAY_MODE defaults to GLFW if not specified.
+    explicit display_vk(const phonebook* const pb
+#ifdef ILLIXR_ANDROID_BUILD
+    , ANativeWindow* window
+#endif
+    )
+            : switchboard_{pb->lookup_impl<switchboard>()}
+            , clock_{pb->lookup_impl<relative_clock>()}
+#ifdef ILLIXR_ANDROID_BUILD
+            , window_{window}
+#endif
+        {
 #ifdef ILLIXR_ANDROID_BUILD
         backend_type_ = display::display_backend::ANDROID_DISPLAY;
 #else
+        // ILLIXR_DISPLAY_MODE defaults to GLFW if not specified.
         const char* env_var = switchboard_->get_env_char("ILLIXR_DISPLAY_MODE");
         if (!strcmp(env_var, "glfw")) {
             spdlog::get("illixr")->info("[vulkan_display] Selected GLFW for display backend");
@@ -91,9 +99,10 @@ private:
     void destroy_swapchain();
     void cleanup();
 
+#ifndef ILLIXR_ANDROID_BUILD
     void main_loop();
+#endif
 
-private:
     std::vector<const char*> required_device_extensions_ = {VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME};
 
     std::thread       main_thread_;
@@ -111,4 +120,8 @@ private:
     std::atomic<bool> should_poll_{true};
 
     std::shared_ptr<relative_clock> clock_;
+
+#ifdef ILLIXR_ANDROID_BUILD
+    ANativeWindow* window_;
+#endif
 };

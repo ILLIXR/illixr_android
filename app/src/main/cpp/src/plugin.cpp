@@ -1,6 +1,5 @@
 #include "illixr.hpp"
 
-#include <EGL/egl.h>
 #include <csignal>
 #include <unistd.h> /// Not portable
 
@@ -18,7 +17,7 @@ int ILLIXR::run(const std::vector<std::string>& plugins, ANativeWindow* window) 
 #ifdef ENABLE_MONADO
         runtime_ = ILLIXR::runtime_factory();
 #else
-        runtime_ = ILLIXR::runtime_factory(EGL_NO_CONTEXT, window);
+        runtime_ = ILLIXR::runtime_factory(window);
 #endif /// ENABLE_MONADO
 
 // set internal env_vars

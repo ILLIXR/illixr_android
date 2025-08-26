@@ -6,16 +6,28 @@ android_display::android_display() {}
 
 void android_display::setup_display(const std::shared_ptr<switchboard> sb, VkInstance vk_instance,
                                     VkPhysicalDevice vk_physical_device) {
+    (void)sb;
     this->vk_instance_ = vk_instance;
     this->vk_physical_device_ = vk_physical_device;
 }
 
-VkSurfaceKHR android_display::create_surface() {
-
-    return VK_NULL_HANDLE;
+VkSurfaceKHR android_display::create_surface(ANativeWindow* window) {
+    VkSurfaceKHR surface;
+    VkAndroidSurfaceCreateInfoKHR create_info{
+        .sType= VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
+        .pNext = nullptr,
+        .flags = 0,
+        .window = window
+        };
+    if (vkCreateAndroidSurfaceKHR(vk_instance_, &create_info, nullptr, &surface) != VK_SUCCESS) {
+        ILLIXR::abort("Failed to get vulkan surface");
+    }
+    return surface;
 }
 
-void android_display::cleanup() { }
+void android_display::cleanup() {
+    ANativeWindow_release(window_);
+}
 
 std::set<const char*> android_display::get_required_instance_extensions() {
     std::set<const char*> extensions{VK_KHR_SURFACE_EXTENSION_NAME};
@@ -46,9 +58,10 @@ std::set<const char*> android_display::get_required_instance_extensions() {
 }
 
 std::set<const char*> android_display::get_required_device_extensions() {
-    return {};
+    return {};//{VK_KHR_SW};
 }
 
 display_backend::display_backend_type android_display::get_type() {
     return ANDROID_DISPLAY;
 }
+

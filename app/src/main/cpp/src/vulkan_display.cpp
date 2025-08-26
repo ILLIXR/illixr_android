@@ -13,7 +13,7 @@ void display_vk::start(std::set<const char*> instance_extensions, std::set<const
     selected_gpu_                = manual_device_selection ? std::stoi(manual_device_selection) : -1;
 
     setup(std::move(instance_extensions), std::move(device_extensions));
-
+#ifndef ILLIXR_ANDROID_BUILD
     if (backend_type_ == display::display_backend::GLFW /* || backend_type_ == display::display_backend::X11_DIRECT*/) {
         main_thread_ = std::thread(&display_vk::main_loop, this);
         while (!ready_) {
@@ -21,6 +21,7 @@ void display_vk::start(std::set<const char*> instance_extensions, std::set<const
             std::this_thread::yield();
         }
     }
+#endif
 }
 
 void display_vk::setup(std::set<const char*> instance_extensions, std::set<const char*> device_extensions) {
@@ -45,7 +46,7 @@ void display_vk::setup(std::set<const char*> instance_extensions, std::set<const
 #ifdef ILLIXR_ANDROID_BUILD
     select_physical_device();
     backend_->setup_display(switchboard_, vk_instance_, vk_physical_device_);
-    vk_surface_ = backend_->create_surface();
+    vk_surface_ = backend_->create_surface(window_);
 #else
     if (backend_type_ == display::display_backend::GLFW) {
             backend_->setup_display(switchboard_, vk_instance_, nullptr);
@@ -191,6 +192,7 @@ bool display_vk::is_physical_device_suitable(const VkPhysicalDevice& physical_de
         return false;
     }
 
+#ifndef ILLIXR_ANDROID_BUILD
     if (backend_type_ == display::display_backend::GLFW) {
         // check if the device supports the swapchain we need
         auto swapchain_details = vulkan::query_swapchain_details(physical_device, vk_surface_);
@@ -198,7 +200,7 @@ bool display_vk::is_physical_device_suitable(const VkPhysicalDevice& physical_de
             return false;
         }
     }
-
+#endif
     return true;
 }
 
@@ -321,7 +323,7 @@ void display_vk::create_logical_device(const std::set<const char*>& device_exten
         spdlog::get("illixr")->info("\t {}", extension);
     }
 
-    VK_ASSERT_SUCCESS(vkCreateDevice(vk_physical_device_, &create_info, nullptr, &vk_device_));
+    VK_ASSERT_SUCCESS(vkCreateDevice(vk_physical_device_, &create_info, nullptr, &vk_device_))
 
     vulkan::queue graphics_queue{};
     vkGetDeviceQueue(vk_device_, indices.graphics_family.value(), 0, &graphics_queue.vk_queue);
@@ -397,29 +399,38 @@ void display_vk::create_swapchain() {
 
     // choose present mode
     VkPresentModeKHR swapchain_present_mode = VK_PRESENT_MODE_FIFO_KHR;
+#ifndef ILLIXR_ANDROID_BUILD
     for (const auto& available_present_mode : swapchain_details.present_modes) {
         if (available_present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
             swapchain_present_mode = available_present_mode;
             break;
         }
     }
+#endif
 
     // choose swapchain extent
     if (swapchain_details.capabilities.currentExtent.width != UINT32_MAX) {
         swapchain_extent_ = swapchain_details.capabilities.currentExtent;
+#ifndef ILLIXR_ANDROID_BUILD
     } else if (std::dynamic_pointer_cast<display::glfw_extended>(backend_) != nullptr) {
         auto fb_size             = std::dynamic_pointer_cast<display::glfw_extended>(backend_)->get_framebuffer_size();
         swapchain_extent_.width  = std::clamp(fb_size.first, swapchain_details.capabilities.minImageExtent.width,
                                               swapchain_details.capabilities.maxImageExtent.width);
         swapchain_extent_.height = std::clamp(fb_size.second, swapchain_details.capabilities.minImageExtent.height,
                                               swapchain_details.capabilities.maxImageExtent.height);
+#endif
     }
-
+    uint32_t image_count;
+#ifdef ILLIXR_ANDROID_BUILD
+    VkSurfaceCapabilitiesKHR capabilities;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk_physical_device_, vk_surface_, &capabilities);
+    image_count = capabilities.minImageCount;
+#else
     uint32_t image_count = std::max(swapchain_details.capabilities.minImageCount, 2u); // double buffering
     if (swapchain_details.capabilities.maxImageCount > 0 && image_count > swapchain_details.capabilities.maxImageCount) {
         image_count = swapchain_details.capabilities.maxImageCount;
     }
-
+#endif
     VkSwapchainCreateInfoKHR create_info{}; //{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
     create_info.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_info.surface          = vk_surface_;
@@ -429,10 +440,20 @@ void display_vk::create_swapchain() {
     create_info.imageExtent      = swapchain_extent_;
     create_info.imageArrayLayers = 1;
     create_info.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+#ifdef ILLIXR_ANDROID_BUILD
+
+#endif
 
     vulkan::queue_families indices                = vulkan::find_queue_families(vk_physical_device_, vk_surface_);
     uint32_t               queue_family_indices[] = {indices.graphics_family.value(), indices.present_family.value()};
 
+#ifdef ILLIXR_ANDROID_BUILD
+    create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    create_info.queueFamilyIndexCount = 1;
+    create_info.pQueueFamilyIndices   = queue_family_indices;
+    create_info.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    create_info.clipped        = VK_FALSE;
+#else
     if (indices.graphics_family != indices.present_family) {
         create_info.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
         create_info.queueFamilyIndexCount = 2;
@@ -442,11 +463,11 @@ void display_vk::create_swapchain() {
         create_info.queueFamilyIndexCount = 0;
         create_info.pQueueFamilyIndices   = nullptr;
     }
-
     create_info.preTransform   = swapchain_details.capabilities.currentTransform;
-    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    create_info.presentMode    = swapchain_present_mode;
     create_info.clipped        = VK_TRUE;
+#endif
+    create_info.presentMode    = swapchain_present_mode;
+    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     create_info.oldSwapchain   = VK_NULL_HANDLE;
 
     auto create_shared_swapchains =
@@ -492,6 +513,7 @@ void display_vk::cleanup() {
     backend_->cleanup();
 }
 
+#ifndef ILLIXR_ANDROID_BUILD
 void display_vk::main_loop() {
     ready_ = true;
 
@@ -504,3 +526,4 @@ void display_vk::main_loop() {
         }
     }
 }
+#endif

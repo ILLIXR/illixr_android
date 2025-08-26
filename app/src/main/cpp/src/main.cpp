@@ -53,39 +53,39 @@ extern "C" {
 }
 
 static void handle_cmd(struct android_app* app, int32_t cmd) {
-    if (cmd == APP_CMD_INIT_WINDOW) {
-//            std::vector<std::string> arguments = { "", "libandroid_imu_cam.so"};
-//            std::vector<std::string> arguments = { "", "libslam.so" ,"librk4_integrator.so",
-//                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
-//            std::vector<std::string> arguments = { "",
-//                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
-        const std::vector<std::string> plugins = { "openvins", "offline_cam", "offline_imu" ,"rk4_integrator",
-                                             "pose_prediction",  "common_lock", "timewarp_gl", "gldemo"};
+    switch(cmd) {
+        case APP_CMD_INIT_WINDOW: {
+            const std::vector<std::string> plugins = {"openvins", "offline_cam", "offline_imu", "rk4_integrator",
+                                                      "pose_prediction", "common_lock", "timewarp_gl", "gldemo"};
 
-        //EuRoC
-        setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
-        setenv("ILLIXR_LOG", "/sdcard/Android/data/com.example.native_activity/log.txt", true);
+            //EuRoC
+            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
+            setenv("ILLIXR_LOG", "/sdcard/Android/data/com.example.native_activity/log.txt", true);
 
             //Android
-//            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/android_new", true);
-        setenv("ILLIXR_DEMO_DATA", "/sdcard/Android/data/com.example.native_activity/demo_data", true);
-        setenv("ILLIXR_OFFLOAD_ENABLE", "False", true);
-        setenv("ILLIXR_ALIGNMENT_ENABLE", "False", true);
-        setenv("ILLIXR_ENABLE_VERBOSE_ERRORS", "False", true);
-        setenv("ILLIXR_RUN_DURATION", "1000000", true);
-        setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
-        setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
+            //            setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/android_new", true);
+            setenv("ILLIXR_DEMO_DATA", "/sdcard/Android/data/com.example.native_activity/demo_data", true);
+            setenv("ILLIXR_OFFLOAD_ENABLE", "False", true);
+            setenv("ILLIXR_ALIGNMENT_ENABLE", "False", true);
+            setenv("ILLIXR_ENABLE_VERBOSE_ERRORS", "False", true);
+            setenv("ILLIXR_RUN_DURATION", "1000000", true);
+            setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
+            setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
 #ifndef NDEBUG
-        /// When debugging, register the SIGILL and SIGABRT handlers for capturing more info
-        std::signal(SIGILL, sigill_handler);
-        std::signal(SIGABRT, sigabrt_handler);
+            // When debugging, register the SIGILL and SIGABRT handlers for capturing more info
+            std::signal(SIGILL, sigill_handler);
+            std::signal(SIGABRT, sigabrt_handler);
 #endif /// NDEBUG
 
-        /// Shutting down method 1: Ctrl+C
-        std::signal(SIGINT, sigint_handler);
+            // Shutting down method 1: Ctrl+C
+            std::signal(SIGINT, sigint_handler);
 
-        std::thread runtime_thread(ILLIXR::run, plugins, app->window);
-        runtime_thread.join();
+            std::thread runtime_thread(ILLIXR::run, plugins, app->window);
+            runtime_thread.join();
+            break;
+        }
+        default:
+            break;
     }
 }
 

@@ -67,5 +67,6 @@ target_link_libraries(native-activity
         Eigen3::Eigen
         Boost::serialization
         spdlog::spdlog_android
+        vulkan
 )
 
