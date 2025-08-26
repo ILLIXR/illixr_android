@@ -11,7 +11,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
         ${ANDROID_NDK}/sources/android/native_app_glue
 )
 
-target_link_directories(${PLUGIN_NAME}
+target_link_libraries(${PLUGIN_NAME}
         opencv_core
         camera2ndk
         android
