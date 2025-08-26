@@ -12,7 +12,6 @@
     <uses-permission android:name="android.permission.RECORD_VIDEO" />
     <uses-permission android:name="horizonos.permission.HEADSET_CAMERA"/>
     <uses-feature android:name="android.hardware.camera2.any" android:required="true"/>
-    <!-- This .apk has no Java code itself, so set hasCode to false. -->
     <application
         android:allowBackup="false"
         android:fullBackupContent="false"
