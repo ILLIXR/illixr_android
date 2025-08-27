@@ -17,3 +17,13 @@ target_link_libraries(${PLUGIN_NAME}
         GLESv3
         spdlog::spdlog_android
 )
+
+if (BUILDING_SPDLOG)
+    add_dependencies(${PLUGIN_NAME} spdlog_android)
+endif()
+if (BUILDING_OPENCV)
+    add_dependencies(${PLUGIN_NAME} OpenCV_Android)
+endif()
+if (BUILDING_BOOST)
+    add_dependencies(${PLUGIN_NAME} Boost_Install)
+endif()

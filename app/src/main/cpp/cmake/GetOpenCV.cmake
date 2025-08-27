@@ -2,9 +2,10 @@ find_package(OpenCV 4.5.5 QUIET CONFIG COMPONENTS opencv_java)
 
 if(NOT OpenCV_FOUND)
     set(HOME_DIR "$ENV{HOME}")
-    file(DOWNLOAD  ${CMAKE_BINARY_DIR}/_deps/opencv-4.5.5.zip)
+    file(DOWNLOAD https://github.com/opencv/opencv/archive/4.5.5.zip ${CMAKE_BINARY_DIR}/_deps/opencv-4.5.5.zip)
+    file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/_deps/opencv-4.5.5.zip DESTINATION ${CMAKE_BINARY_DIR}/_deps)
     file(DOWNLOAD https://github.com/opencv/opencv_contrib/archive/refs/tags/4.5.5.zip ${CMAKE_BINARY_DIR}/_deps/opencv_contrib-4.5.5.zip)
-    file(ARCHIVE_EXTRACT ${CMAKE_BINARY_DIR}/_deps/opencv_contrib-4.5.5.zip DESTINATION ${CMAKE_BINARY_DIR}/_deps)
+    file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/_deps/opencv_contrib-4.5.5.zip DESTINATION ${CMAKE_BINARY_DIR}/_deps)
     externalproject_add(OpenCV_Android
             URL https://github.com/opencv/opencv/archive/4.5.5.zip
             PREFIX ${CMAKE_BINARY_DIR}/_deps/opencv-4.5.5
@@ -77,7 +78,7 @@ if(NOT OpenCV_FOUND)
         set_property(TARGET ${_lib} APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
         set_target_properties(${_lib} PROPERTIES
                 IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-                IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/sdk/native/staticlibs/arm64-v8a/lib${_lib}.a"
+                IMPORTED_LOCATION_RELEASE "${THIRD_PARTY_DIR}/sdk/native/staticlibs/arm64-v8a/lib${_lib}.a"
         )
     endforeach()
     set_target_properties(opencv_core PROPERTIES
@@ -245,10 +246,10 @@ if(NOT OpenCV_FOUND)
     )
     set_property(TARGET opencv_java APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
     set_target_properties(opencv_java PROPERTIES
-            IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/sdk/native/libs/arm64-v8a/libopencv_java4.so"
+            IMPORTED_LOCATION_RELEASE "${THIRD_PARTY_DIR}/sdk/native/libs/arm64-v8a/libopencv_java4.so"
             IMPORTED_SONAME_RELEASE "libopencv_java4.so"
     )
 
     unset(OpenCV_LIB_COMPONENTS)
-
+    set(BUILDING_OPENCV ON)
 endif()

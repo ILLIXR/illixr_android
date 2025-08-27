@@ -6,7 +6,15 @@ if(NOT spdlog_android_FOUND)
             PREFIX ${CMAKE_BINARY_DIR}/_deps/spdlog_android
             CMAKE_ARGS -DCMAKE_SYSTEM_NAME=Android -DANDROID_ABI=${ANDROID_ABI} -DANDROID_PLATFORM=${ANDROID_PLATFORM} -DCMAKE_ANDROID_NDK=${CMAKE_ANDROID_NDK} -DSPDLOG_BUILD_SHARED=ON -DSPDLOG_BUILD_PIC=ON -DCMAKE_INSTALL_PREFIX=${THIRD_PARTY_DIR} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
     )
-    set(spdlog_android_LIBRARIES ${THIRD_PARTY_DIR}/lib/libspdlog_android.so PARENT_SCOPE)
-    set(spdlog_android_INCLUDE_DIR ${THIRD_PARTY_DIR}/include PARENT_SCOPE)
+    add_library(spdlog::spdlog_android SHARED IMPORTED)
+
+    set_target_properties(spdlog::spdlog_android PROPERTIES
+            INTERFACE_COMPILE_DEFINITIONS "SPDLOG_SHARED_LIB;FMT_SHARED;SPDLOG_COMPILED_LIB"
+            INTERFACE_INCLUDE_DIRECTORIES "${THIRD_PARTY_DIR}/include"
+            INTERFACE_LINK_LIBRARIES "Threads::Threads;log"
+            IMPORTED_LOCATION "${THIRD_PARTY_DIR}/lib/libspdlog_android.so"
+            IMPORTED_SONAME "libspdlog_android.so"
+    )
+
     set(BUILDING_SPDLOG ON)
 endif()
