@@ -1,12 +1,12 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
+//#define GLFW_INCLUDE_VULKAN
 #include "illixr/data_format/misc.hpp"
 #include "illixr/data_format/pose.hpp"
 #include "illixr/phonebook.hpp"
 #include "vulkan_objects.hpp"
 
-#include <GLFW/glfw3.h>
+//#include <GLFW/glfw3.h>
 #include <vector>
 
 namespace ILLIXR::vulkan {
