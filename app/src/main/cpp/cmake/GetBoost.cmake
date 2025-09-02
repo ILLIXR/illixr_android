@@ -52,7 +52,7 @@ if(NOT Boost_FOUND)
 
         set_target_properties(Boost::${boost_comp} PROPERTIES
                 IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE CXX
-                IMPORTED_LOCATION_RELEASE "${THIRD_PARTY_DIR/lib}/libboost_${boost_comp}.a"
+                IMPORTED_LOCATION_RELEASE "${THIRD_PARTY_DIR}/lib/libboost_${boost_comp}.a"
         )
 
         set_target_properties(Boost::${boost_comp} PROPERTIES
@@ -70,5 +70,5 @@ if(NOT Boost_FOUND)
     include(CMakeFindDependencyMacro)
     find_dependency(Threads)
     set_property(TARGET Boost::thread APPEND PROPERTY INTERFACE_LINK_LIBRARIES Threads::Threads)
-
+    set(BUILDING_BOOST ON)
 endif()
