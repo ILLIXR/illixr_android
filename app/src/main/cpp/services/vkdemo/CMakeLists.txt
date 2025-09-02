@@ -38,7 +38,7 @@ add_custom_target(
 )
 
 add_library(${PLUGIN_NAME} SHARED service.cpp
-            service.hpp
+        service.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/global_module_defs.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/math_util.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose_prediction.hpp
@@ -61,8 +61,17 @@ endif()
 add_dependencies(${PLUGIN_NAME} Vkdemo_Shaders)
 set_target_properties(${PLUGIN_NAME} PROPERTIES OUTPUT_NAME ${PLUGIN_NAME})
 
-target_link_libraries(${PLUGIN_NAME} ${Vulkan_LIBRARIES} spdlog::spdlog_android)
-target_include_directories(${PLUGIN_NAME} PUBLIC ${Vulkan_INCLUDE_DIRS} ${ILLIXR_SOURCE_DIR}/include)
+target_link_libraries(${PLUGIN_NAME} PUBLIC
+        spdlog::spdlog_android
+        Eigen3::Eigen
+        glm
+        ${VULKAN_LIB}
+        android
+)
+target_include_directories(${PLUGIN_NAME} PUBLIC
+        ${ILLIXR_SOURCE_DIR}/include
+        ${ANDROID_NDK}/sources/android/native_app_glue
+)
 
 install_shaders(SPIRV_BINARY_FILES vkdemo ${PLUGIN_NAME})
 
