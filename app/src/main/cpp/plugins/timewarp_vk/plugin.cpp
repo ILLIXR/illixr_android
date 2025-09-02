@@ -7,8 +7,8 @@
 }
 
 void timewarp_vk_plugin::_p_one_iteration() {
-    auto fps = timewarp_->num_record_calls_.exchange(0) / 2; // two eyes
-    auto ups = timewarp_->num_update_uniforms_calls_.exchange(0);
+    //auto fps = timewarp_->num_record_calls_.exchange(0) / 2; // two eyes
+    //auto ups = timewarp_->num_update_uniforms_calls_.exchange(0);
 
     // std::cout << "timewarp_vk: cb records: " << fps << ", uniform updates: " << ups << std::endl;
 }

@@ -7,6 +7,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+#define GLM_FORCE_CXX17
 #include <future>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -198,7 +199,7 @@ void timewarp_vk::record_command_buffer(VkCommandBuffer commandBuffer, VkFramebu
         frame_count_++;
 
     VkClearValue clear_color;
-    clear_color.color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clear_color.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
     // Timewarp handles distortion correction at the same time
     VkRenderPassBeginInfo tw_render_pass_info{};
@@ -579,7 +580,7 @@ VkPipeline timewarp_vk::create_pipeline(VkRenderPass render_pass, [[maybe_unused
 
     VkDevice device = display_provider_->vk_device_;
 
-    auto           folder = std::string(SHADER_FOLDER);
+    auto           folder = std::string(SHADER_FOLDER_TIMEWARP_VK);
     VkShaderModule vert   = vulkan::create_shader_module(device, vulkan::read_file(folder + "/tw.vert.spv"));
     VkShaderModule frag   = vulkan::create_shader_module(device, vulkan::read_file(folder + "/tw.frag.spv"));
 

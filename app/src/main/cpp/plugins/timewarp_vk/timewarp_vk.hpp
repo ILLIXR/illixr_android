@@ -7,6 +7,7 @@
 
 #include <stack>
 #include <vulkan/vulkan.h>
+#include <Eigen/Dense>
 
 namespace ILLIXR {
 

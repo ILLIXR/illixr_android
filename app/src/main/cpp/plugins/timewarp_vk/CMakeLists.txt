@@ -4,19 +4,18 @@ project(timewarp_vk)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_definitions(ILLIXR_ANDROID_BUILD)
 
-find_package(glm REQUIRED)
-
-if(NOT PLUGIN_NAME)
+if (NOT PLUGIN_NAME)
     set(PLUGIN_NAME "plugin.timewarp_vk${ILLIXR_BUILD_SUFFIX}")
     set(PLUGIN_SOURCE "plugin.cpp")
     set(TW_PREFIX "")
     set(TW_POSTFIX "")
-endif()
+endif ()
 
 file(GLOB_RECURSE GLSL_SOURCE_FILES
-     "${TW_PREFIX}shaders/*.frag"
-     "${TW_PREFIX}shaders/*.vert"
+        "${TW_PREFIX}shaders/*.frag"
+        "${TW_PREFIX}shaders/*.vert"
 )
 if (ANDROID)
     find_program(Vulkan_GLSLANG_VALIDATOR_EXECUTABLE glslangValidator)
@@ -52,10 +51,10 @@ if (NOT TARGET Timewarp_VK_Shaders)
 endif ()
 
 add_library(${PLUGIN_NAME} SHARED
-            ${PLUGIN_SOURCE}
-            ${TW_PREFIX}plugin.hpp
-            ${TW_PREFIX}timewarp_vk.cpp
-            ${TW_PREFIX}timewarp_vk.hpp
+        ${PLUGIN_SOURCE}
+        ${TW_PREFIX}plugin.hpp
+        ${TW_PREFIX}timewarp_vk.cpp
+        ${TW_PREFIX}timewarp_vk.hpp
         $<TARGET_OBJECTS:illixr_hmd>
         ${CMAKE_SOURCE_DIR}/include/illixr/global_module_defs.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/math_util.hpp
@@ -68,23 +67,33 @@ add_library(${PLUGIN_NAME} SHARED
         $<TARGET_OBJECTS:illixr_vulkan_utils>
         $<TARGET_OBJECTS:illixr_switchboard>
 )
-if(TW_PLUGIN_DEFINITIONS)
+if (TW_PLUGIN_DEFINITIONS)
     target_compile_definitions(${PLUGIN_NAME} PRIVATE ${TW_PLUGIN_DEFINITIONS})
     target_include_directories(${PLUGIN_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
-endif()
+endif ()
 
 add_dependencies(${PLUGIN_NAME} Timewarp_VK_Shaders)
-if(NOT ANDROID)
-    if(Vulkan_EXTERNAL)
+if (NOT ANDROID)
+    if (Vulkan_EXTERNAL)
         add_dependencies(${PLUGIN_NAME} ${Vulkan_DEP_STR})
-    endif()
-endif()
+    endif ()
+endif ()
 
 set_target_properties(${PLUGIN_NAME} PROPERTIES OUTPUT_NAME ${PLUGIN_NAME})
 
-target_link_libraries(${PLUGIN_NAME} ${Vulkan_LIBRARIES} spdlog::spdlog_android)
-target_include_directories(${PLUGIN_NAME} PUBLIC ${Vulkan_INCLUDE_DIRS})
-target_include_directories(${PLUGIN_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${ILLIXR_SOURCE_DIR}/include)
+target_link_libraries(${PLUGIN_NAME} PUBLIC
+        spdlog::spdlog_android
+        Eigen3::Eigen
+        glm
+        ${VULKAN_LIB}
+        android
+)
+#target_include_directories(${PLUGIN_NAME} PUBLIC ${Vulkan_INCLUDE_DIRS})
+target_include_directories(${PLUGIN_NAME} PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${ILLIXR_SOURCE_DIR}/include
+        ${ANDROID_NDK}/sources/android/native_app_glue
+)
 
 install_shaders(SPIRV_BINARY_FILES timewarp_vk ${PLUGIN_NAME})
 
