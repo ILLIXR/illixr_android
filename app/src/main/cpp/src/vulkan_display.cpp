@@ -384,6 +384,7 @@ void display_vk::create_swapchain() {
 
     // choose surface format
     for (const auto& available_format : swapchain_details.formats) {
+#ifndef ILLIXR_ANDROID_BUILD
         if (available_format.format == VK_FORMAT_B8G8R8A8_SRGB &&
             available_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
             spdlog::get("illixr")->info("[vulkan_display] Using VK_FORMAT_B8G8R8A8_SRGB");
@@ -395,6 +396,14 @@ void display_vk::create_swapchain() {
             swapchain_image_format_ = available_format;
             break;
         }
+#else
+        if (available_format.format == VK_FORMAT_R8G8B8A8_UNORM) {
+            spdlog::get("illixr")->info("[vulkan_display] Using VK_FORMAT_R8G8B8A8_UNORM");
+            swapchain_image_format_ = available_format;
+            break;
+        }
+#endif
+
     }
 
     // choose present mode
@@ -467,14 +476,14 @@ void display_vk::create_swapchain() {
     create_info.clipped        = VK_TRUE;
 #endif
     create_info.presentMode    = swapchain_present_mode;
-    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
     create_info.oldSwapchain   = VK_NULL_HANDLE;
 
-    auto create_shared_swapchains =
-            (PFN_vkCreateSharedSwapchainsKHR) vkGetInstanceProcAddr(vk_instance_, "vkCreateSharedSwapchainsKHR");
-
-    if (vkCreateSwapchainKHR(vk_device_, &create_info, nullptr, &vk_swapchain_) != VK_SUCCESS) {
-        ILLIXR::abort("Failed to create Vulkan swapchain!");
+    //auto create_shared_swapchains =
+    //        (PFN_vkCreateSharedSwapchainsKHR) vkGetInstanceProcAddr(vk_instance_, "vkCreateSharedSwapchainsKHR");
+    VkResult res = vkCreateSwapchainKHR(vk_device_, &create_info, nullptr, &vk_swapchain_);
+    if (res != VK_SUCCESS) {
+        ILLIXR::abort("Failed to create Vulkan swapchain! {}", res);
     }
 
     // get swapchain images

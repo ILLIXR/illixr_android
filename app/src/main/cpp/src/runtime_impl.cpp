@@ -5,7 +5,7 @@
 #include "illixr/global_module_defs.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/plugin.hpp"
-#include "illixr/record_logger.hpp"
+#include "noop_record_logger.hpp"
 #include "illixr/stoplight.hpp"
 #include "illixr/switchboard.hpp"
 #include "illixr/vk/vk_extension_request.hpp"
@@ -61,7 +61,9 @@ public:
 
         spdlogger("illixr", std::getenv("ILLIXR_LOG_LEVEL")); // can't use switchboard interface here
         phonebook_.register_impl<relative_clock>(std::make_shared<relative_clock>());
-#ifndef ILLIXR_ANDROID_BUILD
+#ifdef ILLIXR_ANDROID_BUILD
+        phonebook_.register_impl<record_logger>(std::make_shared<noop_record_logger>());
+#else
         phonebook_.register_impl<record_logger>(std::make_shared<sqlite_record_logger>());
 #endif
         phonebook_.register_impl<switchboard>(std::make_shared<switchboard>(&phonebook_));

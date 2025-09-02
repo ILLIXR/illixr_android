@@ -57,8 +57,9 @@ extern "C" {
 static void handle_cmd(struct android_app* app, int32_t cmd) {
     switch(cmd) {
         case APP_CMD_INIT_WINDOW: {
-            const std::vector<std::string> plugins = {"openvins", "offline_cam", "offline_imu", "rk4_integrator",
-                                                      "pose_prediction", "common_lock", "timewarp_gl", "gldemo"};
+            const std::vector<std::string> plugins = {"offline_cam", "offline_imu", "rk4_integrator", "openvins",
+                                                      "pose_prediction", "common_lock", "timewarp_vk", "vkdemo",
+                                                      "native_renderer"};
 
             //EuRoC
             setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
@@ -73,6 +74,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
             setenv("ILLIXR_RUN_DURATION", "1000000", true);
             setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
             setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
+            setenv("ILLIXR_VULKAN_VALIDATION_LAYERS", "true", true);
 #ifndef NDEBUG
             // When debugging, register the SIGILL and SIGABRT handlers for capturing more info
             std::signal(SIGILL, sigill_handler);
