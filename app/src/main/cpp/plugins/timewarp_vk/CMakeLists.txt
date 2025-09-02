@@ -18,38 +18,38 @@ file(GLOB_RECURSE GLSL_SOURCE_FILES
      "${TW_PREFIX}shaders/*.frag"
      "${TW_PREFIX}shaders/*.vert"
 )
-if(ANDROID)
+if (ANDROID)
     find_program(Vulkan_GLSLANG_VALIDATOR_EXECUTABLE glslangValidator)
-else()
+else ()
     set(TIMEWARP_VK_DEP_STR "")
-    if(Vulkan_EXTERNAL)
+    if (Vulkan_EXTERNAL)
         set(TIMEWARP_VK_DEP_STR ${Vulkan_DEP_STR})
-    endif()
-endif()
+    endif ()
+endif ()
 set(PROJECT_BINARY_DIR "${PROJECT_BINARY_DIR}${TW_POSTFIX}")
 
-foreach(GLSL ${GLSL_SOURCE_FILES})
+foreach (GLSL ${GLSL_SOURCE_FILES})
     get_filename_component(FILE_NAME ${GLSL} NAME)
-    set(SPIRV "${PROJECT_BINARY_DIR}/shaders/${FILE_NAME}.spv")
-    if(NOT TARGET PROCESS_TWV_${FILE_NAME})
+    set(SPIRV "${SHADER_ASSET_DIR}/${FILE_NAME}.spv")
+    if (NOT TARGET PROCESS_TWV_${FILE_NAME})
         add_custom_target(PROCESS_TWV_${FILE_NAME} ALL
-                          COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/shaders/"
-                          COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} ${GLSL} -V -o ${SPIRV}
-                          BYPRODUCTS ${SPIRV}
-                          DEPENDS ${GLSL} ${TIMEWARP_VK_DEP_STR}
+                COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_ASSET_DIR}"
+                COMMAND ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE} ${GLSL} -V -o ${SPIRV}
+                BYPRODUCTS ${SPIRV}
+                DEPENDS ${GLSL} ${TIMEWARP_VK_DEP_STR}
         )
-        if(Vulkan_EXTERNAL)
+        if (Vulkan_EXTERNAL)
             add_dependencies(PROCESS_TWV_${FILE_NAME} ${Vulkan_DEP_STR})
-        endif()
-    endif()
+        endif ()
+    endif ()
     list(APPEND SPIRV_BINARY_FILES ${SPIRV})
-endforeach(GLSL)
-if(NOT TARGET Timewarp_VK_Shaders)
+endforeach (GLSL)
+if (NOT TARGET Timewarp_VK_Shaders)
     add_custom_target(
             Timewarp_VK_Shaders
             DEPENDS ${SPIRV_BINARY_FILES}
     )
-endif()
+endif ()
 
 add_library(${PLUGIN_NAME} SHARED
             ${PLUGIN_SOURCE}

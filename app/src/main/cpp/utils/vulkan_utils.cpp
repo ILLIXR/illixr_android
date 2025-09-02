@@ -1,6 +1,6 @@
 #define VMA_IMPLEMENTATION
 #include "illixr/vk/vulkan_utils.hpp"
-
+#include "illixr/switchboard.hpp"
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -311,7 +311,16 @@ VkResult ILLIXR::vulkan::locked_queue_submit(queue& q, uint32_t submitCount, con
  * @return The vector of chars.
  */
 std::vector<char> ILLIXR::vulkan::read_file(const std::string& path) {
-    std::ifstream file(path, std::ios::ate | std::ios::binary);
+    AAsset* asset = AAssetManager_open(switchboard::get_asset_manager(), path.c_str(), AASSET_MODE_BUFFER);
+    if (!asset) {
+        throw std::runtime_error("Failed to open asset " + path);
+    }
+    size_t asset_size = AAsset_getLength(asset);
+    std::string str_buffer(asset_size, '\0');
+    AAsset_read(asset, str_buffer.data(), asset_size);
+    AAsset_close(asset);
+    std::vector<char> buffer(str_buffer.begin(), str_buffer.end());
+    /*std::ifstream file(path, std::ios::ate | std::ios::binary);
 
     if (!file.is_open()) {
         throw std::runtime_error("failed to open file!");
@@ -323,7 +332,7 @@ std::vector<char> ILLIXR::vulkan::read_file(const std::string& path) {
     file.seekg(0);
     file.read(buffer.data(), static_cast<long>(fileSize));
 
-    file.close();
+    file.close();*/
     return buffer;
 }
 

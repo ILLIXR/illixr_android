@@ -7,6 +7,8 @@
 #include <vector>
 #include <csignal>
 
+#include "illixr/switchboard.hpp"
+
 #ifndef NDEBUG
 /**
  * @brief A signal handler for SIGILL.
@@ -79,7 +81,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
 
             // Shutting down method 1: Ctrl+C
             std::signal(SIGINT, sigint_handler);
-
+            switchboard::set_asset_manager(app->activity->assetManager);
             std::thread runtime_thread(ILLIXR::run, plugins, app->window);
             runtime_thread.join();
             break;

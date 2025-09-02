@@ -1,3 +1,4 @@
+add_compile_definitions(ILLIXR_ANDROID_BUILD)
 
 add_library(illixr_hmd OBJECT hmd.cpp
         hmd.hpp
@@ -5,7 +6,8 @@ add_library(illixr_hmd OBJECT hmd.cpp
 
 target_include_directories(illixr_hmd PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
-add_library(illixr_vulkan_utils STATIC vulkan_utils.cpp
+add_library(illixr_vulkan_utils STATIC
+        vulkan_utils.cpp
         vulkan_utils.hpp
 )
 
