@@ -12,9 +12,10 @@ add_library(${PLUGIN_NAME} SHARED service.cpp
             ${CMAKE_SOURCE_DIR}/include/illixr/data_format/misc.hpp
             ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose.hpp
             ${CMAKE_SOURCE_DIR}/include/illixr/plugin.hpp
-            ${CMAKE_SOURCE_DIR}/include/illixr/global_module_defs.hpp
-            ${CMAKE_SOURCE_DIR}/include/illixr/phonebook.hpp
-            ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose_prediction.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/global_module_defs.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/phonebook.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose_prediction.hpp
+        $<TARGET_OBJECTS:illixr_switchboard>
 )
 
 target_include_directories(${PLUGIN_NAME} PRIVATE

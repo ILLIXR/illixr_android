@@ -6,9 +6,10 @@ set(PLUGIN_NAME plugin.pose_prediction${ILLIXR_BUILD_SUFFIX})
 add_library(${PLUGIN_NAME} SHARED service.cpp
             service.hpp
             ${CMAKE_SOURCE_DIR}/include/illixr/plugin.hpp
-            ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
-            ${CMAKE_SOURCE_DIR}/include/illixr/phonebook.hpp
-            ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose_prediction.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/phonebook.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose_prediction.hpp
+        $<TARGET_OBJECTS:illixr_switchboard>
 )
 
 target_include_directories(${PLUGIN_NAME} PRIVATE

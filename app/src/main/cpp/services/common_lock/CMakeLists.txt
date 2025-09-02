@@ -5,7 +5,7 @@ add_library(${PLUGIN_NAME} SHARED
         service.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/common_lock.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/plugin.hpp
-        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+        $<TARGET_OBJECTS:illixr_switchboard>
 )
 
 target_include_directories(${PLUGIN_NAME} PRIVATE

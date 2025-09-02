@@ -15,8 +15,8 @@ add_library(${PLUGIN_NAME} SHARED plugin.cpp
             ${CMAKE_SOURCE_DIR}/include/illixr/math_util.hpp
             ${CMAKE_SOURCE_DIR}/include/illixr/data_format/pose_prediction.hpp
             ${CMAKE_SOURCE_DIR}/include/illixr/shader_util.hpp
-            ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
             ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
+            $<TARGET_OBJECTS:illixr_switchboard>
 )
 
 target_include_directories(${PLUGIN_NAME} PRIVATE

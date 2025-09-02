@@ -14,6 +14,7 @@ add_library(${PLUGIN_NAME} SHARED plugin.cpp
         ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/csv_iterator.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/data_format/misc.hpp
+        $<TARGET_OBJECTS:illixr_switchboard>
 )
 
 target_include_directories(${PLUGIN_NAME} PRIVATE

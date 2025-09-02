@@ -5,8 +5,8 @@ add_library(${PLUGIN_NAME} SHARED
         plugin.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/data_format/imu.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/data_format/misc.hpp
-        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/threadloop.hpp
+        $<TARGET_OBJECTS:illixr_switchboard>
 )
 
 target_include_directories(${PLUGIN_NAME} PRIVATE
