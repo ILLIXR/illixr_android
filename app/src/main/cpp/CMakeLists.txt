@@ -60,14 +60,14 @@ find_package(PkgConfig REQUIRED)
 find_library(VULKAN_LIB libvulkan.so)
 
 # now build app's shared lib
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -Werror -DVK_USE_PLATFORM_ANDROID_KHR")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Export ANativeActivity_onCreate(),
 # Refer to: https://github.com/android-ndk/ndk/issues/381.
 set(CMAKE_SHARED_LINKER_FLAGS
         "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate -v -fvisibility=hidden")
-include(cmake/Getspdlog.cmake)
+add_subdirectory(third_party/glm)
 link_libraries(Boost::serialization)
 add_subdirectory(services/extended_window)
 add_subdirectory(services/common_lock)
@@ -82,10 +82,10 @@ add_subdirectory(plugins/offline_cam)
 add_subdirectory(plugins/offline_imu)
 add_subdirectory(plugins/openvins)
 add_subdirectory(plugins/android_data)
-add_subdirectory(plugins/gldemo)
+#add_subdirectory(plugins/gldemo)
+add_subdirectory(plugins/native_renderer)
 #add_subdirectory(plugins/gtsam_integrator)
 add_subdirectory(plugins/rk4_integrator)
-add_subdirectory(plugins/timewarp_gl)
 add_subdirectory(plugins/timewarp_vk)
 
 add_subdirectory(src)

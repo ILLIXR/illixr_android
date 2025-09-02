@@ -25,7 +25,7 @@ android {
 
     defaultConfig {
         applicationId = 'com.example.native_activity'
-        minSdk 28
+        minSdk 33
         targetSdkVersion 33
         ndk {
             //noinspection ChromeOsAbiSupport
@@ -35,7 +35,7 @@ android {
             cmake {
                 version '3.22.1'
                 cppFlags '-std=c++17', '-frtti', '-fexceptions'
-                arguments "-DTHIRD_PARTY_DIR=${root_path}"
+                arguments "-DTHIRD_PARTY_DIR=${root_path}", "-DASSETS_DIR=${rootProject.getLayout().getProjectDirectory().getAsFile().getPath()}/app/build/generated/assets"
             }
         }
     }
@@ -60,6 +60,11 @@ android {
             version '3.22.1'
             path 'src/main/cpp/CMakeLists.txt'
 
+        }
+    }
+    sourceSets {
+        main {
+            assets.srcDirs += "${rootProject.getLayout().getProjectDirectory().getAsFile().getPath()}/app/build/generated/assets"
         }
     }
     namespace 'com.example.ILLIXR'
