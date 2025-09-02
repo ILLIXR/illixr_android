@@ -55,6 +55,8 @@ add_definitions(-DVK_USE_PLATFORM_ANDROID_KHR=1)
 
 add_compile_definitions(ILLIXR_ANDROID_BUILD)
 find_package(PkgConfig REQUIRED)
+find_library(VULKAN_LIB libvulkan.so)
+
 # now build app's shared lib
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -Werror")
 set(CMAKE_CXX_STANDARD 17)

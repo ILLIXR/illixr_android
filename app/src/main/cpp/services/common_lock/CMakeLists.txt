@@ -21,3 +21,10 @@ target_link_libraries(${PLUGIN_NAME}
         Boost::serialization
 )
 
+if (BUILDING_SPDLOG)
+    add_dependencies(${PLUGIN_NAME} spdlog_android)
+endif()
+if (BUILDING_BOOST)
+    add_dependencies(${PLUGIN_NAME} Boost_Install)
+endif()
+
