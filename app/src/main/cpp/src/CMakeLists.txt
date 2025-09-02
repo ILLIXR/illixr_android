@@ -37,7 +37,8 @@ add_library(native-activity SHARED
         ${CMAKE_SOURCE_DIR}/include/illixr/relative_clock.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/runtime.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/stoplight.hpp
-        ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
+        $<TARGET_OBJECTS:illixr_vulkan_utils>
+        $<TARGET_OBJECTS:illixr_switchboard>
 )
 target_include_directories(native-activity PRIVATE
         ${ILLIXR_SOURCE_DIR}/include
@@ -53,12 +54,13 @@ target_link_libraries(native-activity
         plugin.pose_lookup${ILLIXR_BUILD_SUFFIX}
         plugin.fauxpose${ILLIXR_BUILD_SUFFIX}
         plugin.common_lock${ILLIXR_BUILD_SUFFIX}
-        plugin.timewarp_gl${ILLIXR_BUILD_SUFFIX}
+        plugin.timewarp_vk${ILLIXR_BUILD_SUFFIX}
         plugin.rk4_integrator${ILLIXR_BUILD_SUFFIX}
         plugin.offline_imu${ILLIXR_BUILD_SUFFIX}
         plugin.offline_cam${ILLIXR_BUILD_SUFFIX}
         #plugin.gtsam_integrator${ILLIXR_BUILD_SUFFIX}
-        plugin.gldemo${ILLIXR_BUILD_SUFFIX}
+        plugin.vkdemo${ILLIXR_BUILD_SUFFIX}
+        plugin.native_renderer${ILLIXR_BUILD_SUFFIX}
         plugin.android_data${ILLIXR_BUILD_SUFFIX}
         android
         native_app_glue
@@ -67,6 +69,15 @@ target_link_libraries(native-activity
         Eigen3::Eigen
         Boost::serialization
         spdlog::spdlog_android
-        vulkan
+        ${VULKAN_LIB}
 )
 
+if (BUILDING_SPDLOG)
+    add_dependencies(native-activity spdlog_android)
+endif()
+if (BUILDING_OPENCV)
+    add_dependencies(native-activity OpenCV_Android)
+endif()
+if (BUILDING_BOOST)
+    add_dependencies(native-activity Boost_Install)
+endif()
