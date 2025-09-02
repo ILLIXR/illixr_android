@@ -443,7 +443,7 @@ void vkdemo::load_texture(const std::string& path, int i) {
         nullptr,                             // pNext
         0,                                   // flags
         VK_IMAGE_TYPE_2D,                    // imageType
-        VK_FORMAT_R8G8B8A8_SRGB,             // format
+        VK_FORMAT_R8G8B8A8_SRGB,             // format VK_FORMAT_R8G8B8A8_UNORM
         {
             static_cast<uint32_t>(width),                             // width
             static_cast<uint32_t>(height),                            // height
@@ -739,7 +739,7 @@ void vkdemo::create_pipeline(VkRenderPass render_pass, uint32_t subpass) {
         throw std::runtime_error("vkdemo::create_pipeline: pipeline already created");
     }
 
-    auto           folder = std::string(SHADER_FOLDER);
+    auto           folder = std::string(SHADER_FOLDER_VKDEMO);
     VkShaderModule vert =
         vulkan::create_shader_module(display_provider_->vk_device_, vulkan::read_file(folder + "/demo.vert.spv"));
     VkShaderModule frag =
