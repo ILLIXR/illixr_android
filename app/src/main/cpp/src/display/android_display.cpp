@@ -58,7 +58,8 @@ std::set<const char*> android_display::get_required_instance_extensions() {
 }
 
 std::set<const char*> android_display::get_required_device_extensions() {
-    return {};//{VK_KHR_SW};
+    std::set<const char*> extensions{VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME};
+    return extensions;
 }
 
 display_backend::display_backend_type android_display::get_type() {
