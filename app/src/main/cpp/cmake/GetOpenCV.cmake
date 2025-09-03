@@ -2,8 +2,8 @@ find_package(OpenCV 4.5.5 QUIET CONFIG COMPONENTS opencv_java)
 
 if(NOT OpenCV_FOUND)
     set(HOME_DIR "$ENV{HOME}")
-    file(DOWNLOAD https://github.com/opencv/opencv/archive/4.5.5.zip ${CMAKE_BINARY_DIR}/_deps/opencv-4.5.5.zip)
-    file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/_deps/opencv-4.5.5.zip DESTINATION ${CMAKE_BINARY_DIR}/_deps)
+    #file(DOWNLOAD https://github.com/opencv/opencv/archive/4.5.5.zip ${CMAKE_BINARY_DIR}/_deps/opencv-4.5.5.zip)
+    #file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/_deps/opencv-4.5.5.zip DESTINATION ${CMAKE_BINARY_DIR}/_deps)
     file(DOWNLOAD https://github.com/opencv/opencv_contrib/archive/refs/tags/4.5.5.zip ${CMAKE_BINARY_DIR}/_deps/opencv_contrib-4.5.5.zip)
     file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/_deps/opencv_contrib-4.5.5.zip DESTINATION ${CMAKE_BINARY_DIR}/_deps)
     externalproject_add(OpenCV_Android
