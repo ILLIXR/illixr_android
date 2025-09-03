@@ -449,10 +449,6 @@ void display_vk::create_swapchain() {
     create_info.imageExtent      = swapchain_extent_;
     create_info.imageArrayLayers = 1;
     create_info.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-#ifdef ILLIXR_ANDROID_BUILD
-
-#endif
-
     vulkan::queue_families indices                = vulkan::find_queue_families(vk_physical_device_, vk_surface_);
     uint32_t               queue_family_indices[] = {indices.graphics_family.value(), indices.present_family.value()};
 

@@ -561,7 +561,7 @@ void native_renderer::create_offscreen_target(vulkan::vk_image& image) {
         static_cast<VkImageUsageFlags>(
             (VK_IMAGE_USAGE_TRANSFER_DST_BIT | (export_dma_ ? 0 : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)) |
             (timewarp_->is_external() ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : VK_IMAGE_USAGE_SAMPLED_BIT)), // usage
-        VK_SHARING_MODE_CONCURRENT,                                                                     // sharingMode
+        VK_SHARING_MODE_EXCLUSIVE,                                                                     // sharingMode
         static_cast<uint32_t>(queue_family_indices.size()),                                             // queueFamilyIndexCount
         queue_family_indices.data(),                                                                    // pQueueFamilyIndices
         VK_IMAGE_LAYOUT_UNDEFINED                                                                       // initialLayout

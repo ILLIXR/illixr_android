@@ -443,7 +443,7 @@ void vkdemo::load_texture(const std::string& path, int i) {
         nullptr,                             // pNext
         0,                                   // flags
         VK_IMAGE_TYPE_2D,                    // imageType
-        VK_FORMAT_R8G8B8A8_SRGB,             // format VK_FORMAT_R8G8B8A8_UNORM
+        VK_FORMAT_R8G8B8A8_UNORM,             // format VK_FORMAT_R8G8B8A8_UNORM
         {
             static_cast<uint32_t>(width),                             // width
             static_cast<uint32_t>(height),                            // height
@@ -466,13 +466,13 @@ void vkdemo::load_texture(const std::string& path, int i) {
     VK_ASSERT_SUCCESS(vmaCreateImage(vma_allocator_, &image_info, &image_alloc_info, &textures_[i].image,
                                      &textures_[i].image_memory, nullptr))
 
-    image_layout_transition(textures_[i].image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
+    image_layout_transition(textures_[i].image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     vulkan::copy_buffer_to_image(display_provider_->vk_device_, display_provider_->queues_[vulkan::queue::GRAPHICS],
                                  command_pool_, staging_buffer, textures_[i].image, width, height);
 
-    image_layout_transition(textures_[i].image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    image_layout_transition(textures_[i].image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     vmaDestroyBuffer(vma_allocator_, staging_buffer, staging_buffer_allocation);
@@ -487,7 +487,7 @@ void vkdemo::load_texture(const std::string& path, int i) {
         0,                                        // flags
         textures_[i].image,                       // image
         VK_IMAGE_VIEW_TYPE_2D,                    // viewType
-        VK_FORMAT_R8G8B8A8_SRGB,                  // format
+        VK_FORMAT_R8G8B8A8_UNORM,                  // format
         {},                                       // components
         {
             VK_IMAGE_ASPECT_COLOR_BIT, // aspectMask
