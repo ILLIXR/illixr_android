@@ -42,16 +42,4 @@ target_link_libraries(${PLUGIN_NAME}
         spdlog::spdlog_android
 )
 
-#if (Vulkan_EXTERNAL)
-#    add_dependencies(${PLUGIN_NAME} ${Vulkan_DEP_STR})
-#endif ()
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
-if (BUILDING_SPDLOG)
-    add_dependencies(${PLUGIN_NAME} spdlog_android)
-endif()
-if (BUILDING_OPENCV)
-    add_dependencies(${PLUGIN_NAME} OpenCV_Android)
-endif()
-if (BUILDING_BOOST)
-    add_dependencies(${PLUGIN_NAME} Boost_Install)
-endif()

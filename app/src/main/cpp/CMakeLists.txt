@@ -11,8 +11,8 @@ if(NOT THIRD_PARTY_DIR)
     message(FATAL_ERROR "The THIRD_PARTY_DIR must be specified")
 endif()
 set(OpenCV_DIR "${THIRD_PARTY_DIR}/sdk/native/jni" CACHE PATH "Path to OpenCV cmake configuration files")
-set(Boost_DIR "${THIRD_PARTY_DIR}/lib/arm64-v8a/cmake/Boost-1.72.0" CACHE PATH "Path to Boost cmake configuration files")
-set(spdlog_android_DIR "${THIRD_PARTY_DIR}/lib/cmake/spdlog_android" CACHE PATH "Path to spdlog cmake configuration files")
+set(Boost_DIR "${THIRD_PARTY_DIR}/lib/${ANDROID_ABI}/cmake/Boost-1.72.0" CACHE PATH "Path to Boost cmake configuration files")
+set(spdlog_android_DIR "${THIRD_PARTY_DIR}/lib/${ANDROID_ABI}/cmake/spdlog_android" CACHE PATH "Path to spdlog cmake configuration files")
 set(Boost_USE_STATIC_LIBS ON)
 # build native_app_glue as a static lib
 
@@ -20,9 +20,9 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH})
 
 set(ILLIXR_INTEGRATION 1)
 
-include(cmake/GetOpenCV.cmake)
-include(cmake/GetBoost.cmake)
-include(cmake/Getspdlog.cmake)
+find_package(OpenCV 4.5.5 REQUIRED CONFIG COMPONENTS opencv_java)
+find_package(Boost 1.72 REQUIRED CONFIG COMPONENTS chrono thread filesystem atomic iostreams serialization)
+find_package(spdlog_android 1.15.3 REQUIRED)
 
 
 include_directories(${Boost_INCLUDE_DIRS})

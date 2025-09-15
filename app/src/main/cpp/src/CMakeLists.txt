@@ -44,13 +44,3 @@ target_link_libraries(native-activity
         Boost::serialization
         spdlog::spdlog_android
 )
-
-if (BUILDING_SPDLOG)
-    add_dependencies(native-activity spdlog_android)
-endif()
-if (BUILDING_OPENCV)
-    add_dependencies(native-activity OpenCV_Android)
-endif()
-if (BUILDING_BOOST)
-    add_dependencies(native-activity Boost_Install)
-endif()

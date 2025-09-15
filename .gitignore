@@ -4,11 +4,13 @@ app/.cxx/
 app/build/
 app/build/intermediates/javac/debug/classes/
 .idea
-third_party/
-!third_party/README.md
 build/reports/problems/problems-report.html
 
 *.apk
 *.so
 
 local.properties
+
+third_party/include
+third_party/**/*.a
+third_party/sdk/etc/haarcascades/
