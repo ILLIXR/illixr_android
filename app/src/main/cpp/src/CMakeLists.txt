@@ -36,6 +36,7 @@ target_link_libraries(native-activity
         #plugin.gtsam_integrator${ILLIXR_BUILD_SUFFIX}
         plugin.gldemo${ILLIXR_BUILD_SUFFIX}
         plugin.android_data${ILLIXR_BUILD_SUFFIX}
+        plugin.tcp_network_backend${ILLIXR_BUILD_SUFFIX}
         android
         native_app_glue
         EGL

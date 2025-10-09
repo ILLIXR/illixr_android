@@ -75,6 +75,12 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
         setenv("ILLIXR_RUN_DURATION", "1000000", true);
         setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
         setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
+        setenv("ILLIXR_TCP_CLIENT_IP", "141.142.60.47", true);
+        setenv("ILLIXR_TCP_CLIENT_PORT", "9000", true);
+        setenv("ILLIXR_TCP_SERVER_IP", "141.142.60.195", true);
+        setenv("ILLIXR_TCP_SERVER_PORT", "9001", true);
+        setenv("ILLIXR_IS_CLIENT", "1", true);
+
 #ifndef NDEBUG
         /// When debugging, register the SIGILL and SIGABRT handlers for capturing more info
         std::signal(SIGILL, sigill_handler);
