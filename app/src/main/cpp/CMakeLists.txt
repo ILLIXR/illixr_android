@@ -63,7 +63,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Refer to: https://github.com/android-ndk/ndk/issues/381.
 set(CMAKE_SHARED_LINKER_FLAGS
         "${CMAKE_SHARED_LINKER_FLAGS}  -latomic -u ANativeActivity_onCreate -v -fvisibility=hidden")
-include(cmake/Getspdlog.cmake)
+find_program(protoc_exe protoc HINTS /usr/bin REQUIRED)
+add_executable(protobuf::protoc IMPORTED)
+set_property(TARGET protobuf::protoc APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+set_target_properties(protobuf::protoc PROPERTIES IMPORTED_LOCATION_RELEASE ${protoc_exe})
+find_package(protobuf_android REQUIRED CONFIG)
 link_libraries(Boost::serialization)
 add_subdirectory(services/extended_window)
 add_subdirectory(services/common_lock)
@@ -81,6 +85,6 @@ add_subdirectory(plugins/gldemo)
 #add_subdirectory(plugins/gtsam_integrator)
 add_subdirectory(plugins/rk4_integrator)
 add_subdirectory(plugins/timewarp_gl)
-
+add_subdirectory(plugins/tcp_network_backend)
 
 add_subdirectory(src)
