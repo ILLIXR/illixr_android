@@ -88,12 +88,13 @@ void gldemo::wait_vsync() {
 
 void gldemo::_p_thread_setup() {
     last_time_ = clock_->now();
-
-    // Note: glXMakeContextCurrent must be called from the thread which will be using it.
-
-    [[maybe_unused]] const bool gl_result = 
-        static_cast<bool>(eglMakeCurrent(ext_window_->display, ext_window_->surface, ext_window_->surface, ext_window_->context));
-    assert(gl_result && "eglMakeCurrent should not fail");
+    
+//    lock_->get_lock();
+//    // Note: glXMakeContextCurrent must be called from the thread which will be using it.
+//    [[maybe_unused]] const bool gl_result =
+//        static_cast<bool>(eglMakeCurrent(ext_window_->display, ext_window_->surface, ext_window_->surface, ext_window_->context));
+//    assert(gl_result && "eglMakeCurrent should not fail");
+//    lock_->release_lock();
 }
 
 void gldemo::_p_one_iteration() {
