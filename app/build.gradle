@@ -2,7 +2,7 @@ plugins {
     id 'com.android.application'
 }
 
-def root_path = rootProject.getLayout().getProjectDirectory().getAsFile().getPath() + "/third_party/"
+def root_path = rootProject.getLayout().getProjectDirectory().getAsFile().getPath() + "/android_libraries/third_party/"
 
 
 android {
