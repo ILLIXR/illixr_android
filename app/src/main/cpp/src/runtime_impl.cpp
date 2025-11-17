@@ -24,6 +24,14 @@
 
 using namespace ILLIXR;
 
+#ifdef UNITY_LIBRARY
+std::function<void(data_format::unity_pose&)> pose_receiver = nullptr;
+
+void set_pose(data_format::unity_pose pose) {
+    pose_receiver(pose);
+}
+#endif
+
 void spdlogger(const std::string& name) {
 #ifdef NDEBUG
     const std::string log_level = "warn";
@@ -85,6 +93,16 @@ public:
                                throw;
                            }
                        });
+#ifdef UNITY_LIBRARY
+        for (auto pl : plugins_) {
+            if (pl->gets_unity_pose()) {
+                pose_receiver = pl->get_pose_function();
+                break;
+            }
+        }
+        if (pose_receiver == nullptr)
+            throw std::runtime_error("Unity pose receiver function was not found.");
+#endif
 
         std::for_each(plugins_.cbegin(), plugins_.cend(), [](const auto& plugin) {
             // Well-behaved plugins_ (any derived from threadloop) start there threads here, and then wait on the Stoplight.

@@ -24,6 +24,11 @@ bool needs_monado() {
 }
 #endif
 
+#ifdef UNITY_LIBRARY
+#include <functional>
+#include "illixr/data_format/unity_data.hpp"
+#endif
+
 namespace ILLIXR {
 
 using plugin_id_t = std::size_t;
@@ -51,6 +56,18 @@ public:
         , id_{pb->get_next_id()} { }
 
     virtual ~plugin() = default;
+
+#ifdef UNITY_LIBRARY
+    bool gets_unity_pose() const {
+#ifdef UNITY_POSE_RECEIVER
+        return true;
+#else
+        return false;
+#endif
+    }
+
+    virtual std::function<void(data_format::unity_pose&)> get_pose_function() { return nullptr; }
+#endif
 
     /**
      * @brief A method which Spindle calls when it starts the component.

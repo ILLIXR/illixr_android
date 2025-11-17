@@ -6,11 +6,19 @@
 #include <string>
 #include <vector>
 #include <EGL/egl.h>
-
+#ifdef UNITY_LIBRARY
+#include "illixr/data_format/unity_data.hpp"
+#endif
 namespace ILLIXR {
 class plugin;
 
 typedef plugin* (*plugin_factory)(phonebook*);
+
+#ifdef UNITY_LIBRARY
+extern "C" {
+    void set_pose(data_format::unity_pose pose);
+}
+#endif
 
 class runtime {
 public:
