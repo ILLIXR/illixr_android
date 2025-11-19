@@ -8,13 +8,13 @@ def root_path = rootProject.getLayout().getProjectDirectory().getAsFile().getPat
 android {
     signingConfigs {
         debug {
-            storeFile file("${System.getenv('HOME')}/illixr.keystore")
+            storeFile file("D:/devel/illixr_android/illixr.keystore")
             storePassword 'illixr'
             keyAlias 'illixr'
             keyPassword 'illixr'
         }
         release {
-            storeFile file("${System.getenv('HOME')}/illixr.keystore")
+            storeFile file("D:/devel/illixr_android/illixr.keystore")
             storePassword 'illixr'
             keyAlias 'illixr'
             keyPassword 'illixr'

@@ -12,6 +12,7 @@ add_compile_definitions(UNITY_LIBRARY)
 if(NOT THIRD_PARTY_DIR)
     message(FATAL_ERROR "The THIRD_PARTY_DIR must be specified")
 endif()
+set(Eigen3_DIR "D:/devel/eigen-3.4.0/eigen-3.4.0/cmake" CACHE PATH "Path to eigen cmake")
 set(OpenCV_DIR "${THIRD_PARTY_DIR}/sdk/native/jni" CACHE PATH "Path to OpenCV cmake configuration files")
 set(Boost_DIR "${THIRD_PARTY_DIR}/lib/${ANDROID_ABI}/cmake/Boost-1.72.0" CACHE PATH "Path to Boost cmake configuration files")
 set(spdlog_android_DIR "${THIRD_PARTY_DIR}/lib/${ANDROID_ABI}/cmake/spdlog_android" CACHE PATH "Path to spdlog cmake configuration files")
@@ -19,8 +20,8 @@ set(protobuf_android_DIR "${THIRD_PARTY_DIR}/lib/${ANDROID_ABI}/cmake/protobuf" 
 set(Boost_USE_STATIC_LIBS ON)
 # build native_app_glue as a static lib
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH})
-
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH};D:/devel/eigen-3.4.0/eigen-3.4.0/cmake)
+set(EIGEN3_INCLUDE_DIR D:/devel/eigen-3.4.0/eigen-3.4.0)
 set(ILLIXR_INTEGRATION 1)
 
 find_package(OpenCV 4.5.5 REQUIRED CONFIG COMPONENTS opencv_java)
