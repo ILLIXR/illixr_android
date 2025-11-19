@@ -26,9 +26,10 @@ using namespace ILLIXR;
 
 #ifdef UNITY_LIBRARY
 std::function<void(data_format::unity_pose&)> pose_receiver = nullptr;
-
+extern "C" {
 void set_pose(data_format::unity_pose pose) {
     pose_receiver(pose);
+}
 }
 #endif
 

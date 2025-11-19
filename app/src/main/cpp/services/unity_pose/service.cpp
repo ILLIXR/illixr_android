@@ -70,4 +70,8 @@ std::function<void(unity_pose&)> unity_pose_plugin::get_pose_function() {
     return &pose_impl_->set_current_pose;
 }
 
+bool unity_pose_plugin::gets_unity_pose() const {
+    return true;
+}
+
 PLUGIN_MAIN(unity_pose_plugin)

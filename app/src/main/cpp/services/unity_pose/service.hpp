@@ -35,6 +35,7 @@ class unity_pose_plugin : public plugin {
 public:
     [[maybe_unused]] unity_pose_plugin(const std::string& name, phonebook* pb);
     std::function<void(data_format::unity_pose&)> get_pose_function() override;
+    bool gets_unity_pose() const override;
 private:
     std::shared_ptr<unity_pose_impl> pose_impl_;
 };

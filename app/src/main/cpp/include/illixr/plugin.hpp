@@ -58,12 +58,8 @@ public:
     virtual ~plugin() = default;
 
 #ifdef UNITY_LIBRARY
-    bool gets_unity_pose() const {
-#ifdef UNITY_POSE_RECEIVER
-        return true;
-#else
+    virtual bool gets_unity_pose() const {
         return false;
-#endif
     }
 
     virtual std::function<void(data_format::unity_pose&)> get_pose_function() { return nullptr; }
