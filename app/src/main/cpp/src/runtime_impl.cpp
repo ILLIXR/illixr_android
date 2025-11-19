@@ -59,7 +59,7 @@ public:
         spdlogger("illixr");
         phonebook_.register_impl<record_logger>(std::make_shared<noop_record_logger>());
         phonebook_.register_impl<switchboard>(std::make_shared<switchboard>(&phonebook_));
-#ifndef ENABLE_MONADO
+#if !defined(ENABLE_MONADO) && !defined(UNITY_LIBRARY)
         phonebook_.register_impl<xlib_gl_extended_window>(
                 std::make_shared<xlib_gl_extended_window>(display_params::width_pixels, display_params::height_pixels, appGLCtx, window));
 #endif /// ENABLE_MONADO
