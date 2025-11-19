@@ -2,8 +2,8 @@
 #ifndef _USE_MATH_DEFINES
 #define _USE_MATH_DEFINES
 #endif
-#include "data_format/point.hpp"
-#include "data_format/pose.hpp"
+//#include "data_format/point.hpp"
+//#include "data_format/pose.hpp"
 
 #include <cmath>
 #include <Eigen/Core>
