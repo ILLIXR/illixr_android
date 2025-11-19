@@ -74,6 +74,7 @@ public:
 
         std::transform(so_paths.cbegin(), so_paths.cend(), std::back_inserter(libraries_), [](const auto& so_path) {
             RAC_ERRNO_MSG("runtime_impl before creating the dynamic library");
+            spdlog::get("illixr")->debug(" create {}", so_path);
             return dynamic_lib::create(so_path);
         });
 
@@ -81,6 +82,8 @@ public:
 
         std::vector<plugin_factory> plugin_factories;
         std::transform(libraries_.cbegin(), libraries_.cend(), std::back_inserter(plugin_factories), [](const auto& lib) {
+            spdlog::get("illixr")->debug(" factory");
+
             return lib.template get<plugin* (*) (phonebook*)>("this_plugin_factory");
         });
 
@@ -90,6 +93,7 @@ public:
         std::transform(plugin_factories.cbegin(), plugin_factories.cend(), std::back_inserter(plugins_),
                        [this](const auto& plugin_factory) {
                            RAC_ERRNO_MSG("runtime_impl before building the plugin");
+                           spdlog::get("illixr")->debug(" loading ");
                            try {
                                return std::unique_ptr<plugin>{plugin_factory(&phonebook_)};
                            } catch (std::exception& ex) {
@@ -99,9 +103,11 @@ public:
                        });
 #ifdef UNITY_LIBRARY
         for (auto pl : plugins_) {
+            spdlog::get("illixr")->debug(" Looking in {}", pl->get_name());
             pl->set_callback(callback_);
             if (pl->gets_unity_pose()) {
                 pose_receiver = pl->get_pose_function();
+                spdlog::get("illixr")->debug("Found pose function");
                 break;
             }
         }
@@ -113,6 +119,8 @@ public:
 
         std::for_each(plugins_.cbegin(), plugins_.cend(), [](const auto& plugin) {
             // Well-behaved plugins_ (any derived from threadloop) start there threads here, and then wait on the Stoplight.
+            spdlog::get("illixr")->debug("starting {}", plugin->get_name());
+
             plugin->start();
         });
 
