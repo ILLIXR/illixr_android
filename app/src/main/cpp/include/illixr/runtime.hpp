@@ -14,12 +14,6 @@ class plugin;
 
 typedef plugin* (*plugin_factory)(phonebook*);
 
-#ifdef UNITY_LIBRARY
-extern "C" {
-    void set_pose(data_format::unity_pose pose);
-}
-#endif
-
 class runtime {
 public:
     virtual void                  load_so(const std::vector<std::string>& so) = 0;
