@@ -21,6 +21,8 @@ public:
     Eigen::Quaternionf apply_offset(const Eigen::Quaternionf& orientation) const;
     data_format::fast_pose_type get_fast_pose(time_point time) const override;
     static void set_current_pose(data_format::unity_pose& pose);
+
+    static TextCallback callback_;
 private:
     const std::shared_ptr<switchboard> switchboard_;
     const std::shared_ptr<const relative_clock> clock_;
@@ -36,6 +38,7 @@ public:
     [[maybe_unused]] unity_pose_plugin(const std::string& name, phonebook* pb);
     std::function<void(data_format::unity_pose&)> get_pose_function() override;
     bool gets_unity_pose() const override;
+    void set_callback(TextCallback callback) override;
 private:
     std::shared_ptr<unity_pose_impl> pose_impl_;
 };

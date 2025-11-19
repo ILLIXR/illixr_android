@@ -27,6 +27,7 @@ bool needs_monado() {
 #ifdef UNITY_LIBRARY
 #include <functional>
 #include "illixr/data_format/unity_data.hpp"
+typedef void (*TextCallback)(const char* message);
 #endif
 
 namespace ILLIXR {
@@ -61,7 +62,7 @@ public:
     virtual bool gets_unity_pose() const {
         return false;
     }
-
+    virtual void set_callback(TextCallback callback) {}
     virtual std::function<void(data_format::unity_pose&)> get_pose_function() { return nullptr; }
 #endif
 
@@ -141,6 +142,9 @@ protected:
     const std::shared_ptr<record_logger> record_logger_;
     const std::size_t                    id_;
     std::shared_ptr<spdlog::logger>      plugin_logger_;
+#ifdef UNITY_LIBRARY
+    TextCallback callback_ = nullptr;
+#endif
 };
 
 #define PLUGIN_MAIN(PLUGIN_CLASS)                           \

@@ -16,7 +16,7 @@ constexpr std::chrono::seconds          ILLIXR_RUN_DURATION_DEFAULT{60};
 extern ILLIXR::runtime* runtime_;
 
 namespace ILLIXR {
-int run(const std::vector<std::string>& plugins, ANativeWindow *window);
+    void run(const std::vector<std::string>& plugins, TextCallback callback);
 
 class cancellable_sleep {
 public:

@@ -8,6 +8,7 @@
 #include <EGL/egl.h>
 #ifdef UNITY_LIBRARY
 #include "illixr/data_format/unity_data.hpp"
+typedef void (*TextCallback)(const char* message);
 #endif
 namespace ILLIXR {
 class plugin;
@@ -44,10 +45,13 @@ public:
 protected:
     bool                         enable_monado_ = false;
     std::shared_ptr<switchboard> switchboard_;
+    TextCallback callback_;
 };
 
 #ifdef ENABLE_MONADO
 extern "C" runtime* runtime_factory();
+#elif  defined(UNITY_LIBRARY)
+extern "C" runtime* runtime_factory(TextCallback callback);
 #else
 extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window);
 #endif /// ENABLE_MONADO

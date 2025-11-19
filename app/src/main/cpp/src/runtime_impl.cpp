@@ -49,7 +49,9 @@ void spdlogger(const std::string& name) {
 class runtime_impl : public runtime {
 public:
     runtime_impl(
-#ifndef ENABLE_MONADO
+#ifdef UNITY_LIBRARY
+            TextCallback callback
+#elif !defined(ENABLE_MONADO)
             EGLContext appGLCtx,
             ANativeWindow *window
 #endif
@@ -64,6 +66,7 @@ public:
         switchboard_   = phonebook_.lookup_impl<switchboard>();
         phonebook_.register_impl<stoplight>(std::make_shared<stoplight>());
         phonebook_.register_impl<relative_clock>(std::make_shared<relative_clock>());
+        callback_ = callback;
     }
 
     void load_so(const std::vector<std::string>& so_paths) override {
@@ -96,13 +99,16 @@ public:
                        });
 #ifdef UNITY_LIBRARY
         for (auto pl : plugins_) {
+            pl->set_callback(callback_);
             if (pl->gets_unity_pose()) {
                 pose_receiver = pl->get_pose_function();
                 break;
             }
         }
-        if (pose_receiver == nullptr)
+        if (pose_receiver == nullptr) {
+            spdlog::get("illixr")->debug("Could not find pose function");
             throw std::runtime_error("Unity pose receiver function was not found.");
+        }
 #endif
 
         std::for_each(plugins_.cbegin(), plugins_.cend(), [](const auto& plugin) {
@@ -182,6 +188,10 @@ extern "C" runtime* runtime_factory() {
         RAC_ERRNO_MSG("runtime_impl before creating the runtime");
         return new runtime_impl{};
     }
+#elif defined(UNITY_LIBRARY)
+extern "C" runtime* runtime_factory(TextCallback callback) {
+    return new runtime_impl{callback};
+}
 #else
 extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window) {
     RAC_ERRNO_MSG("runtime_impl before creating the runtime");

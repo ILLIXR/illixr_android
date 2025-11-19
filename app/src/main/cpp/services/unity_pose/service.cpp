@@ -4,6 +4,8 @@ using namespace ILLIXR;
 using namespace ILLIXR::data_format;
 
 pose_type unity_pose_impl::current_pose_{};
+TextCallback unity_pose_impl::callback_ = nullptr;
+
 unity_pose_impl::unity_pose_impl(const ILLIXR::phonebook* pb)
         : switchboard_{pb->lookup_impl<switchboard>()}
         , clock_{pb->lookup_impl<relative_clock>()}
@@ -56,6 +58,22 @@ fast_pose_type unity_pose_impl::get_fast_pose(time_point time) const {
 
 void unity_pose_impl::set_current_pose(data_format::unity_pose& pose) {
     current_pose_ = pose_type{pose};
+    spdlog::get("illixr")->debug("Got pose {} {} {}: {} {} {} {}", current_pose_.position.x(),
+                                 current_pose_.position.y(), current_pose_.position.z(),
+                                 current_pose_.orientation.w(), current_pose_.orientation.x(),
+                                 current_pose_.orientation.y(), current_pose_.orientation.z());
+    std::string msg = "XYZ:  " + std::to_string(current_pose_.position.x()) + ", "
+                      + std::to_string(current_pose_.position.y()) + ", "
+                      + std::to_string(current_pose_.position.z()) + "\nWXYZ: "
+                      + std::to_string(current_pose_.orientation.w()) + ", "
+                      + std::to_string(current_pose_.orientation.x()) + ", "
+                      + std::to_string(current_pose_.orientation.y()) + ", "
+                      + std::to_string(current_pose_.orientation.z());
+    if (callback_ != nullptr) {
+        callback_(msg.c_str());
+    } else {
+        spdlog::get("illixr")->debug("No callback");
+    }
 }
 
 
@@ -74,4 +92,8 @@ bool unity_pose_plugin::gets_unity_pose() const {
     return true;
 }
 
+void unity_pose_plugin::set_callback(TextCallback callback) {
+    callback_ = callback;
+    pose_impl_->callback_ = callback;
+}
 PLUGIN_MAIN(unity_pose_plugin)
