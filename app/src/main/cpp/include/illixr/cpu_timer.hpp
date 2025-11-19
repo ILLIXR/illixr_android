@@ -178,18 +178,18 @@ public:
     explicit print_timer2(std::string name)
             : name_{std::move(name)}
             , serial_no_{should_profile() ? gen_serial_no() : std::size_t{0}}
-            , wall_time_start_{should_profile() ? std::chrono::duration_cast<std::chrono::nanoseconds>(
+            , wall_time_start_{should_profile() ? static_cast<size_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                     std::chrono::high_resolution_clock::now().time_since_epoch())
-                    .count()
+                    .count())
                                                 : std::size_t{0}}
-            , cpu_time_start_{should_profile() ? thread_cpu_time().count() : std::size_t{0}} { }
+            , cpu_time_start_{should_profile() ? static_cast<size_t>(thread_cpu_time().count()) : std::size_t{0}} { }
 
     ~print_timer2() {
         if (should_profile()) {
             auto cpu_time_stop  = thread_cpu_time().count();
-            auto wall_time_stop = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            auto wall_time_stop = static_cast<size_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                     std::chrono::high_resolution_clock::now().time_since_epoch())
-                    .count();
+                    .count());
 
             spdlog::get("illixr")->info("[cpu_timer]  cpu_timer,{},{},{},{},{},{}", name_, serial_no_, wall_time_start_,
                                         wall_time_stop, cpu_time_start_, cpu_time_stop);
