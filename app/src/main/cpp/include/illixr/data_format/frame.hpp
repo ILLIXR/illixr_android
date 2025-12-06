@@ -238,4 +238,22 @@ struct compressed_frame : public switchboard::event {
     }
 };
 
+struct [[maybe_unused]] dual_frames : public switchboard::event {
+    std::vector<uint8_t> left_eye{};
+    std::vector<uint8_t> right_eye{};
+    int width;
+    int height;
+    time_point render_time{};
+
+    dual_frames() = default;
+
+    dual_frames(time_point tp, std::vector<uint8_t>& l, std::vector<uint8_t> r,
+                int w, int h)
+                : left_eye{l}
+                , right_eye{r}
+                , width{w}
+                , height{h}
+                , render_time{tp} {}
+
+};
 }
