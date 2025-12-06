@@ -2,7 +2,7 @@
 
 #include "illixr/dynamic_lib.hpp"
 #include "illixr/error_util.hpp"
-#include "illixr/extended_window.hpp"
+//#include "illixr/extended_window.hpp"
 #include "illixr/global_module_defs.hpp"
 #include "illixr/phonebook.hpp"
 #include "illixr/plugin.hpp"
@@ -40,7 +40,7 @@ void spdlogger(const std::string& name) {
 class runtime_impl : public runtime {
 public:
     runtime_impl(
-#ifndef ENABLE_MONADO
+#if !defined(ENABLE_MONADO) && !defined(ANDROID)
             EGLContext appGLCtx,
             ANativeWindow *window
 #endif
@@ -48,7 +48,7 @@ public:
         spdlogger("illixr");
         phonebook_.register_impl<record_logger>(std::make_shared<noop_record_logger>());
         phonebook_.register_impl<switchboard>(std::make_shared<switchboard>(&phonebook_));
-#ifndef ENABLE_MONADO
+#if !defined(ENABLE_MONADO) && !defined(ANDROID)
         phonebook_.register_impl<xlib_gl_extended_window>(
                 std::make_shared<xlib_gl_extended_window>(display_params::width_pixels, display_params::height_pixels, appGLCtx, window));
 #endif /// ENABLE_MONADO
@@ -59,6 +59,9 @@ public:
 
     void load_so(const std::vector<std::string>& so_paths) override {
         RAC_ERRNO_MSG("runtime_impl before creating any dynamic library");
+        const std::string network = "libplugin.tcp_network_backend.so";
+
+        //auto network_lib = dynamic_lib::create(network);
 
         std::transform(so_paths.cbegin(), so_paths.cend(), std::back_inserter(libraries_), [](const auto& so_path) {
             RAC_ERRNO_MSG("runtime_impl before creating the dynamic library");
@@ -67,6 +70,7 @@ public:
 
         RAC_ERRNO_MSG("runtime_impl after creating the dynamic libraries");
 
+        //auto network_plugin_impl = network_lib.get<plugin* (*) (phonebook*)>("this_plugin_factory");
         std::vector<plugin_factory> plugin_factories;
         std::transform(libraries_.cbegin(), libraries_.cend(), std::back_inserter(plugin_factories), [](const auto& lib) {
             return lib.template get<plugin* (*) (phonebook*)>("this_plugin_factory");
@@ -75,7 +79,11 @@ public:
         RAC_ERRNO_MSG("runtime_impl after generating plugin factories");
         phonebook_.lookup_impl<relative_clock>()->start();
 
-        std::transform(plugin_factories.cbegin(), plugin_factories.cend(), std::back_inserter(plugins_),
+        plugins_.push_back(std::unique_ptr<plugin>{plugin_factories[0](&phonebook_)});
+        plugins_[0]->start();
+        //std::shared_ptr<plugin> network_plugin = std::unique_ptr<plugin>{network_plugin_impl(&phonebook_)};
+        //network_plugin->start();
+        std::transform(plugin_factories.cbegin() + 1, plugin_factories.cend(), std::back_inserter(plugins_),
                        [this](const auto& plugin_factory) {
                            RAC_ERRNO_MSG("runtime_impl before building the plugin");
                            try {
@@ -86,7 +94,7 @@ public:
                            }
                        });
 
-        std::for_each(plugins_.cbegin(), plugins_.cend(), [](const auto& plugin) {
+        std::for_each(plugins_.cbegin() + 1, plugins_.cend(), [](const auto& plugin) {
             // Well-behaved plugins_ (any derived from threadloop) start there threads here, and then wait on the Stoplight.
             plugin->start();
         });
@@ -158,7 +166,7 @@ private:
 };
 
 
-#ifdef ENABLE_MONADO
+#if defined(ENABLE_MONADO) || defined(ANDROID)
 extern "C" runtime* runtime_factory() {
         RAC_ERRNO_MSG("runtime_impl before creating the runtime");
         return new runtime_impl{};

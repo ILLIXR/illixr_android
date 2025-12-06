@@ -1,6 +1,5 @@
 #ifndef ENABLE_MONADO
 #include "illixr.hpp"
-#include <android_native_app_glue.h>
 #include <EGL/egl.h>
 
 #include <thread>
@@ -59,8 +58,14 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
 //                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
 //            std::vector<std::string> arguments = { "",
 //                                                   "libpose_prediction.so",  "libcommon_lock.so", "libtimewarp_gl.so", "libgldemo.so"};
-        const std::vector<std::string> plugins = { "openvins", "offline_cam", "offline_imu" ,"rk4_integrator",
-                                             "pose_prediction",  "common_lock", "timewarp_gl", "gldemo"};
+        //const std::vector<std::string> plugins = { "openvins", "offline_cam", "offline_imu" ,"rk4_integrator",
+        //                                     "pose_prediction",  "common_lock", "timewarp_gl", "gldemo"};
+
+        const std::vector<std::string> plugins = {"tcp_network_backend",
+                                                  "offload_rendering_mediandk.rx",
+                                                  "openxr_interface",
+                                                  "quest3.head_pose.tx"
+        };
 
         //EuRoC
         setenv("ILLIXR_DATA", "/sdcard/Android/data/com.example.native_activity/mav0", true);
@@ -75,9 +80,9 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
         setenv("ILLIXR_RUN_DURATION", "1000000", true);
         setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
         setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
-        setenv("ILLIXR_TCP_CLIENT_IP", "141.142.60.47", true);
+        setenv("ILLIXR_TCP_CLIENT_IP", "141.142.60.11", true);
         setenv("ILLIXR_TCP_CLIENT_PORT", "9000", true);
-        setenv("ILLIXR_TCP_SERVER_IP", "141.142.60.195", true);
+        setenv("ILLIXR_TCP_SERVER_IP", "128.174.3.132", true);
         setenv("ILLIXR_TCP_SERVER_PORT", "9001", true);
         setenv("ILLIXR_IS_CLIENT", "1", true);
 
@@ -90,7 +95,7 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
         /// Shutting down method 1: Ctrl+C
         std::signal(SIGINT, sigint_handler);
 
-        std::thread runtime_thread(ILLIXR::run, plugins, app->window);
+        std::thread runtime_thread(ILLIXR::run, plugins, app);
         runtime_thread.join();
     }
 }

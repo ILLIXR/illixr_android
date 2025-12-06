@@ -11,18 +11,19 @@ ILLIXR::runtime* runtime_ = nullptr;
 
 using namespace ILLIXR;
 
-int ILLIXR::run(const std::vector<std::string>& plugins, ANativeWindow* window) {
+int ILLIXR::run(const std::vector<std::string>& plugins, struct android_app* app) {
     std::chrono::seconds     run_duration;
     try {
 
-#ifdef ENABLE_MONADO
+#if defined(ENABLE_MONADO) || defined(ANDROID)
         runtime_ = ILLIXR::runtime_factory();
 #else
-        runtime_ = ILLIXR::runtime_factory(EGL_NO_CONTEXT, window);
+        runtime_ = ILLIXR::runtime_factory(EGL_NO_CONTEXT, app->window);
 #endif /// ENABLE_MONADO
 
 // set internal env_vars
         std::shared_ptr<switchboard> switchboard_ = runtime_->get_switchboard();
+        switchboard_->set_android_app(app);
 #ifndef NDEBUG
         /// Activate sleeping at application start for attaching gdb. Disables 'catchsegv'.
         /// Enable using the ILLIXR_ENABLE_PRE_SLEEP environment variable (see 'runner/runner/main.py:load_tests')

@@ -8,7 +8,10 @@
 #include <thread>
 #include <vector>
 
+#ifdef ANDROID
 #include <android/native_window_jni.h>
+#include <android_native_app_glue.h>
+#endif
 
 constexpr std::chrono::seconds          ILLIXR_RUN_DURATION_DEFAULT{60};
 [[maybe_unused]] constexpr unsigned int ILLIXR_PRE_SLEEP_DURATION{10};
@@ -16,7 +19,7 @@ constexpr std::chrono::seconds          ILLIXR_RUN_DURATION_DEFAULT{60};
 extern ILLIXR::runtime* runtime_;
 
 namespace ILLIXR {
-int run(const std::vector<std::string>& plugins, ANativeWindow *window);
+int run(const std::vector<std::string>& plugins, struct android_app* app);
 
 class cancellable_sleep {
 public:

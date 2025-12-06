@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.RECORD_VIDEO" />
     <!-- This .apk has no Java code itself, so set hasCode to false. -->
     <application
+        android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:hasCode="true"
@@ -34,6 +35,7 @@
                 android:value="native-activity" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <category android:name="org.khronos.openxr.intent.category.IMMERSIVE_HMD" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
