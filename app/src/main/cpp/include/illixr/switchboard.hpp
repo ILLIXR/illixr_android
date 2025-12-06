@@ -19,6 +19,10 @@
 #include <shared_mutex>
 #include <utility>
 
+#ifdef ANDROID
+#include <android_native_app_glue.h>
+#endif
+
 #ifndef NDEBUG
     #include <spdlog/spdlog.h>
 #endif
@@ -849,13 +853,28 @@ public:
         }
     }
 
+#ifdef ANDROID
+    void set_android_app(android_app* app) {
+        if (app_) {
+            spdlog::get("illixr")->error("Android app already set");
+            return;
+        }
+        app_ = app;
+    }
+
+    android_app* get_android_app() {
+        return app_;
+    }
+#endif
 private:
     const phonebook*                             phonebook_;
     std::unordered_map<std::string, topic>       registry_;
     std::shared_mutex                            registry_lock_;
     std::shared_ptr<record_logger>               record_logger_;
     std::unordered_map<std::string, std::string> env_vars_;
-
+#ifdef ANDROID
+    android_app* app_ = nullptr;
+#endif
     template<typename Specific_event>
     topic& try_register_topic(const std::string& topic_name) {
         {
