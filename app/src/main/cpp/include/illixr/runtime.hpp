@@ -44,7 +44,7 @@ protected:
     std::shared_ptr<switchboard> switchboard_;
 };
 
-#ifdef ENABLE_MONADO
+#if defined(ENABLE_MONADO) || defined(ANDROID)
 extern "C" runtime* runtime_factory();
 #else
 extern "C" runtime* runtime_factory(EGLContext appGLCtx, ANativeWindow *window);
