@@ -3,10 +3,16 @@
 #include "illixr/data_format/coordinate.hpp"
 #include "illixr/data_format/unit.hpp"
 #include "illixr/switchboard.hpp"
+#ifdef UNITY_LIBRARY
+#include "illixr/data_format/unity_data.hpp"
+#include "illixr/math_util.hpp"
+#endif
+
 
 #include <Eigen/Dense>
 
 namespace ILLIXR::data_format {
+
 /**
  * struct containing basic pose data
  */
@@ -52,6 +58,21 @@ struct pose_data {
             , co_frame{frm}
             , ref_space{ref}
             , valid{valid_} { }
+
+#ifdef UNITY_LIBRARY
+    pose_data(const unity_pose& up)
+            : position{up.positionX, up.positionY, -up.positionZ}
+            , orientation{}
+            , confidence{1}
+            , unit{units::METER}
+            , co_frame{coordinates::RIGHT_HANDED_Y_UP}
+            , ref_space{coordinates::VIEWER}
+            , valid{true} {
+        Eigen::Quaternionf quat(up.quatW, up.quatX, up.quatY, up.quatZ);
+        auto rotation_matrix = quat.toRotationMatrix() * math_util::conversion[coordinates::LEFT_HANDED_Y_UP][coordinates::RIGHT_HANDED_Y_UP];
+        orientation = Eigen::Quaternionf(rotation_matrix);
+    }
+#endif
 };
 
 /**
@@ -109,6 +130,16 @@ struct [[maybe_unused]] pose_type
     pose_type(time_point sensor_time_, pose_data& other)
             : pose_data{other.position, other.orientation, other.unit, other.co_frame, other.ref_space, other.confidence}
             , sensor_time{sensor_time_} { }
+
+#ifdef UNITY_LIBRARY
+    pose_type(unity_pose& pose)
+            : pose_data{pose}
+            , sensor_time{time_point{}} { }
+
+    pose_type(time_point sensor_time_, unity_pose& pose)
+            : pose_data{pose}
+            , sensor_time{sensor_time_} {}
+#endif
 };
 
 /**
