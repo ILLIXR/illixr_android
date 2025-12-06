@@ -29,6 +29,9 @@ if (WIN32 OR MSVC)
     target_compile_definitions(${PLUGIN_NAME} PRIVATE BUILDING_LIBRARY)
 endif()
 
-target_include_directories(${PLUGIN_NAME} PUBLIC ${ILLIXR_SOURCE_DIR}/include)
+target_include_directories(${PLUGIN_NAME} PUBLIC
+        ${ILLIXR_SOURCE_DIR}/include
+        ${ANDROID_NDK}/sources/android/native_app_glue
+)
 
 install(TARGETS ${PLUGIN_NAME} DESTINATION lib)

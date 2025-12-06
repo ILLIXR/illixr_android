@@ -13,14 +13,17 @@ class tcp_network_backend
     , public network::network_backend {
 public:
     explicit tcp_network_backend(const std::string& name_, phonebook* pb_);
-    void start_client();
-    void start_server();
+
+    //void start_client();
+    //void start_server();
+    void start() override;
     void read_loop(network::TCPSocket* socket);
     void topic_create(std::string topic_name, network::topic_config& config) override;
     bool is_topic_networked(std::string topic_name) override;
     void topic_send(std::string topic_name, std::string&& message) override;
     void topic_receive(const std::string& topic_name, std::vector<char>& message);
     void stop() override;
+    ~tcp_network_backend() override;
     bool client;
 
 private:
@@ -40,6 +43,7 @@ private:
     std::vector<std::string>                               networked_topics_;
     std::unordered_map<std::string, network::topic_config> networked_topics_configs_;
 
+    network::TCPSocket server_socket_;
     // To delimit the topic_name and the serialization method when creating a topic
     std::string delimiter_ = ":";
 };

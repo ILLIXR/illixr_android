@@ -5,6 +5,8 @@ using namespace ILLIXR;
 tcp_network_backend::tcp_network_backend(const std::string& name_, phonebook* pb_)
     : plugin(name_, pb_)
     , switchboard_{pb_->lookup_impl<switchboard>()} {
+    spdlog::get("illixr")->info("[tcp_network_backend] Constructor: this = {}",
+                                static_cast<void*>(this));
     // read environment variables
     if (switchboard_->get_env_char("ILLIXR_TCP_SERVER_IP")) {
         server_ip_ = switchboard_->get_env_char("ILLIXR_TCP_SERVER_IP");
@@ -32,59 +34,71 @@ tcp_network_backend::tcp_network_backend(const std::string& name_, phonebook* pb
     } else {
         is_client_ = 0;
     }
-
+    //std::atomic_thread_fence(std::memory_order_seq_cst);
     if (is_client_) {
         client = true;
-        std::thread([this]() {
-            start_client();
-        }).detach();
+        auto* socket = new network::TCPSocket();
+        if (switchboard_->get_env_char("ILLIXR_TCP_CLIENT_IP") && switchboard_->get_env_char("ILLIXR_TCP_CLIENT_PORT")) {
+            socket->socket_bind(client_ip_, client_port_);
+        }
+        socket->socket_set_reuseaddr();
+        socket->enable_no_delay();
+        peer_socket_ = socket;
+
+        spdlog::get("illixr")->debug("Connecting to " + server_ip_ + " at port " + std::to_string(server_port_));
+        socket->socket_connect(server_ip_, server_port_);
+        spdlog::get("illixr")->debug("Connected to server");
+
+        //std::thread([this]() {
+        //    start_client();
+        //}).detach();
 
         // wait till we are connected
-        while (!ready_) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        //while (!ready_) {
+        //    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        //}
     } else {
-         client = false;
-        std::thread([this]() {
-            start_server();
-        }).detach();
+        client = false;
 
-        while (!ready_) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+        server_socket_.socket_set_reuseaddr();
+        server_socket_.socket_bind(server_ip_, server_port_);
+        server_socket_.enable_no_delay();
+        server_socket_.socket_listen();
+
+        auto* client_socket = new network::TCPSocket(server_socket_.socket_accept());
+        spdlog::get("illixr")->debug("Accepted connection from client: " + client_socket->peer_address());
+        peer_socket_ = client_socket;
+
+        //std::thread([this]() {
+        //    start_server();
+        //}).detach();
+
+        //while (!ready_) {
+        //    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        //}
     }
 }
 
-void tcp_network_backend::start_client() {
-    auto* socket = new network::TCPSocket();
-    if (switchboard_->get_env_char("ILLIXR_TCP_CLIENT_IP") && switchboard_->get_env_char("ILLIXR_TCP_CLIENT_PORT")) {
-        socket->socket_bind(client_ip_, client_port_);
-    }
-    socket->socket_set_reuseaddr();
-    socket->enable_no_delay();
-    peer_socket_ = socket;
+void tcp_network_backend::start() {
+    plugin::start();
+    std::thread([this]() {
+        read_loop(peer_socket_);
+    }).detach();
 
-    std::cout << "Connecting to " + server_ip_ + " at port " + std::to_string(server_port_) << std::endl;
-    socket->socket_connect(server_ip_, server_port_);
-    std::cout << "Connected to server" << std::endl;
-
-    ready_ = true;
-    read_loop(socket);
 }
-
-void tcp_network_backend::start_server() {
-    network::TCPSocket server_socket;
-    server_socket.socket_set_reuseaddr();
-    server_socket.socket_bind(server_ip_, server_port_);
-    server_socket.enable_no_delay();
-    server_socket.socket_listen();
-
-    auto* client_socket = new network::TCPSocket(server_socket.socket_accept());
-    std::cout << "Accepted connection from client: " << client_socket->peer_address() << std::endl;
-    peer_socket_ = client_socket;
-    ready_       = true;
-    read_loop(client_socket);
+tcp_network_backend::~tcp_network_backend() {
+    spdlog::get("illixr")->debug("Destroying tcp_network");
 }
+//void tcp_network_backend::start_client() {
+
+//    ready_ = true;
+//    (socket);
+//}
+
+//void tcp_network_backend::start_server() {
+//    ready_       = true;
+//    read_loop(client_socket);
+//}
 
 void tcp_network_backend::read_loop(network::TCPSocket* socket) {
     std::string buffer;
@@ -185,6 +199,7 @@ void tcp_network_backend::send_to_peer(const std::string& topic_name, std::strin
     packet.append(message.begin(), message.end());
     peer_socket_->write_data(packet);
 }
+
 
 extern "C" plugin* this_plugin_factory(phonebook* pb) {
     auto plugin_ptr = std::make_shared<tcp_network_backend>("tcp_network_backend", pb);
