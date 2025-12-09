@@ -1,20 +1,521 @@
 #include "frame_decoder.hpp"
 
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
+#include <cstring>
+#include <media/NdkMediaFormat.h>
+#include <spdlog/spdlog.h>
+
+//#include <cstdint>
+//#include <media/NdkMediaFormat.h>
+//#include <memory>
+//#include <mutex>
+//#include <spdlog/spdlog.h>
+//#include <vector>
+
 using namespace ILLIXR;
 
-#include <cstdint>
-#include <media/NdkMediaFormat.h>
-#include <memory>
-#include <mutex>
-#include <spdlog/spdlog.h>
-#include <vector>
+/// Helper to attach/detach JNI on decoder thread
+class jni_thread_attacher {
+public:
+    explicit jni_thread_attacher(JavaVM* jvm) : jvm_(jvm), env_(nullptr), attached_(false) {
+        if (jvm_) {
+            jint result = jvm_->GetEnv(reinterpret_cast<void**>(&env_), JNI_VERSION_1_6);
+            if (result == JNI_EDETACHED) {
+                if (jvm_->AttachCurrentThread(&env_, nullptr) == JNI_OK) {
+                    attached_ = true;
+                }
+            }
+        }
+    }
 
+    ~jni_thread_attacher() {
+        if (attached_ && jvm_) {
+            jvm_->DetachCurrentThread();
+        }
+    }
 
+    [[nodiscard]] JNIEnv* get_env() const { return env_; }
+    [[nodiscard]] bool is_attached() const { return env_ != nullptr; }
 
+private:
+    JavaVM* jvm_;
+    JNIEnv* env_;
+    bool attached_;
+};
 
-// Quest 3 MediaCodec "Unsupported input buffer" Troubleshooting
+frame_decoder::frame_decoder(int eye_index, int width, int height)
+        : eye_index_(eye_index)
+        , width_(width)
+        , height_(height) {
+}
+
+frame_decoder::~frame_decoder() {
+    stop();
+}
+
+bool frame_decoder::initialize(JNIEnv* env, EGLDisplay egl_display, EGLContext egl_context) {
+    if (initialized_.load()) {
+        spdlog::get("illixr")->warn("frame_decoder[{}] already initialized", eye_index_);
+        return true;
+    }
+
+    egl_display_ = egl_display;
+    egl_context_ = egl_context;
+
+    // Get JavaVM for later thread attachment
+    if (env->GetJavaVM(&jvm_) != JNI_OK) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Failed to get JavaVM", eye_index_);
+        return false;
+    }
+
+    // Verify GL context is current
+    if (eglGetCurrentContext() == EGL_NO_CONTEXT) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: No EGL context during init", eye_index_);
+        return false;
+    }
+
+    // Create external OES texture
+    glGenTextures(1, &external_texture_);
+    if (external_texture_ == 0) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Failed to generate texture", eye_index_);
+        return false;
+    }
+
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, external_texture_);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
+
+    GLenum gl_error = glGetError();
+    if (gl_error != GL_NO_ERROR) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: GL error after texture creation: 0x{:X}",
+                      eye_index_, gl_error);
+        glDeleteTextures(1, &external_texture_);
+        external_texture_ = 0;
+        return false;
+    }
+
+    // Create SurfaceTexture via JNI
+    if (!create_surface_texture(env)) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Failed to create SurfaceTexture", eye_index_);
+        glDeleteTextures(1, &external_texture_);
+        external_texture_ = 0;
+        return false;
+    }
+
+    // Configure MediaCodec
+    if (!configure_codec()) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Failed to configure codec", eye_index_);
+        release_surface_texture(env);
+        glDeleteTextures(1, &external_texture_);
+        external_texture_ = 0;
+        return false;
+    }
+
+    // Start decode thread
+    running_.store(true);
+    decode_thread_ = std::thread(&frame_decoder::decode_loop, this);
+
+    initialized_.store(true);
+    spdlog::get("illixr")->info("frame_decoder[{}]: Initialized {}x{}, texture={}",
+                 eye_index_, width_, height_, external_texture_);
+    return true;
+}
+
+bool frame_decoder::create_surface_texture(JNIEnv* env) {
+    // Find SurfaceTexture class
+    jclass surface_texture_class = env->FindClass("android/graphics/SurfaceTexture");
+    if (!surface_texture_class) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: SurfaceTexture class not found", eye_index_);
+        return false;
+    }
+
+    // Get constructor(int texName)
+    jmethodID constructor = env->GetMethodID(surface_texture_class, "<init>", "(I)V");
+    if (!constructor) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: SurfaceTexture constructor not found", eye_index_);
+        env->DeleteLocalRef(surface_texture_class);
+        return false;
+    }
+
+    // Create SurfaceTexture
+    jobject local_st = env->NewObject(surface_texture_class, constructor,
+                                      static_cast<jint>(external_texture_));
+    if (!local_st || env->ExceptionCheck()) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Failed to create SurfaceTexture", eye_index_);
+        env->ExceptionClear();
+        env->DeleteLocalRef(surface_texture_class);
+        return false;
+    }
+
+    surface_texture_ = env->NewGlobalRef(local_st);
+    env->DeleteLocalRef(local_st);
+
+    // Cache method IDs
+    update_tex_image_method_ = env->GetMethodID(surface_texture_class, "updateTexImage", "()V");
+    get_transform_matrix_method_ = env->GetMethodID(surface_texture_class,
+                                                    "getTransformMatrix", "([F)V");
+
+    if (!update_tex_image_method_ || !get_transform_matrix_method_) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: SurfaceTexture methods not found", eye_index_);
+        env->DeleteGlobalRef(surface_texture_);
+        surface_texture_ = nullptr;
+        env->DeleteLocalRef(surface_texture_class);
+        return false;
+    }
+
+    // Set default buffer size
+    jmethodID set_buffer_size = env->GetMethodID(surface_texture_class,
+                                                 "setDefaultBufferSize", "(II)V");
+    if (set_buffer_size) {
+        env->CallVoidMethod(surface_texture_, set_buffer_size, width_, height_);
+    }
+
+    env->DeleteLocalRef(surface_texture_class);
+
+    // Create Surface from SurfaceTexture
+    jclass surface_class = env->FindClass("android/view/Surface");
+    if (!surface_class) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Surface class not found", eye_index_);
+        env->DeleteGlobalRef(surface_texture_);
+        surface_texture_ = nullptr;
+        return false;
+    }
+
+    jmethodID surface_ctor = env->GetMethodID(surface_class, "<init>",
+                                              "(Landroid/graphics/SurfaceTexture;)V");
+    if (!surface_ctor) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Surface constructor not found", eye_index_);
+        env->DeleteLocalRef(surface_class);
+        env->DeleteGlobalRef(surface_texture_);
+        surface_texture_ = nullptr;
+        return false;
+    }
+
+    jobject local_surface = env->NewObject(surface_class, surface_ctor, surface_texture_);
+    if (!local_surface || env->ExceptionCheck()) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Failed to create Surface", eye_index_);
+        env->ExceptionClear();
+        env->DeleteLocalRef(surface_class);
+        env->DeleteGlobalRef(surface_texture_);
+        surface_texture_ = nullptr;
+        return false;
+    }
+
+    surface_ = env->NewGlobalRef(local_surface);
+    env->DeleteLocalRef(local_surface);
+    env->DeleteLocalRef(surface_class);
+
+    // Get ANativeWindow
+    native_window_ = ANativeWindow_fromSurface(env, surface_);
+    if (!native_window_) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Failed to get ANativeWindow", eye_index_);
+        env->DeleteGlobalRef(surface_);
+        surface_ = nullptr;
+        env->DeleteGlobalRef(surface_texture_);
+        surface_texture_ = nullptr;
+        return false;
+    }
+
+    return true;
+}
+
+void frame_decoder::release_surface_texture(JNIEnv* env) {
+    if (native_window_) {
+        ANativeWindow_release(native_window_);
+        native_window_ = nullptr;
+    }
+
+    if (surface_ && env) {
+        jclass cls = env->GetObjectClass(surface_);
+        if (cls) {
+            jmethodID release = env->GetMethodID(cls, "release", "()V");
+            if (release) {
+                env->CallVoidMethod(surface_, release);
+            }
+            env->DeleteLocalRef(cls);
+        }
+        env->DeleteGlobalRef(surface_);
+        surface_ = nullptr;
+    }
+
+    if (surface_texture_ && env) {
+        jclass cls = env->GetObjectClass(surface_texture_);
+        if (cls) {
+            jmethodID release = env->GetMethodID(cls, "release", "()V");
+            if (release) {
+                env->CallVoidMethod(surface_texture_, release);
+            }
+            env->DeleteLocalRef(cls);
+        }
+        env->DeleteGlobalRef(surface_texture_);
+        surface_texture_ = nullptr;
+    }
+}
+
+bool frame_decoder::configure_codec() {
+    // Try Qualcomm hardware decoder (Quest 3)
+    codec_ = AMediaCodec_createCodecByName("OMX.qcom.video.decoder.avc");
+    if (!codec_) {
+        codec_ = AMediaCodec_createDecoderByType("video/avc");
+    }
+
+    if (!codec_) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Failed to create decoder", eye_index_);
+        return false;
+    }
+
+    AMediaFormat* format = AMediaFormat_new();
+    AMediaFormat_setString(format, AMEDIAFORMAT_KEY_MIME, "video/avc");
+    AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_WIDTH, width_);
+    AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_HEIGHT, height_);
+    AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_MAX_INPUT_SIZE, width_ * height_);
+
+    // Low latency hints
+    AMediaFormat_setInt32(format, "low-latency", 1);
+    AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_PRIORITY, 0);  // Realtime
+
+    // Configure with surface output
+    media_status_t status = AMediaCodec_configure(codec_, format, native_window_, nullptr, 0);
+    AMediaFormat_delete(format);
+
+    if (status != AMEDIA_OK) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Configure failed: {}",
+                      eye_index_, static_cast<int>(status));
+        AMediaCodec_delete(codec_);
+        codec_ = nullptr;
+        return false;
+    }
+
+    status = AMediaCodec_start(codec_);
+    if (status != AMEDIA_OK) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Start failed: {}",
+                      eye_index_, static_cast<int>(status));
+        AMediaCodec_delete(codec_);
+        codec_ = nullptr;
+        return false;
+    }
+
+    return true;
+}
+
+bool frame_decoder::queue_encoded_data(const uint8_t* data, size_t size,
+                                               int64_t timestamp_us, bool is_keyframe) {
+    if (!running_.load()) {
+        return false;
+    }
+
+    encoded_packet packet;
+    packet.data.assign(data, data + size);
+    packet.timestamp_us = timestamp_us;
+    packet.is_keyframe = is_keyframe;
+
+    {
+        std::lock_guard<std::mutex> lock(input_mutex_);
+
+        // Latency control: drop old P-frames if queue is deep
+        constexpr size_t max_queue = 5;
+        while (input_queue_.size() >= max_queue) {
+            if (!input_queue_.front().is_keyframe) {
+                input_queue_.pop();
+            } else {
+                break;
+            }
+        }
+
+        input_queue_.push(std::move(packet));
+    }
+    input_cv_.notify_one();
+
+    return true;
+}
+
+void frame_decoder::decode_loop() {
+    jni_thread_attacher jni(jvm_);
+    if (!jni.is_attached()) {
+        spdlog::get("illixr")->error("frame_decoder[{}]: Failed to attach to JVM", eye_index_);
+        return;
+    }
+
+    spdlog::get("illixr")->info("frame_decoder[{}]: Decode loop started", eye_index_);
+
+    while (running_.load()) {
+        // Feed input
+        {
+            std::unique_lock<std::mutex> lock(input_mutex_);
+            if (input_queue_.empty()) {
+                input_cv_.wait_for(lock, std::chrono::milliseconds(10));
+            }
+
+            int fed = 0;
+            while (!input_queue_.empty() && fed < 3) {
+                ssize_t idx = AMediaCodec_dequeueInputBuffer(codec_, 0);
+                if (idx < 0) break;
+
+                auto& pkt = input_queue_.front();
+
+                size_t buf_size = 0;
+                uint8_t* buf = AMediaCodec_getInputBuffer(codec_, idx, &buf_size);
+
+                if (buf && buf_size >= pkt.data.size()) {
+                    std::memcpy(buf, pkt.data.data(), pkt.data.size());
+
+                    uint32_t flags = pkt.is_keyframe ? AMEDIACODEC_BUFFER_FLAG_KEY_FRAME : 0;
+                    AMediaCodec_queueInputBuffer(codec_, idx, 0, pkt.data.size(),
+                                                 pkt.timestamp_us, flags);
+                    fed++;
+                }
+
+                input_queue_.pop();
+            }
+        }
+
+        // Drain output (render to surface)
+        AMediaCodecBufferInfo info;
+        ssize_t idx;
+
+        while ((idx = AMediaCodec_dequeueOutputBuffer(codec_, &info, 0)) >= 0) {
+            // Release with render=true to send to SurfaceTexture
+            media_status_t status = AMediaCodec_releaseOutputBuffer(codec_, idx, true);
+
+            if (status == AMEDIA_OK) {
+                frame_available_.store(true);
+                latest_timestamp_us_.store(info.presentationTimeUs);
+                frames_decoded_.fetch_add(1);
+            }
+        }
+
+        if (idx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
+            std::this_thread::sleep_for(std::chrono::microseconds(500));
+        }
+    }
+
+    spdlog::get("illixr")->info("frame_decoder[{}]: Decode loop stopped, decoded {} frames",
+                 eye_index_, frames_decoded_.load());
+}
+
+bool frame_decoder::update_texture() {
+    if (!initialized_.load() || !surface_texture_ || !jvm_) {
+        return false;
+    }
+
+    if (!frame_available_.exchange(false)) {
+        return false;
+    }
+
+    jni_thread_attacher jni(jvm_);
+    JNIEnv* env = jni.get_env();
+    if (!env) {
+        return false;
+    }
+
+    // Check if we have a GL context - if not, try to make ours current
+    if (eglGetCurrentContext() == EGL_NO_CONTEXT) {
+        if (egl_display_ != EGL_NO_DISPLAY && egl_context_ != EGL_NO_CONTEXT) {
+            if (!eglMakeCurrent(egl_display_, EGL_NO_SURFACE, EGL_NO_SURFACE, egl_context_)) {
+                spdlog::get("illixr")->error("surface_frame_decoder[{}]: Failed to make context current in update_texture", eye_index_);
+                return false;
+            }
+        } else {
+            spdlog::get("illixr")->error("surface_frame_decoder[{}]: No GL context in update_texture", eye_index_);
+            return false;
+        }
+    }
+
+    env->CallVoidMethod(surface_texture_, update_tex_image_method_);
+
+    if (env->ExceptionCheck()) {
+        env->ExceptionClear();
+        return false;
+    }
+
+    return true;
+}
+
+void frame_decoder::get_transform_matrix(float* matrix) {
+    // Default to identity
+    std::memset(matrix, 0, 16 * sizeof(float));
+    matrix[0] = matrix[5] = matrix[10] = matrix[15] = 1.0f;
+
+    if (!initialized_.load() || !surface_texture_ || !jvm_) {
+        return;
+    }
+
+    jni_thread_attacher jni(jvm_);
+    JNIEnv* env = jni.get_env();
+    if (!env) {
+        return;
+    }
+
+    jfloatArray arr = env->NewFloatArray(16);
+    if (!arr) {
+        return;
+    }
+
+    env->CallVoidMethod(surface_texture_, get_transform_matrix_method_, arr);
+
+    if (!env->ExceptionCheck()) {
+        env->GetFloatArrayRegion(arr, 0, 16, matrix);
+    } else {
+        env->ExceptionClear();
+    }
+
+    env->DeleteLocalRef(arr);
+}
+
+void frame_decoder::flush() {
+    if (!codec_) return;
+
+    {
+        std::lock_guard<std::mutex> lock(input_mutex_);
+        while (!input_queue_.empty()) {
+            input_queue_.pop();
+        }
+    }
+
+    AMediaCodec_flush(codec_);
+    frame_available_.store(false);
+}
+
+void frame_decoder::stop() {
+    if (!running_.exchange(false)) {
+        return;
+    }
+
+    input_cv_.notify_all();
+
+    if (decode_thread_.joinable()) {
+        decode_thread_.join();
+    }
+
+    if (codec_) {
+        AMediaCodec_stop(codec_);
+        AMediaCodec_delete(codec_);
+        codec_ = nullptr;
+    }
+
+    if (jvm_) {
+        jni_thread_attacher jni(jvm_);
+        release_surface_texture(jni.get_env());
+    }
+
+    if (external_texture_ != 0) {
+        glDeleteTextures(1, &external_texture_);
+        external_texture_ = 0;
+    }
+
+    initialized_.store(false);
+    spdlog::get("illixr")->info("frame_decoder[{}]: Stopped", eye_index_);
+}
+
 
 /*
+// Quest 3 MediaCodec "Unsupported input buffer" Troubleshooting
+
+/
  * COMMON CAUSES OF "Unsupported input buffer" ON QUEST 3:
  *
  * 1. Setting color format during configuration (REMOVED in fix above)
@@ -22,13 +523,13 @@ using namespace ILLIXR;
  * 3. Resolution mismatch between config and actual data
  * 4. Missing or corrupt SPS/PPS headers
  * 5. B-frames in H.264 stream (Quest 3 hardware decoder limitation)
- */
+ /
 
 // ============================================================================
 // SOLUTION 1: Check Your Encoder Settings (NVIDIA/Source)
 // ============================================================================
 
-/*
+/
  * Make sure your NVIDIA encoder (or whatever is encoding) uses these settings:
  *
  * Profile: Baseline or Main (NOT High)
@@ -44,7 +545,7 @@ using namespace ILLIXR;
  * - gopLength = 90 (1 second at 90fps)
  * - numBFrames = 0  // CRITICAL
  * - idrPeriod = 90  // Keyframe every second
- */
+ /
 
 // ============================================================================
 // SOLUTION 2: Verify H.264 Stream Compatibility
@@ -60,10 +561,10 @@ void save_h264_for_analysis(const uint8_t* data, size_t size, int frame_num) {
         if (f) {
             fwrite(data, 1, size, f);
             fclose(f);
-            spdlog::get("illixr")->info("Saved frame {} to {}", frame_num, filename);
-            spdlog::get("illixr")->info("Analyze with: ffprobe {}", filename);
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Saved frame {} to {}", frame_num, filename);
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Analyze with: ffprobe {}", filename);
         } else {
-            spdlog::get("illixr")->error("Could not open file");
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Could not open file");
         }
     }
 }
@@ -111,7 +612,7 @@ AMediaCodec* frame_decoder::create_decoder_with_fallback(int width, int height) 
     for (int i = 0; codec_names[i] != nullptr; i++) {
         codec = AMediaCodec_createCodecByName(codec_names[i]);
         if (codec) {
-            spdlog::get("illixr")->info("Using decoder: {}", codec_names[i]);
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Using decoder: {}", codec_names[i]);
             return codec;
         }
     }
@@ -119,7 +620,7 @@ AMediaCodec* frame_decoder::create_decoder_with_fallback(int width, int height) 
     // Last resort: let system choose
     codec = AMediaCodec_createDecoderByType("video/avc");
     if (codec) {
-        spdlog::get("illixr")->info("Using system default H.264 decoder");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Using system default H.264 decoder");
     }
 
     return codec;
@@ -136,25 +637,25 @@ void frame_decoder::check_first_frame_compatibility(const std::vector<uint8_t>& 
     if (checked) return;
     checked = true;
 
-    spdlog::get("illixr")->info("=== FIRST FRAME DIAGNOSTICS ===");
-    spdlog::get("illixr")->info("Frame size: {} bytes", data.size());
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("=== FIRST FRAME DIAGNOSTICS ===");
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Frame size: {} bytes", data.size());
 
     // Check for B-frames
     if (has_b_frames(data.data(), data.size())) {
-        spdlog::get("illixr")->error("!!! B-FRAMES DETECTED !!!");
-        spdlog::get("illixr")->error("Quest 3 hardware decoder may not support B-frames!");
-        spdlog::get("illixr")->error("Configure your encoder with: numBFrames = 0");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("!!! B-FRAMES DETECTED !!!");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Quest 3 hardware decoder may not support B-frames!");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Configure your encoder with: numBFrames = 0");
     } else {
-        spdlog::get("illixr")->info("Good: No B-frames detected");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Good: No B-frames detected");
     }
     // Check format
     if (data.size() >= 4) {
         if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
-            spdlog::get("illixr")->info("Format: Annex B (4-byte start code) ✓");
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Format: Annex B (4-byte start code) ✓");
         } else if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x01) {
-            spdlog::get("illixr")->info("Format: Annex B (3-byte start code) ✓");
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Format: Annex B (3-byte start code) ✓");
         } else {
-            spdlog::get("illixr")->warn("Format: Unknown (first bytes: %02X %02X %02X %02X)",
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->warn("Format: Unknown (first bytes: %02X %02X %02X %02X)",
                                         data[0], data[1], data[2], data[3]);
         }
     }
@@ -177,23 +678,23 @@ void frame_decoder::check_first_frame_compatibility(const std::vector<uint8_t>& 
         }
     }
 
-    spdlog::get("illixr")->info("SPS present: {} {}", has_sps, has_sps ? "✓" : "✗ MISSING!");
-    spdlog::get("illixr")->info("PPS present: {} {}", has_pps, has_pps ? "✓" : "✗ MISSING!");
-    spdlog::get("illixr")->info("IDR present: {} {}", has_idr, has_idr ? "✓" : "✗");
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("SPS present: {} {}", has_sps, has_sps ? "✓" : "✗ MISSING!");
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("PPS present: {} {}", has_pps, has_pps ? "✓" : "✗ MISSING!");
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("IDR present: {} {}", has_idr, has_idr ? "✓" : "✗");
 
     if (!has_sps || !has_pps) {
-        spdlog::get("illixr")->error("CRITICAL: Missing required headers!");
-        spdlog::get("illixr")->error("Decoder will likely fail with 'Unsupported input buffer'");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("CRITICAL: Missing required headers!");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Decoder will likely fail with 'Unsupported input buffer'");
     }
 
-    spdlog::get("illixr")->info("================================");
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("================================");
 }
 
 // ============================================================================
 // QUICK FIX CHECKLIST:
 // ============================================================================
 
-/*
+/
  * [X] Remove color format from AMediaFormat configuration (DONE ABOVE)
  * [X] Verify encoder outputs Baseline or Main profile (not High)
  * [ ] Verify encoder has numBFrames = 0
@@ -201,7 +702,7 @@ void frame_decoder::check_first_frame_compatibility(const std::vector<uint8_t>& 
  * [X] Verify first frame contains SPS + PPS + IDR
  * [ ] Check Android logcat for more specific errors:
  *     adb logcat | grep -i "codec\|media\|omx"
- */
+ /
 
 
 
@@ -260,7 +761,7 @@ std::vector<uint8_t> frame_decoder::convert_avcc_to_annexb(const uint8_t* data, 
         offset += 4;
 
         if (nal_length == 0 || offset + nal_length > size) {
-            spdlog::get("illixr")->error("Invalid NAL length: {} at offset {}", nal_length, offset - 4);
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Invalid NAL length: {} at offset {}", nal_length, offset - 4);
             break;
         }
 
@@ -276,7 +777,7 @@ std::vector<uint8_t> frame_decoder::convert_avcc_to_annexb(const uint8_t* data, 
         offset += nal_length;
     }
 
-    spdlog::get("illixr")->info("Converted AVCC to Annex B: {} bytes -> {} bytes",
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Converted AVCC to Annex B: {} bytes -> {} bytes",
                                 size, annexb_data.size());
 
     return annexb_data;
@@ -303,7 +804,7 @@ void frame_decoder::check_and_convert_h264_format(std::vector<uint8_t>& encoded_
                 break;
         }
 
-        spdlog::get("illixr")->info("H.264 Format Detected: {}", format_name);
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("H.264 Format Detected: {}", format_name);
 
         // Log first 32 bytes to help diagnose
         std::string hex_dump;
@@ -312,7 +813,7 @@ void frame_decoder::check_and_convert_h264_format(std::vector<uint8_t>& encoded_
             snprintf(buf, sizeof(buf), "%02X ", encoded_data[i]);
             hex_dump += buf;
         }
-        spdlog::get("illixr")->info("First 32 bytes: {}", hex_dump);
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("First 32 bytes: {}", hex_dump);
 
         format_detected = true;
     }
@@ -321,7 +822,7 @@ void frame_decoder::check_and_convert_h264_format(std::vector<uint8_t>& encoded_
     if (detected_format == H264_FORMAT_AVCC) {
         encoded_data = convert_avcc_to_annexb(encoded_data.data(), encoded_data.size());
     } else if (detected_format == H264_FORMAT_UNKNOWN) {
-        spdlog::get("illixr")->error("Cannot decode - unknown H.264 format!");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Cannot decode - unknown H.264 format!");
     }
 }
 
@@ -330,11 +831,11 @@ void frame_decoder::check_and_convert_h264_format(std::vector<uint8_t>& encoded_
 // Find all NAL units in the data and log their types
 void frame_decoder::analyze_h264_data(const uint8_t* data, size_t size, const char* label) {
     if (!data || size < 4) {
-        spdlog::get("illixr")->warn("{}: Data too small ({} bytes)", label, size);
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->warn("{}: Data too small ({} bytes)", label, size);
         return;
     }
 
-    spdlog::get("illixr")->info("{}: Analyzing {} bytes", label, size);
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("{}: Analyzing {} bytes", label, size);
 
     // Log first 16 bytes as hex
     std::string hex_dump;
@@ -343,7 +844,7 @@ void frame_decoder::analyze_h264_data(const uint8_t* data, size_t size, const ch
         snprintf(buf, sizeof(buf), "%02X ", data[i]);
         hex_dump += buf;
     }
-    spdlog::get("illixr")->info("{}: First bytes: {}", label, hex_dump);
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("{}: First bytes: {}", label, hex_dump);
 
     // Check for start codes and NAL units
     bool has_sps = false;
@@ -390,7 +891,7 @@ void frame_decoder::analyze_h264_data(const uint8_t* data, size_t size, const ch
                 default: break;
             }
 
-            spdlog::get("illixr")->info("{}: NAL #{} at offset {}: Type {} ({})",
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("{}: NAL #{} at offset {}: Type {} ({})",
                                         label, nal_count, i, nal_type, nal_type_name);
             nal_count++;
 
@@ -401,14 +902,14 @@ void frame_decoder::analyze_h264_data(const uint8_t* data, size_t size, const ch
     }
 
     // Summary
-    spdlog::get("illixr")->info("{}: Found {} NAL units", label, nal_count);
-    spdlog::get("illixr")->info("{}: Has SPS: {}, Has PPS: {}, Has IDR: {}",
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("{}: Found {} NAL units", label, nal_count);
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("{}: Has SPS: {}, Has PPS: {}, Has IDR: {}",
                                 label, has_sps, has_pps, has_idr);
 
     if (!has_sps || !has_pps) {
-        spdlog::get("illixr")->error("{}: MISSING REQUIRED HEADERS! SPS={} PPS={}",
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("{}: MISSING REQUIRED HEADERS! SPS={} PPS={}",
                                      label, has_sps, has_pps);
-        spdlog::get("illixr")->error("{}: MediaCodec WILL FAIL without SPS/PPS!", label);
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("{}: MediaCodec WILL FAIL without SPS/PPS!", label);
     }
 }
 
@@ -468,10 +969,10 @@ bool frame_decoder::extract_sps_pps(const uint8_t* data, size_t size,
 
         if (nal_type == NAL_UNIT_TYPE_SPS) {
             sps_out.assign(data + i, data + i + nal_size);
-            spdlog::get("illixr")->info("Extracted SPS: {} bytes", nal_size);
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Extracted SPS: {} bytes", nal_size);
         } else if (nal_type == NAL_UNIT_TYPE_PPS) {
             pps_out.assign(data + i, data + i + nal_size);
-            spdlog::get("illixr")->info("Extracted PPS: {} bytes", nal_size);
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Extracted PPS: {} bytes", nal_size);
         }
 
         i = next_start - 1;
@@ -563,11 +1064,11 @@ void frame_decoder::decode_loop() {
                 input_queue_.pop();
                 lock.unlock(); // Release lock before codec operations
 
-                //spdlog::get("illixr")->debug("adding frame {}", encoded_data.size());
+                //spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->debug("adding frame {}", encoded_data.size());
                 if (!encoded_data.empty()) {
                     static bool first_frame = true;
                     if (first_frame) {
-                        //spdlog::get("illixr")->info("First frame received: {} bytes", encoded_data.size());
+                        //spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("First frame received: {} bytes", encoded_data.size());
                         check_first_frame_compatibility(encoded_data);
                         check_and_convert_h264_format(encoded_data);
                         analyze_h264_data(encoded_data.data(), encoded_data.size(), "First Frame");
@@ -575,7 +1076,7 @@ void frame_decoder::decode_loop() {
                     }
 
                     // Get input buffer (short timeout)
-                    //spdlog::get("illixr")->debug("A");
+                    //spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->debug("A");
                     // ANALYZE FIRST FEW FRAMES
                     static int frame_count = 0;
                     if (frame_count < 3) {  // Check first 3 frames
@@ -588,19 +1089,19 @@ void frame_decoder::decode_loop() {
                     // Check if this frame has SPS/PPS
                     if (!config_sent_) {
                         if (has_sps_pps(encoded_data.data(), encoded_data.size())) {
-                            spdlog::get("illixr")->info("Found SPS/PPS in frame, extracting...");
+                            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Found SPS/PPS in frame, extracting...");
                             extract_sps_pps(encoded_data.data(), encoded_data.size(),
                                             cached_sps_, cached_pps_);
                             config_sent_ = true;
                         } else {
-                            spdlog::get("illixr")->warn("Frame missing SPS/PPS! Decoder may fail.");
+                            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->warn("Frame missing SPS/PPS! Decoder may fail.");
                         }
                     }
                     ssize_t buffer_idx = AMediaCodec_dequeueInputBuffer(codec_, 1000);
                     if (buffer_idx >= 0) {
                         size_t buffer_size;
                         uint8_t* buffer = AMediaCodec_getInputBuffer(codec_, buffer_idx, &buffer_size);
-                        //spdlog::get("illixr")->debug("B");
+                        //spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->debug("B");
                         if (buffer && encoded_data.size() <= buffer_size) {
                             memcpy(buffer, encoded_data.data(), encoded_data.size());
 
@@ -608,19 +1109,19 @@ void frame_decoder::decode_loop() {
                                     codec_, buffer_idx, 0, encoded_data.size(), 0, 0);
 
                             if (status == AMEDIA_OK) {
-                                //spdlog::get("illixr")->debug("Fed");
+                                //spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->debug("Fed");
                                 input_fed = true;
                             } else {
-                                spdlog::get("illixr")->error("Failed to queue input buffer: {}",
+                                spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Failed to queue input buffer: {}",
                                                              static_cast<int>(status));
                             }
                         } else {
-                            spdlog::get("illixr")->error("Input buffer too small or null");
+                            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Input buffer too small or null");
                         }
                     }
                 }
             }
-            /*queue_cv_.wait(lock, [this] { return !input_queue_.empty() || !running_; });
+            /queue_cv_.wait(lock, [this] { return !input_queue_.empty() || !running_; });
 
             if (!running_ && input_queue_.empty())
                 break;
@@ -628,14 +1129,14 @@ void frame_decoder::decode_loop() {
             if (!input_queue_.empty()) {
                 encoded_data = std::move(input_queue_.front());
                 input_queue_.pop();
-            }*/
+            }/
         }
 
         //if (encoded_data.empty())
         //    continue;
 
         // Get input buffer
-        /*ssize_t bufferIdx = AMediaCodec_dequeueInputBuffer(codec_, 10000);
+        /ssize_t bufferIdx = AMediaCodec_dequeueInputBuffer(codec_, 10000);
         if (bufferIdx >= 0) {
             size_t bufferSize;
             uint8_t* buffer = AMediaCodec_getInputBuffer(codec_, bufferIdx, &bufferSize);
@@ -647,18 +1148,18 @@ void frame_decoder::decode_loop() {
                                              encoded_data.size(),
                                              0, 0);
                 if (stat != AMEDIA_OK) {
-                    spdlog::get("illixr")->debug("xyz");
+                    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->debug("xyz");
                 }
             } else {
-                spdlog::get("illixr")->error("Input buffer too small or null");
+                spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Input buffer too small or null");
             }
-        }*/
+        }/
         // Get output buffer
         AMediaCodecBufferInfo info;
         ssize_t output_idx = AMediaCodec_dequeueOutputBuffer(codec_, &info, 10000);
 
         if (output_idx >= 0) {
-            spdlog::get("illixr")->debug("have idx");
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->debug("have idx");
             if (info.size > 0) {
                 // Get raw buffer and invoke callback
                 size_t bufferSize;
@@ -687,27 +1188,27 @@ void frame_decoder::decode_loop() {
             AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_HEIGHT, &height_);
             int32_t colorFormat;
             AMediaFormat_getInt32(format, AMEDIAFORMAT_KEY_COLOR_FORMAT, &colorFormat);
-            spdlog::get("illixr")->info("Output format changed: {}x{}, format {}", width_, height_, colorFormat);
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Output format changed: {}x{}, format {}", width_, height_, colorFormat);
             AMediaFormat_delete(format);
         } else if (output_idx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
             // No output available yet - this is normal, especially at startup
             if (!input_fed) {
-                //spdlog::get("illixr")->debug("try again, no input");
+                //spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->debug("try again, no input");
                 // If we didn't feed input and no output, wait a bit for new input
                 std::unique_lock<std::mutex> lock(queue_mutex_);
                 queue_cv_.wait_for(lock, std::chrono::milliseconds(10),
                                    [this] { return !input_queue_.empty() || !running_; });
             } else {
-                //spdlog::get("illixr")->debug("try again");
+                //spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->debug("try again");
             }
         } else {
             static int error_count = 0;
             if (error_count < 5) {  // Only log first 5 errors
-                spdlog::get("illixr")->warn("dequeueOutputBuffer returned: {}",
+                spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->warn("dequeueOutputBuffer returned: {}",
                                             static_cast<int>(output_idx));
                 error_count++;
             }
-            spdlog::get("illixr")->warn("Unexpected dequeueOutputBuffer result: {}",
+            spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->warn("Unexpected dequeueOutputBuffer result: {}",
                                         static_cast<int>(output_idx));
         }
     }
@@ -718,16 +1219,16 @@ frame_decoder::frame_decoder(int w, int h)
         : width_{w}
         , height_{h} {
 
-    spdlog::get("illixr")->info("Creating H.264 decoder for {}x{}", w, h);
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Creating H.264 decoder for {}x{}", w, h);
 
     // Create H.264 decoder
     codec_ = AMediaCodec_createCodecByName("OMX.qcom.video.decoder.avc");
     if (!codec_) {
-        spdlog::get("illixr")->warn("Qualcomm hardware decoder not found, trying generic");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->warn("Qualcomm hardware decoder not found, trying generic");
         codec_ = AMediaCodec_createDecoderByType("video/avc");
     }
     if (!codec_) {
-        spdlog::get("illixr")->error("Failed to create decoder");
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Failed to create decoder");
         throw std::runtime_error("Failed to create decoder");
     }
 
@@ -743,18 +1244,18 @@ frame_decoder::frame_decoder(int w, int h)
     AMediaFormat_setInt32(format, AMEDIAFORMAT_KEY_MAX_INPUT_SIZE, width_ * height_ * 2);
     media_status_t status;
 
-    spdlog::get("illixr")->info("Configuring decoder: {}x{}, max_input_size: {}",
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Configuring decoder: {}x{}, max_input_size: {}",
                                 width_, height_, width_ * height_ * 2);
     // Configure for buffer output
     status = AMediaCodec_configure(codec_, format, nullptr, nullptr, 0);
     // Log configuration
     const char* config_str = AMediaFormat_toString(format);
-    spdlog::get("illixr")->info("Decoder config: {}", config_str);
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Decoder config: {}", config_str);
 
     AMediaFormat_delete(format);
 
     if (status != AMEDIA_OK) {
-        spdlog::get("illixr")->error("Failed to configure decoder: {}", static_cast<int>(status));
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Failed to configure decoder: {}", static_cast<int>(status));
         AMediaCodec_delete(codec_);
         throw std::runtime_error("Failed to configure decoder");
     }
@@ -762,12 +1263,12 @@ frame_decoder::frame_decoder(int w, int h)
     // Start decoder
     status = AMediaCodec_start(codec_);
     if (status != AMEDIA_OK) {
-        spdlog::get("illixr")->error("Failed to start decoder: {}", static_cast<int>(status));
+        spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->error("Failed to start decoder: {}", static_cast<int>(status));
         AMediaCodec_delete(codec_);
         throw std::runtime_error("Failed to start decoder");
     }
 
-    spdlog::get("illixr")->info("Decoder initialized successfully");
+    spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->info("Decoder initialized successfully");
 
     // Start decode thread
     running_ = true;
@@ -829,7 +1330,7 @@ bool frame_decoder::get_decoded_frame(DecodedFrame& frame, int timeout_mil) {
     } else {
         if (!output_cv_.wait_for(lock, std::chrono::milliseconds(timeout_mil),
                                [this] { return !output_queue_.empty() || !running_; })) {
-            //spdlog::get("illixr")->debug("queue size: {}", output_queue_.size());
+            //spdlog::get("illixr")->get("illixr")->get("illixr")->get("illixr")->debug("queue size: {}", output_queue_.size());
             return false;
         }
     }
@@ -852,3 +1353,4 @@ size_t frame_decoder::get_decoded_frame_count() {
     std::lock_guard<std::mutex> lock(output_mutex_);
     return output_queue_.size();
 }
+*/
