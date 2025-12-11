@@ -10,6 +10,10 @@ add_library(${PLUGIN_NAME} SHARED
         plugin.cpp
         frame_decoder.cpp
         frame_decoder.hpp
+        stereo_surface_decoder.cpp
+        stereo_surface_decoder.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/quest3_params.hpp
+        $<TARGET_OBJECTS:egl_context_manager>
 )
 
 set(protobuf_files
@@ -27,6 +31,8 @@ PROTOBUF_TARGET_CPP(${PLUGIN_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/../proto ${protob
 target_link_libraries(${PLUGIN_NAME} PUBLIC
         Boost::serialization
         Eigen3::Eigen
+        EGL
+        GLESv3
         protobuf::libprotobuf_android
         spdlog::spdlog_android
         mediandk

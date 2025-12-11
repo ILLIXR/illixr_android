@@ -3,10 +3,11 @@
 #include "illixr/data_format/frame.hpp"
 #include "illixr/network/net_config.hpp"
 #include "illixr/phonebook.hpp"
-#include "illixr/threadloop.hpp"
+#include "illixr/quest3_params.hpp"
 #include "illixr/switchboard.hpp"
+#include "illixr/threadloop.hpp"
 
-#include "frame_decoder.hpp"
+#include "stereo_surface_decoder.hpp"
 
 #if __has_include("rendered_frame.pb.h")
 #include "rendered_frame.pb.h"
@@ -14,8 +15,6 @@
 #include "../proto/rendered_frame_stub.hpp"
 #endif
 
-#define WIDTH 2064/2
-#define HEIGHT 2208/2
 
 namespace ILLIXR {
 
@@ -26,6 +25,7 @@ public:
     ~android_media_decoder();
 protected:
     void _p_one_iteration() override;
+    void _p_thread_setup() override;
 private:
     void decompress_frame(const rendered_frame_proto::CompressedFrame& frame);
 
@@ -36,12 +36,12 @@ private:
 
     switchboard::writer<data_format::dual_frames>                         frame_writer_;
     switchboard::buffered_reader<switchboard::event_wrapper<std::string>> compressed_frame_reader_;
-    std::unique_ptr<frame_decoder> left_decoder_ = nullptr;
-    std::unique_ptr<frame_decoder> right_decoder_ = nullptr;
+
+    android_app* app_;
     std::string buffer_str_;
 
-    DecodedFrame left_data_;
-    DecodedFrame right_data_;
+    std::unique_ptr<stereo_surface_decoder> decoder_;
+    bool decoder_initialized_{false};
     const std::string delimiter_ = "END!";
 };
 
