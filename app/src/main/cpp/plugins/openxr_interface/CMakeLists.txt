@@ -7,10 +7,6 @@ endif()
 
 find_package(OpenXR REQUIRED)
 
-#add_library(openxr_loader SHARED IMPORTED)
-#set_target_properties(openxr_loader PROPERTIES
-#        IMPORTED_LOCATION "${THIRD_PARTY_DIR}/lib/${ANDROID_ABI}/libopenxr_loader.so"
-#)
 set(PLUGIN_NAME plugin.openxr_interface${ILLIXR_BUILD_SUFFIX})
 
 add_library(${PLUGIN_NAME} SHARED
@@ -18,10 +14,11 @@ add_library(${PLUGIN_NAME} SHARED
         plugin.hpp
         stereo_renderer.cpp
         stereo_renderer.hpp
-        #${CMAKE_SOURCE_DIR}/include/illixr/openxr_interface.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/phonebook.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/switchboard.hpp
         ${CMAKE_SOURCE_DIR}/include/illixr/plugin.hpp
+        ${CMAKE_SOURCE_DIR}/include/illixr/quest3_params.hpp
+        $<TARGET_OBJECTS:egl_context_manager>
 )
 
 target_include_directories(${PLUGIN_NAME} PRIVATE
@@ -39,7 +36,6 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC
         Eigen3::Eigen
         android
         spdlog::spdlog_android
-        #OpenXR::headers
         OpenXR::openxr_loader
         EGL
         GLESv3

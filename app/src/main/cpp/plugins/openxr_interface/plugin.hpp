@@ -17,6 +17,9 @@
 #include <GLES3/gl3.h>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
+
+#include "frame_dumper.hpp"
+
 #define OXR_CheckErrors(cmd, pfunc) do { \
     XrResult res = cmd; \
     if (XR_FAILED(res)) { \
@@ -34,11 +37,11 @@ public:
     [[maybe_unused]] oxr_interface(const std::string& name_, phonebook* pb_);
     ~oxr_interface() override;
 
-    //void start() override;
     std::vector<XrApiLayerProperties>& get_layer_properties() {
         return layer_properties_;
     }
 
+    void _p_thread_setup() override;
     XrSession session() const {
         return session_;
     }
@@ -50,9 +53,8 @@ public:
 protected:
     void _p_one_iteration() override;
 private:
-    //void handle_session_state_changes(XrSessionState state);
     void create_swapchains();
-
+    bool ensure_gl_context();
     void get_openxr_projection_matrix(int eye, float* mvp);
     void bind_eye_framebuffer(int eye);
     void release_swapchain_image(int eye);
@@ -60,9 +62,6 @@ private:
     void create_view_matrix(float* result, XrPosef pose);
     void identity_matrix(float* result);
     void matrix_multiply(float* result, const float* a, const float* b);
-    //void upload_image_to_texture(GLuint texture, uint32_t width, uint32_t height, const uint8_t* data);
-
-    //void render_stereo_images(const uint8_t* left_eye, const uint8_t* right_eye);
 
     void init_xr();
     void create_session();
@@ -88,9 +87,8 @@ private:
 
     std::unique_ptr<stereo_renderer> renderer_;
 
-    // Quest 3 specific: 2064x2208 per eye native resolution
-    static constexpr int QUEST3_EYE_WIDTH = 2064/2;
-    static constexpr int QUEST3_EYE_HEIGHT = 2208/2;
+    //std::unique_ptr<frame_dumper> dumper_[2];
+    uint64_t frame_counter_{0};
 };
 
 }

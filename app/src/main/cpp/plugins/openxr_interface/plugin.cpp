@@ -1,10 +1,10 @@
 #include "plugin.hpp"
 
+#include "illixr/egl/egl_context_manager.hpp"
+
 #include <array>
 #include <spdlog/spdlog.h>
 #include <vector>
-
-//#include <jni>
 
 using namespace ILLIXR;
 
@@ -43,46 +43,10 @@ static app_state app = {nullptr};
 // Identity pose helper
 static XrPosef identity_pose() {
     XrPosef pose = {{0}};
-    pose.position.y = 1.5f;
     pose.orientation.w = 1.0f;
     return pose;
 }
-/*{
-template <typename Result>
-Result JNI_CheckResult(Result result, const char* function, JNIEnv* env) {
-    if constexpr (std::is_pointer<Result>::value) {
-        if (result == nullptr) {
-            ALOGE("JNI function failed %s", function);
-            abort();
-        }
-    }
-    if (env->ExceptionCheck() == JNI_TRUE) {
-        ALOGE("JNI function caused a java exception %s", function);
-        abort();
-    }
-    return result;
-}
 
-bool CheckUseScenePermission(JNIEnv* env, jobject activityObject) {
-#define JNI_CHECK_RESULT(func) JNI_CheckResult(func, #func, env);
-    jstring strPermission = JNI_CHECK_RESULT(env->NewStringUTF("com.oculus.permission.USE_SCENE"));
-    jclass clsActivity = JNI_CHECK_RESULT(env->FindClass("android/app/Activity"));
-    jmethodID methodCheckSelfPermission = JNI_CHECK_RESULT(
-            env->GetMethodID(clsActivity, "checkSelfPermission", "(Ljava/lang/String;)I"));
-    jint intPermissionResult = JNI_CHECK_RESULT(
-            env->CallIntMethod(activityObject, methodCheckSelfPermission, strPermission));
-    jclass clsPackageManager =
-    JNI_CHECK_RESULT(env->FindClass("android/content/pm/PackageManager"));
-    jfieldID fidPermissionGranted =
-    JNI_CHECK_RESULT(env->GetStaticFieldID(clsPackageManager, "PERMISSION_GRANTED", "I"));
-    jint intPermissionGranted =
-    JNI_CHECK_RESULT(env->GetStaticIntField(clsPackageManager, fidPermissionGranted));
-    env->DeleteLocalRef(strPermission);
-    return intPermissionResult == intPermissionGranted;
-#undef JNI_CHECK_RESULT
-}
-
-}*/
 [[maybe_unused]] oxr_interface::oxr_interface(const std::string& name_, phonebook* pb_)
         : threadloop{name_, pb_}
         , switchboard_{phonebook_->lookup_impl<switchboard>()}
@@ -90,7 +54,6 @@ bool CheckUseScenePermission(JNIEnv* env, jobject activityObject) {
         , clock_{phonebook_->lookup_impl<relative_clock>()}
         , pose_writer_{switchboard_->get_writer<data_format::pose_type>("xr_pose")}
         , frame_reader_{switchboard_->get_buffered_reader<data_format::dual_frames>("unity_rendered_frame")} {
-    renderer_ = std::make_unique<stereo_renderer>(QUEST3_EYE_WIDTH, QUEST3_EYE_HEIGHT);
     spdlog::get("illixr")->debug("OXR starting");
     init_xr();
     spdlog::get("illixr")->debug("IXR_INIT done");
@@ -98,17 +61,30 @@ bool CheckUseScenePermission(JNIEnv* env, jobject activityObject) {
     spdlog::get("illixr")->debug("OXR create_session done");
     create_swapchains();
     spdlog::get("illixr")->debug("OXR create_swapchains done");
+    egl_context_manager::instance().release_primary_context_from_current_thread();
+    spdlog::get("illixr")->info("oxr_interface: Released context for threadloop");
+}
+
+void oxr_interface::_p_thread_setup() {
+// Acquire context for this thread (will get the primary context)
+    if (!egl_context_manager::instance().make_current_for_thread()) {
+        spdlog::get("illixr")->error("oxr_interface: Failed to acquire GL context in thread setup");
+        return;
+    }
+    spdlog::get("illixr")->info("oxr_interface: GL context acquired by threadloop");
+    std::string files_dir = get_app_files_dir(app_);
+    //dumper_[0] = std::make_unique<frame_dumper>(files_dir, 200);
+    //dumper_[1] = std::make_unique<frame_dumper>(files_dir, 200);    // Now initialize renderer
+    renderer_ = std::make_unique<stereo_renderer>();
+    if (!renderer_->initialize()) {
+        spdlog::get("illixr")->error("oxr_interface: Failed to initialize renderer");
+        return;
+    }
+    renderer_->set_crop_region(HEADSET_WIDTH, HEADSET_HEIGHT,   // Original
+                               (HEADSET_WIDTH + 31) & ~31, (HEADSET_HEIGHT + 31) & ~31);   // Padded
 }
 
 void oxr_interface::init_xr() {
-    //JNIEnv* java_env;
-    //(*app_->activity->vm).AttachCurrentThread(&java_env, nullptr);
-    //std::stringstream tss(switchboard_->get_env("REQUIRED_OXR_EXTENSIONS"));
-    //while(tss.good()) {
-    //    std::string substr;
-    //    getline(tss, substr, ',');
-    //    required_extensions_.emplace_back(substr.c_str());
-    //}
     PFN_xrInitializeLoaderKHR init_loader;
     xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction*)&init_loader);
     if (init_loader != nullptr) {
@@ -121,51 +97,6 @@ void oxr_interface::init_xr() {
     const char* extensions[] = {XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME,
                                 XR_KHR_OPENGL_ES_ENABLE_EXTENSION_NAME
     };
-    /*
-    //XrResult result;
-    //PFN_xrEnumerateApiLayerProperties enumerate_layer_properties;
-    //result = xrGetInstanceProcAddr(XR_NULL_HANDLE,
-    //                               "xrEnumerateApiLayerProperties",
-    //                               (PFN_xrVoidFunction*)&enumerate_layer_properties);
-    //if (result != XR_SUCCESS) {
-    //    spdlog::get("illixr")->error("Failed to get XrEnumerateApiLayerProperties pointer");
-    //}
-    //uint32_t layer_count = 0;
-    //OXR(enumerate_layer_properties(0, &layer_count, nullptr));
-    //layer_properties_ = std::vector<XrApiLayerProperties>(layer_count, {XR_TYPE_API_LAYER_PROPERTIES});
-    //OXR(enumerate_layer_properties(layer_count, &layer_count, layer_properties_.data()));
-    //for (const auto& layer : layer_properties_) {
-    //    spdlog::get("illixr")->debug("Found layer {}", layer.layerName);
-    //}
-//    char** required_extensions = new char*[required_extensions_.size()];
-//    for (int i = 0; i < required_extensions_.size(); i++) {
-//        required_extensions[i] = required_extensions_[i];
-//    }
-    //const uint32_t num_req_extensions = required_extensions_.size();
-    //const uint32_t num_req_extensions = sizeof(required_extensions_) / sizeof(required_extensions_[0]);
-    //uint32_t num_output_extensions = 0;
-    //OXR(xrEnumerateInstanceExtensionProperties(nullptr, 0, &num_output_extensions, nullptr));
-    //spdlog::get("illixr")->debug("Found {} extensions", num_output_extensions);
-
-    //extension_properties_ = std::vector<XrExtensionProperties>(num_output_extensions, {XR_TYPE_EXTENSION_PROPERTIES});
-
-    //OXR(xrEnumerateInstanceExtensionProperties(NULL, num_output_extensions, &num_output_extensions, extension_properties_.data()));
-    //for (const auto& ext : extension_properties_) {
-    //    spdlog::get("illixr")->debug("Found extension {}", ext.extensionName);
-    //}
-    //for (auto i = 0; i < num_req_extensions; i++) {
-    //    bool found = false;
-    //    for (auto j = 0; j < num_output_extensions; j++) {
-    //        if(!strcmp(required_extensions_[i], extension_properties_[j].extensionName)) {
-    //            spdlog::get("illixr")->debug("Found required extension {}", required_extensions_[i]);
-    //            found = true;
-    //            break;
-    //        }
-    //    }
-    //    if (!found) {
-    //        spdlog::get("illixr")->error("Failed to locate required extension {}", required_extensions_[i]);
-    //    }
-    //}*/
 
     XrInstanceCreateInfoAndroidKHR android_info = {XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR};
     android_info.applicationVM = app_->activity->vm;
@@ -218,7 +149,6 @@ void oxr_interface::init_xr() {
                                   system_properties.trackingProperties.orientationTracking ? "True" : "False",
                                   system_properties.trackingProperties.positionTracking ? "True" : "False");
 
-    //assert(App::kMaxLayerCount <= systemProperties.graphicsProperties.maxLayerCount);
 }
 
 void oxr_interface::create_session() {
@@ -238,7 +168,7 @@ void oxr_interface::create_session() {
     EGLint num_configs;
     eglChooseConfig(app.egl_display, config_attribs, &app.egl_config, 1, &num_configs);
 
-    // CRITICAL FIX: Create context WITHOUT shared context first
+    // Create context WITHOUT shared context first
     // This makes it the "base" context that can be shared
     const EGLint context_attribs[] = {
             EGL_CONTEXT_CLIENT_VERSION, 3,
@@ -247,9 +177,6 @@ void oxr_interface::create_session() {
 
     app.egl_context = eglCreateContext(app.egl_display, app.egl_config,
                                       EGL_NO_CONTEXT, context_attribs);
-
-    app.egl_context = eglCreateContext(app.egl_display, app.egl_config,
-                                       EGL_NO_CONTEXT, context_attribs);  // No share context
 
     if (app.egl_context == EGL_NO_CONTEXT) {
         EGLint error = eglGetError();
@@ -263,8 +190,7 @@ void oxr_interface::create_session() {
             EGL_NONE
     };
     EGLSurface dummy_surface = eglCreatePbufferSurface(app.egl_display, app.egl_config, surface_attribs);
-    //eglMakeCurrent(app.egl_display, dummy_surface, dummy_surface, app.egl_context);
-// Make context current initially
+    // Make context current initially
     if (!eglMakeCurrent(app.egl_display, dummy_surface, dummy_surface, app.egl_context)) {
         EGLint error = eglGetError();
         spdlog::get("illixr")->error("Failed to make initial context current: 0x{:X}", error);
@@ -272,6 +198,12 @@ void oxr_interface::create_session() {
     }
     spdlog::get("illixr")->info("EGL context created and made current: {}", (void*)app.egl_context);
 
+    egl_context_manager::instance().register_primary_context(
+            app.egl_display,
+            app.egl_context,
+            app.egl_config
+    );
+    spdlog::get("illixr")->info("Registered primary EGL context with manager");
     // Get graphics requirements (required even if not rendering)
     DECL_PFN(xrGetOpenGLESGraphicsRequirementsKHR);
     INIT_PFN(xrGetOpenGLESGraphicsRequirementsKHR,xrGetOpenGLESGraphicsRequirementsKHR)
@@ -312,7 +244,7 @@ void oxr_interface::create_session() {
     OXR(xrEnumerateViewConfigurationViews(app.instance, app.system_id,
                                           XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, 2, &viewCount, app.view_configs))
 
-    spdlog::get("illixr")->debug("View 0: %dx%d, View 1: %dx%d",
+    spdlog::get("illixr")->debug("View 0: {}x{}, View 1: {}x{}",
                                  app.view_configs[0].recommendedImageRectWidth,
                                  app.view_configs[0].recommendedImageRectHeight,
                                  app.view_configs[1].recommendedImageRectWidth,
@@ -329,6 +261,8 @@ void oxr_interface::create_session() {
 }
 
 void oxr_interface::_p_one_iteration() {
+    // Ensure EGL context is bound
+    ensure_gl_context();
     poll_events();
     run_frame();
 }
@@ -399,7 +333,6 @@ void oxr_interface::poll_events() {
 
 XrResult oxr_interface::get_head_pose(XrTime time, XrPosef* outPose, XrBool32* outValid) {
     XrSpaceLocation location = {XR_TYPE_SPACE_LOCATION};
-    //spdlog::get("illixr")->debug("Getting pose");
     OXR(xrLocateSpace(app.view_space, app.local_space, time, &location))
 
     // Check if pose is valid and tracked
@@ -413,6 +346,34 @@ XrResult oxr_interface::get_head_pose(XrTime time, XrPosef* outPose, XrBool32* o
     return XR_SUCCESS;
 }
 
+XrPosef invert_pose(const XrPosef& p) {
+    XrPosef inv;
+    // invert quaternion (conjugate)
+    inv.orientation.w =  p.orientation.w;
+    inv.orientation.x = -p.orientation.x;
+    inv.orientation.y = -p.orientation.y;
+    inv.orientation.z = -p.orientation.z;
+    // invert translation: -R^T * t
+    // build rotation matrix from quaternion (same as your create_view_matrix components)
+    float x = p.orientation.x, y = p.orientation.y, z = p.orientation.z, w = p.orientation.w;
+    float x2 = x + x, y2 = y + y, z2 = z + z;
+    float xx = x * x2, xy = x * y2, xz = x * z2;
+    float yy = y * y2, yz = y * z2, zz = z * z2;
+    float wx = w * x2, wy = w * y2, wz = w * z2;
+    float r00 = 1.0f - (yy + zz);
+    float r01 = xy + wz;
+    float r02 = xz - wy;
+    float r10 = xy - wz;
+    float r11 = 1.0f - (xx + zz);
+    float r12 = yz + wx;
+    float r20 = xz + wy;
+    float r21 = yz - wx;
+    float r22 = 1.0f - (xx + yy);
+    inv.position.x = -(r00 * p.position.x + r10 * p.position.y + r20 * p.position.z);
+    inv.position.y = -(r01 * p.position.x + r11 * p.position.y + r21 * p.position.z);
+    inv.position.z = -(r02 * p.position.x + r12 * p.position.y + r22 * p.position.z);
+    return inv;
+}
 void oxr_interface::run_frame() {
     if (!app.session_running) 
         return;
@@ -488,7 +449,7 @@ void oxr_interface::run_frame() {
             }
         }
         if (current_frames_ != nullptr) {
-            renderer_->receive_dual_frame(current_frames_);
+            renderer_->receive_frame(* current_frames_);
 
             // OpenXR render loop for each eye (Quest 3 supports 72Hz and 90Hz)
             for (int eye = 0; eye < 2; eye++) {
@@ -506,6 +467,11 @@ void oxr_interface::run_frame() {
                 // Render video frame for this eye
                 if (renderer_->render_eye(eye, mvp)) {
                     // Successfully rendered frame for this eye
+                    //if (dumper_[eye] && dumper_[eye]->get_dump_count() < 200) {
+                    //    spdlog::get("illixr")->debug("dumping");
+                    //    dumper_[eye]->dump_framebuffer(HEADSET_WIDTH, HEADSET_HEIGHT, eye, frame_counter_);
+                    //}
+                    frame_counter_++;
                 } else {
                     // No frame ready yet - render blank or last frame
                     spdlog::get("illixr")->debug("No frame ready for eye {}", eye);
@@ -515,31 +481,19 @@ void oxr_interface::run_frame() {
                 release_swapchain_image(eye);
             }
 
-            /*uint8_t* leftImage = static_cast<uint8_t*>(malloc(imageSize));
-            uint8_t* rightImage = static_cast<uint8_t*>(malloc(imageSize));
-
-            // Fill with solid colors (replace this with your actual image data)
-            for (size_t i = 0; i < imageSize; i += 4) {
-                leftImage[i] = 255;     // R
-                leftImage[i + 1] = 0;     // G
-                leftImage[i + 2] = 0;     // B
-                leftImage[i + 3] = 255;   // A
-
-                rightImage[i] = 0;      // R
-                rightImage[i + 1] = 0;    // G
-                rightImage[i + 2] = 255;  // B
-                rightImage[i + 3] = 255;  // A
-            }*/
-
-            // Render your images to the swapchains
-            //render_stereo_images(current_frames_->left_eye.data(), current_frames_->right_eye.data());
-
-            //free(leftImage);
-            //free(rightImage);
-
             // Set up projection layer
             for (int eye = 0; eye < 2; eye++) {
-                projectionViews[eye].pose = app.views[eye].pose;
+                // Identity pose - no position offset, no rotation
+                // This displays the image directly in front of each eye
+                XrPosef identity_pose = {};
+                identity_pose.orientation.w = 1.0f;  // Identity quaternion (no rotation)
+                identity_pose.orientation.x = 0.0f;
+                identity_pose.orientation.y = 0.0f;
+                identity_pose.orientation.z = 0.0f;
+                identity_pose.position.x = 0.0f;     // No position offset
+                identity_pose.position.y = 0.0f;
+                identity_pose.position.z = 0.0f;
+                projectionViews[eye].pose = identity_pose;//identity_pose;
                 projectionViews[eye].fov = app.views[eye].fov;
                 projectionViews[eye].subImage.imageArrayIndex = 0;
                 projectionViews[eye].subImage.swapchain = app.swapchains[eye].swapchain;
@@ -550,7 +504,8 @@ void oxr_interface::run_frame() {
                 projectionViews[eye].subImage.imageArrayIndex = 0;
             }
 
-            projectionLayer.space = app.local_space;
+            //projectionLayer.space = app.local_space;
+            projectionLayer.space = app.view_space;
             projectionLayer.viewCount = 2;
             projectionLayer.views = projectionViews;
 
@@ -566,66 +521,14 @@ void oxr_interface::run_frame() {
     endInfo.layers = layers;
     xrEndFrame(app.session, &endInfo);
 }
-/*
-void oxr_interface::upload_image_to_texture(GLuint texture, uint32_t width, uint32_t height,
-                             const uint8_t* imageData) {
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    // Upload RGBA8 data (assuming your uint8_t* is in RGBA format)
-    // If your data is RGB, change GL_RGBA to GL_RGB and adjust accordingly
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, imageData);
-
-    // Optional: set texture parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-
-void oxr_interface::render_stereo_images(const uint8_t* left_eye, const uint8_t* right_eye) {
-    for (int eye = 0; eye < 2; eye++) {
-        SwapchainInfo* sc = &app.swapchains[eye];
-
-        // Acquire swapchain image
-        XrSwapchainImageAcquireInfo acquireInfo = {XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
-        uint32_t imageIndex;
-        xrAcquireSwapchainImage(sc->swapchain, &acquireInfo, &imageIndex);
-
-        // Wait for the image to be ready
-        XrSwapchainImageWaitInfo waitInfo = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
-        waitInfo.timeout = XR_INFINITE_DURATION;
-        xrWaitSwapchainImage(sc->swapchain, &waitInfo);
-
-        // Get the OpenGL texture ID from the swapchain
-        GLuint texture = sc->images[imageIndex].image;
-
-        // Upload your image data to this texture
-        const uint8_t* imageData = (eye == 0) ? left_eye : right_eye;
-        upload_image_to_texture(texture, sc->width, sc->height, imageData);
-
-        // Release the swapchain image
-        XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
-        xrReleaseSwapchainImage(sc->swapchain, &releaseInfo);
-    }
-}*/
 
 void oxr_interface::create_swapchains() {
     // Create one swapchain per eye
     for (int eye = 0; eye < 2; eye++) {
         SwapchainInfo* sc = &app.swapchains[eye];
 
-        // Use your actual resolution: 1032x1104 per eye
-        // Note: This is half of Quest 3's native 2064x2208
-        sc->width = 1032;   // Your input resolution
-        sc->height = 1104;  // Your input resolution
-
-        // You could also use recommended resolution if you want full native:
-        // sc->width = app.view_configs[eye].recommendedImageRectWidth;
-        // sc->height = app.view_configs[eye].recommendedImageRectHeight;
+        sc->width = HEADSET_WIDTH;   // Your input resolution
+        sc->height = HEADSET_HEIGHT;  // Your input resolution
 
         XrSwapchainCreateInfo swapchainInfo = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
         swapchainInfo.arraySize = 1;
@@ -686,16 +589,9 @@ void oxr_interface::create_swapchains() {
 
 // Helper to convert XrFovf and XrPosef to a projection-view matrix
 void oxr_interface::get_openxr_projection_matrix(int eye, float* mvp) {
-// For fullscreen video quad rendering, use identity matrix
+    // For fullscreen video quad rendering, use identity matrix
     // The video renderer will handle the quad placement
     identity_matrix(mvp);
-
-    // If you want to use actual OpenXR projection for 3D positioning:
-    // XrFovf fov = app.views[eye].fov;
-    // XrPosef pose = app.views[eye].pose;
-    // create_projection_fov(projection, fov, 0.05f, 100.0f);
-    // create_view_matrix(view, pose);
-    // matrix_multiply(mvp, projection, view);
 }
 
 // Bind the framebuffer for the specified eye's current swapchain image
@@ -904,4 +800,10 @@ void oxr_interface::matrix_multiply(float* result, const float* a, const float* 
     }
     memcpy(result, temp, sizeof(float) * 16);
 }
+
+bool oxr_interface::ensure_gl_context() {
+    // Use the context manager - it handles per-thread contexts
+    return egl_context_manager::instance().make_current_for_thread();
+}
+
 PLUGIN_MAIN(oxr_interface)
