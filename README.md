@@ -1,3 +1,106 @@
+# ILLIXR-net on Android
+
+This repo is the initial version of ILLIXR-net for Android. It is designed to run on the Quest 3, but should run on any Android headset running and OpenXR runtime.
+
+!!! note
+
+    This repo is temporary. We will be merging this into the the main ILLIXR-net repo in the near future.
+
+This code contains more parts than are currently needed by ILLIXR-net. The relevant plugins that are used in this setup are:
+
+- `offline_rendering_mediandk/rx` (this plugin decodes the images received over wifi, using h.265)
+- `openxr_interface` (this plugin is the OpenXR application that communicates with the Horizon OS to get sensor information and submit frames)
+- `quest3/head_pose/tx` (this plugin sends the current head pose over wifi to the server running ILLIXR-net)
+- `tcp_network_backend` (this plugin transmits to and receives messages from ILLIXR-net on the server)
+
+Below is a schematic of the headset side architecture
+
+``` mermaid
+flowchart TD
+    V[Server]
+    subgraph Headset
+    subgraph ILLIXR-net
+    T[tcp_network_backend]
+    O[offload_rendering_mediandk.rx]
+    Q[quest3.head_pose.tx]
+    X[openxr_interface]
+    S[switchboard]
+    X -->|head pose| S
+    S -->|head pose| Q
+    Q -->|head_pose| T
+    T -->|compressed frames| S
+    S -->|compressed frames| O
+    O -->|frames| S
+    S -->|frames| X
+    end
+    H[Horizon OS]
+    end
+   T -->|head_pose| V
+   H -.->|head pose, OpenXR| X
+   V -.->|compressed frames| T
+   X -.->|swapchain, OpenXR| H
+```
+## Building Instructions
+
+### Requirements
+
+- Android Studio: the development platform, any recent version should be fine
+  - Android NDK, version 27.2.12479018
+  - Android SDK, version 13.0 (API 33)
+- Linux machine: there are a few setup scripts that only work on Linux machines (Windows support will be added shortly)
+- Eigen3 and protobuf compiler (protoc) need to be installed on the system
+
+### Configuring
+
+After cloning the repository be sure to run
+
+```bash
+cd <your repo location>
+git submodule init
+git submodule update
+cd android_libraries/third_party
+./prepare.sh
+```
+
+This imports the android_libraries submodule and expands its contents.
+
+ILLIXR-net is a CMake-based C++ project. After opening the project in Android Studio, Gradle should sync (configure) the project automatically.
+
+### Building
+
+You will need to edit a single file before building. In `app/src/main/cpp/src/main.cpp`, edit the two lines:
+
+- `ILLIXR_TCP_CLIENT_IP` should contain the IP address of the Quest headset
+- `ILLIXR_TCP_SERVER_IP` should contain the IP address of the Windows server
+
+Then just build the project.
+
+### Running
+
+You will need to enable development mode on the headset. See [here](https://developers.meta.com/horizon/documentation/unity/unity-env-device-setup) for instructions. Plug the headset into you machine via a USB 3.0 data cable, you will be prompted in the headset to allow a connection to your computer (first time only), then you will be prompted to allow data transfer over the USB. Click on the box to enable it. This question is asked every time you plug in the headset and the message only stays up for a few seconds, you may need to unplug and re-plug the headset if you miss it the first time. The device list at the top of the Android Studio editor should automatically list the Quest 3. To run ILLIXR-net, just click `Run->Run 'app'` or `Run->Debug 'app'`.
+
+!!! note
+
+    Currently, there is a specific order you must launch each of the components in:
+    
+    1. ILLIXR-net on the server
+    2. ILLIXR-net on the headset
+    3. Unity App
+
+    It can take a bit before images start flowing as things are getting configured.
+
+!!! warning
+
+    There are a few known issues with the current setup:
+
+    1. When running in Debug mode on the server, the encoder can get behind quickly
+    2. The images displayed on the headset will make you feel like you are crosseyed, this is due to some transform being applied when it should not. This likely won't be tracked down and fixed (see below)
+
+    Both of these issues should be addressed when ILLIXR-net on the server is using an OpenXR interface instead of getting frames driectly from the Unity App. OpenXR will enforce the cadence of the images, and images submitted to the swapchain will be in the proper format for the headset to display properly. 
+
+
+
+
 # ILLIXR on Android
 
 ## Setup Instructions
