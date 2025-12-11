@@ -80,9 +80,9 @@ static void handle_cmd(struct android_app* app, int32_t cmd) {
         setenv("ILLIXR_RUN_DURATION", "1000000", true);
         setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
         setenv("ILLIXR_ENABLE_PRE_SLEEP", "False", true);
-        setenv("ILLIXR_TCP_CLIENT_IP", "141.142.60.11", true);
+        setenv("ILLIXR_TCP_CLIENT_IP", "10.195.222.227", true);
         setenv("ILLIXR_TCP_CLIENT_PORT", "9000", true);
-        setenv("ILLIXR_TCP_SERVER_IP", "128.174.3.132", true);
+        setenv("ILLIXR_TCP_SERVER_IP", "10.192.88.249", true);
         setenv("ILLIXR_TCP_SERVER_PORT", "9001", true);
         setenv("ILLIXR_IS_CLIENT", "1", true);
 
