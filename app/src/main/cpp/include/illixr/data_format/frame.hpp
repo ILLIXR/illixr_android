@@ -238,6 +238,113 @@ struct compressed_frame : public switchboard::event {
     }
 };
 
+/// Decoded video frame data format
+enum class frame_format : uint8_t {
+    nv12,           ///< NV12 (Y plane + interleaved UV plane)
+    rgba8,          ///< RGBA 8-bit per channel
+    external_oes    ///< GL_TEXTURE_EXTERNAL_OES handle (for zero-copy path)
+};
+
+/// Single eye frame data
+/// Can contain either raw pixel data or a GL texture handle
+struct eye_frame {
+    /// Raw pixel data (used when format is nv12 or rgba8)
+    std::vector<uint8_t> data{};
+
+    /// GL texture ID (used when format is external_oes)
+    /// This texture is owned by the decoder and valid until the next frame
+    GLuint texture_id{0};
+
+    /// Texture transform matrix from SurfaceTexture (4x4, column-major)
+    /// Only valid when format is external_oes
+    std::array<float, 16> texture_transform{
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+    };
+
+    eye_frame() = default;
+
+    /// Construct with raw data
+    explicit eye_frame(std::vector<uint8_t> raw_data)
+            : data{std::move(raw_data)}
+            , texture_id{0} {}
+
+    /// Construct with texture handle and transform
+    eye_frame(GLuint tex_id, const float* transform)
+            : texture_id{tex_id} {
+        if (transform) {
+            std::copy(transform, transform + 16, texture_transform.begin());
+        }
+    }
+
+    /// Check if this frame has valid data
+    [[nodiscard]] bool has_data() const {
+        return !data.empty() || texture_id != 0;
+    }
+
+    /// Get Y plane pointer for NV12 format
+    [[nodiscard]] const uint8_t* get_y_plane() const {
+        return data.data();
+    }
+
+    /// Get UV plane pointer for NV12 format
+    [[nodiscard]] const uint8_t* get_uv_plane(int width, int height) const {
+        return data.data() + (width * height);
+    }
+};
+
+/// Dual-eye video frame for stereo VR rendering.
+/// Published by the decoder plugin, consumed by the renderer.
+struct [[maybe_unused]] dual_frames : public switchboard::event {
+    eye_frame left_eye{};
+    eye_frame right_eye{};
+
+    int width{0};
+    int height{0};
+
+    /// Format of the frame data
+    frame_format format{frame_format::nv12};
+
+    /// Presentation timestamp
+    time_point render_time{};
+
+    /// Frame sequence number (for debugging/sync)
+    uint64_t frame_number{0};
+
+    dual_frames() = default;
+
+    /// Construct with raw NV12 data
+    dual_frames(time_point tp, std::vector<uint8_t> left, std::vector<uint8_t> right,
+                int w, int h, uint64_t frame_num = 0)
+            : left_eye{std::move(left)}
+            , right_eye{std::move(right)}
+            , width{w}
+            , height{h}
+            , format{frame_format::nv12}
+            , render_time{tp}
+            , frame_number{frame_num} {}
+
+    /// Construct with external OES texture handles
+    dual_frames(time_point tp, GLuint left_tex, const float* left_transform,
+                GLuint right_tex, const float* right_transform,
+                int w, int h, uint64_t frame_num = 0)
+            : left_eye{left_tex, left_transform}
+            , right_eye{right_tex, right_transform}
+            , width{w}
+            , height{h}
+            , format{frame_format::external_oes}
+            , render_time{tp}
+            , frame_number{frame_num} {}
+
+    /// Check if both eyes have valid data
+    [[nodiscard]] bool is_valid() const {
+        return left_eye.has_data() && right_eye.has_data() && width > 0 && height > 0;
+    }
+};
+
+/*
 struct [[maybe_unused]] dual_frames : public switchboard::event {
     std::vector<uint8_t> left_eye{};
     std::vector<uint8_t> right_eye{};
@@ -255,5 +362,5 @@ struct [[maybe_unused]] dual_frames : public switchboard::event {
                 , height{h}
                 , render_time{tp} {}
 
-};
+};*/
 }
